@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, ShieldCheck } from "lucide-react";
+import { Menu, X, ShieldCheck, ArrowRight } from "lucide-react";
 import { Container } from "src/components/shared/Container";
 
 export const NavBar: React.FC = () => {
@@ -68,14 +68,17 @@ export const NavBar: React.FC = () => {
             {open && (
                 <div className="md:hidden">
                     <div className="fixed inset-0 z-50 bg-black/20" onClick={() => setOpen(false)} />
-                    <div className="fixed right-0 top-0 z-50 h-full w-80 bg-white shadow-xl">
+                    <div className="fixed right-0 top-0 z-50 h-screen w-2/3 bg-white shadow-xl">
                         <div className="flex items-center justify-between border-b p-4">
                             <span className="text-base font-semibold text-slate-900">Menu</span>
                             <button className="h-9 w-9 rounded-lg border" onClick={() => setOpen(false)}>
-                                <X className="h-5 w-5" />
+
+                                <div className="w-full h-full flex items-center justify-center">
+                                    <X className="h-5 w-5" />
+                                </div>
                             </button>
                         </div>
-                        <nav className="flex flex-col gap-3 p-4">
+                        <nav className="flex flex-col gap-3 p-5 text-base font-medium text-slate-700">
                             {links.map((l) => (
                                 <a
                                     key={l.href}
@@ -84,16 +87,30 @@ export const NavBar: React.FC = () => {
                                         e.preventDefault();
                                         handleLinkClick(l.href);
                                     }}
-                                    className="rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50 cursor-pointer"
+                                    className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3 shadow-sm hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-all"
                                 >
                                     {l.label}
+                                    <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600" />
                                 </a>
                             ))}
-                            <Link to="/users" className="rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50" onClick={() => setOpen(false)}>
+
+                            <Link
+                                to="/users"
+                                className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3 shadow-sm hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-all"
+                                onClick={() => setOpen(false)}
+                            >
                                 Users
+                                <ArrowRight className="h-4 w-4 text-slate-400" />
                             </Link>
-                            <a href="#cta" className="mt-2 inline-flex justify-center rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Sign up</a>
+
+                            <a
+                                href="#cta"
+                                className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-all"
+                            >
+                                Sign up
+                            </a>
                         </nav>
+
                     </div>
                 </div>
             )}

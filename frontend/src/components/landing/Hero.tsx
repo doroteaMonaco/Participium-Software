@@ -38,30 +38,30 @@ export const Hero: React.FC = () => {
                     >
                         <Badge>City participation, simplified</Badge>
 
-                        <h1 className="mt-6 text-5xl font-extrabold leading-tight text-slate-900 sm:text-6xl">
+                        <h1 className="mt-6 text-3xl md:text-5xl font-extrabold leading-tight text-slate-900 sm:text-6xl">
                             Report issues.<br />
                             Track progress.<br />
-                            Improve Turin{" "}
+                            Improve Torino{" "}
                             <span className="bg-gradient-to-r from-indigo-500 to-emerald-500 bg-clip-text text-transparent">
                                 together.
                             </span>
                         </h1>
 
-                        <p className="mt-5 max-w-xl text-lg text-slate-600">
+                        <p className="mt-5 max-w-xl text-sm md:text-lg text-slate-600">
                             A transparent way to connect citizens and city offices — your
                             reports make public spaces better for everyone.
                         </p>
 
-                        <div className="mt-8 flex flex-wrap items-center gap-3" id="cta">
+                        <div className="mt-8 grid grid-cols-2 items-center gap-3" id="cta">
                             <a
                                 href="#features"
-                                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+                                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-2 py-2 md:px-5 md:py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
                             >
                                 Start reporting <ArrowRight className="h-4 w-4" />
                             </a>
                             <a
                                 href="#stats"
-                                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+                                className="flex justify-center items-center gap-2 rounded-xl border border-slate-300 bg-white px-2 py-2 md:px-5 md:py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50"
                             >
                                 View public stats
                             </a>

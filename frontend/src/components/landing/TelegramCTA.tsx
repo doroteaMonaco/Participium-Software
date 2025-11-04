@@ -19,7 +19,9 @@ export const TelegramCTA: React.FC = () => (
                 <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-xl">
                     <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
                         <div className="flex items-start gap-3">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-white"><Send className="h-4 w-4" /></div>
+                            <div className="flex  md:h-9 md:w-9 items-center justify-center rounded-full bg-indigo-600 text-white">
+                                <Send className="w-6 h-6 md:h-4 md:w-4 py-1" />
+                            </div>
                             <div>
                                 <p className="font-semibold text-slate-900">Participium Bot</p>
                                 <p>Hi! Send your location and a description. I'll help you add a title, category, and photos. You'll get updates here.</p>
