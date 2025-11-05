@@ -12,7 +12,8 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: .              # 👈 cambia qui: contesto = root del progetto
+      dockerfile: backend/Dockerfile  # 👈 specifica il Dockerfile giusto
     ports:
       - "4000:4000"
     environment:

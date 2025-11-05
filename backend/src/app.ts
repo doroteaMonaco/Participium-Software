@@ -3,9 +3,10 @@ import cors from 'cors';
 import authRouter from './routes/authRouter';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
+import path from 'path';
 
 const app = express();
-const swaggerDocument = YAML.load('../doc/OpenAPI_swagger.yml');
+const swaggerDocument = YAML.load(path.join(__dirname, '../doc/OpenAPI_swagger.yml'));
 
 app.use(cors());
 app.use(express.json());

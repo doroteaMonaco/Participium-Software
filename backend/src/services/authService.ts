@@ -1,10 +1,11 @@
 import { authRepository } from '../repositories/authRepository';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 
 const SECRET_KEY = process.env.JWT_SECRET || 'default_secret_key';
 
 export const authService = {
-  async registerUser(email: string, username: string, firstName: string, lastName: string) {
+  async registerUser(email: string, username: string, firstName: string, lastName: string, password: string) {
     // Check if email is already in use
     const existingEmail = await authRepository.findUserByEmail(email);
     if (existingEmail) {
@@ -17,8 +18,11 @@ export const authService = {
       throw new Error('Username is already in use');
     }
 
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Create the user
-    const user = await authRepository.createUser(email, username, firstName, lastName);
+    const user = await authRepository.createUser(email, username, firstName, lastName, hashedPassword);
 
     // Generate JWT token
     const token = jwt.sign({ id: user.id, email: user.email }, SECRET_KEY, { expiresIn: '1h' });
