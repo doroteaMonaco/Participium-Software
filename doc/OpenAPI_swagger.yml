@@ -232,10 +232,6 @@ components:
 #        - category
 #        - photos
       properties:
-        id:
-          type: integer
-          format: int64
-          example: 1
         title:
           type: string
           example: "Broken street light"
@@ -257,10 +253,6 @@ components:
           example: 
             - "https://example.com/photos/report1_photo1.jpg"
             - "https://example.com/photos/report1_photo2.jpg"
-        createdAt:
-          type: string
-          format: date-time
-          example: "2025-11-04T14:30:00Z"
 
     Report:
       type: object
