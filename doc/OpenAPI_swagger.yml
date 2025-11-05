@@ -9,28 +9,309 @@ servers:
     description: Development server
 
 paths:
-  # API endpoints will be documented here
-  # Example:
-  # /endpoint:
-  #   get:
-  #     summary: Description
-  #     responses:
-  #       '200':
-  #         description: Success
+  /users:
+    # registration endpoint
+    post:
+      tags: [Users]
+      summary: Registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+      responses:
+        '201':
+          description: Created
+          headers:
+            Set-Cookie:
+              description: Authentication cookie
+              schema:
+                type: string
+                example: "authToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoibXJvc3NpIiwiaWF0IjoxNjk5MDAwMDAwLCJleHAiOjE2OTkwODY0MDB9"
+            Location:
+                description: URL of the reserved area for submitting reports
+                schema:
+                  type: string
+                  example: /reports
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Conflict Error"
+                message: "Username or email already exists"
+
+  /auth/session:
+    # login endpoint
+    post:
+      tags: [Users]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: OK - Successfully authenticated
+          headers:
+            Set-Cookie:
+              description: Authentication cookie
+              schema:
+                type: string
+                example: "authToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoibXJvc3NpIiwiaWF0IjoxNjk5MDAwMDAwLCJleHAiOjE2OTkwODY0MDB9"
+            Location:
+                description: URL of the reserved area for submitting reports
+                schema:
+                  type: string
+                  example: /reports
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Authentication Error"
+                message: "Invalid username or password"
+
+    # verify authentication endpoint
+    get:
+      tags: [Users]
+      summary: Verify authentication
+      description: Check if the user is currently authenticated
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: OK - User is authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized - User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Authentication Error"
+                message: "Session is invalid or has expired"
+    delete:
+      tags: [Users]
+      summary: Logout
+      description: Logout the authenticated user
+      security:
+        - cookieAuth: []
+      responses:
+        '204':
+          description: No content - Successfully logged out
+        '401':
+          description: Unauthorized - User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Authentication Error"
+                message: "You must be logged in to logout"
+  /reports:
+    # create report endpoint
+    post:
+      tags: [Reports]
+      summary: Create a new report
+      description: Submit a new report (authenticated users only)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+      responses:
+        '201':
+          description: Created - Report successfully submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          description: Bad Request - Invalid input or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Authentication Error"
+                message: "You must be logged in to create a report"
 
 components:
-  schemas:
-    # Data models will be defined here
-    # Example:
-    # ExampleModel:
-    #   type: object
-    #   required:
-    #     - id
-    #   properties:
-    #     id:
-    #       type: integer
-    #       description: Unique identifier
-    
+  schemas:    
+    UserRegistration:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - username
+        - email
+        - password
+      properties:
+        firstName:
+          type: string
+          example: "Mario"
+        lastName:
+          type: string
+          example: "Rossi"
+        username:
+          type: string
+          example: "mrossi"
+        email:
+          type: string
+          format: email
+          example: "mario.rossi@example.com"
+        password:
+          type: string
+          format: password
+          example: "P@ssw0rd!"
+
+    User:
+      type: object 
+      properties:
+        firstName:
+          type: string
+          example: "Mario"
+        lastName:
+          type: string
+          example: "Rossi"
+        username:
+          type: string
+          example: "mrossi"
+
+    LoginRequest:
+      type: object
+      required:
+        - identifier
+        - password
+      properties:
+        identifier:
+          type: string
+          description: Username or email
+          example: "mrossi"
+        password:
+          type: string
+          format: password
+          example: "P@ssw0rd!"
+
+    ReportCategory:
+      type: string
+      enum:
+        - Water Supply – Drinking Water
+        - Architectural Barriers
+        - Sewer System
+        - Public Lighting
+        - Waste
+        - Road Signs and Traffic Lights
+        - Roads and Urban Furnishings
+        - Public Green Areas and Playgrounds
+        - Other
+      example: "Public Lighting"
+
+    ReportRequest:
+      type: object
+#      required:
+#        - title
+#        - description
+#        - anonymous
+#        - category
+#        - photos
+      properties:
+        title:
+          type: string
+          example: "Broken street light"
+        description:
+          type: string
+          example: "The street light on Via Roma has been broken for a week"
+        anonymous:
+          type: boolean
+          example: false
+        category:
+          $ref: '#/components/schemas/ReportCategory'
+        photos:
+          type: array
+          items:
+            type: string
+            format: uri
+          minItems: 1
+          maxItems: 3
+          example: 
+            - "https://example.com/photos/report1_photo1.jpg"
+            - "https://example.com/photos/report1_photo2.jpg"
+
+    Report:
+      type: object
+#      required:
+#        - id
+#        - title
+#        - description
+#        - anonymous
+#        - category
+#        - photos
+#        - createdAt
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        title:
+          type: string
+          example: "Broken street light"
+        description:
+          type: string
+          example: "The street light on Via Roma has been broken for a week"
+        anonymous:
+          type: boolean
+          example: false
+        category:
+          $ref: '#/components/schemas/ReportCategory'
+        photos:
+          type: array
+          items:
+            type: string
+            format: uri
+          minItems: 1
+          maxItems: 3
+          example: 
+            - "https://example.com/photos/report1_photo1.jpg"
+            - "https://example.com/photos/report1_photo2.jpg"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-11-04T14:30:00Z"
+
     Error:
       type: object
       required:
@@ -46,9 +327,16 @@ components:
           description: Detailed error message
           example: "Invalid input data"
 
-tags:
-  # API tags will be defined here
-  # Example:
-  # - name: ExampleTag
-  #   description: Description of the tag
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: authToken
+      description: Authentication cookie containing session ID
+
+tags: 
+  - name: Users
+    description: User registration and authentication
+  - name: Reports
+    description: Report management and submission
 
