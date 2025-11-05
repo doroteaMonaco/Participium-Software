@@ -58,7 +58,7 @@ export const NavBar: React.FC = () => {
                         <Link to="/users" className="text-sm font-medium text-slate-700 hover:text-slate-900">
                             Users
                         </Link>
-                        <a href="#cta" className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Sign up</a>
+                        <Link to="/register" className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Sign up</Link>
                     </nav>
                     <button className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg border" onClick={() => setOpen(true)}>
                         <Menu className="h-5 w-5" />
@@ -103,12 +103,13 @@ export const NavBar: React.FC = () => {
                                 <ArrowRight className="h-4 w-4 text-slate-400" />
                             </Link>
 
-                            <a
-                                href="#cta"
+                            <Link
+                                to="/register"
                                 className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-all"
+                                onClick={() => setOpen(false)}
                             >
                                 Sign up
-                            </a>
+                            </Link>
                         </nav>
 
                     </div>
