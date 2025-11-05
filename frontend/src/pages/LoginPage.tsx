@@ -7,7 +7,7 @@ import registrationIll from "src/assets/registration-ill.png";
 export const Login: React.FC = () => {
     return (
         <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-indigo-100 via-white to-emerald-50">
-            {/* Floating background shapes */}
+
             <div className="absolute -top-32 -right-32 h-64 w-64 rounded-full bg-indigo-200 opacity-40 blur-3xl" />
             <div className="absolute -bottom-40 -left-40 h-72 w-72 rounded-full bg-emerald-200 opacity-30 blur-3xl" />
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-indigo-50 via-white to-transparent" />
@@ -15,10 +15,7 @@ export const Login: React.FC = () => {
             {/* Main Container */}
             <div className="relative z-10 w-full max-w-6xl mx-auto px-4">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-                    {/* Left side - Illustration */}
-
-
-                    {/* Right side - Login Card */}
+                    {/* Left side - Login Card */}
                     <motion.div
                         initial={{ opacity: 0, x: 30 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -96,6 +93,7 @@ export const Login: React.FC = () => {
                             <span className="text-indigo-600 font-medium">Participium</span> privacy standards.
                         </p>
                     </motion.div>
+                    {/* Illustration Side */}
                     <motion.div
                         initial={{ opacity: 0, x: -30 }}
                         animate={{ opacity: 1, x: 0 }}
