@@ -19,4 +19,35 @@ export const authController = {
       }
     }
   },
+
+  async login(req: Request, res: Response) {
+    try {
+      const { identifier, password } = req.body;
+      const { user, token } = await authService.login(identifier, password);
+
+      res.setHeader('Set-Cookie', `authToken=${token}`);
+      res.setHeader('Location', '/reports');
+      res.status(200).json(user);
+    } catch (error: any) {
+      res.status(401).json({ error: 'Authentication Error', message: error.message });
+    }
+  },
+
+  async verifyAuth(req: Request, res: Response) {
+    try {
+      const user = await authService.verifyAuth(req);
+      res.status(200).json(user);
+    } catch (error: any) {
+      res.status(401).json({ error: 'Authentication Error', message: error.message });
+    }
+  },
+
+  async logout(req: Request, res: Response) {
+    try {
+      res.setHeader('Set-Cookie', 'authToken=; HttpOnly; Max-Age=0');
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ error: 'Internal Server Error', message: error.message });
+    }
+  },
 };

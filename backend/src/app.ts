@@ -6,7 +6,13 @@ import YAML from 'yamljs';
 import path from 'path';
 
 const app = express();
-const swaggerDocument = YAML.load(path.join(__dirname, '../doc/OpenAPI_swagger.yml'));
+
+const isDocker = process.env.IS_DOCKER === 'true';
+const swaggerPath = isDocker
+  ? '/app/doc/OpenAPI_swagger.yml'        // dentro container
+  : '../doc/OpenAPI_swagger.yml'; // locale
+
+const swaggerDocument = YAML.load(swaggerPath);
 
 app.use(cors());
 app.use(express.json());

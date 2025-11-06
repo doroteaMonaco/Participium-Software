@@ -1,5 +1,5 @@
 import { authRepository } from '../repositories/authRepository';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
 const SECRET_KEY = process.env.JWT_SECRET || 'default_secret_key';
@@ -28,5 +28,38 @@ export const authService = {
     const token = jwt.sign({ id: user.id, email: user.email }, SECRET_KEY, { expiresIn: '1h' });
 
     return { user, token };
+  },
+
+  async login(identifier: string, password: string) {
+    const user = await authRepository.findUserByEmail(identifier) || await authRepository.findUserByUsername(identifier);
+    if (!user) {
+      throw new Error('Invalid username or email');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new Error('Invalid password');
+    }
+
+    const token = jwt.sign({ id: user.id, email: user.email }, SECRET_KEY, { expiresIn: '1h' });
+    return { user, token };
+  },
+
+  async verifyAuth(req: any) {
+    const token = req.cookies?.authToken;
+    if (!token) {
+      throw new Error('No token provided');
+    }
+
+    try {
+      const decoded = jwt.verify(token, SECRET_KEY) as JwtPayload;
+      const user = await authRepository.findUserById(decoded.id);
+      if (!user) {
+        throw new Error('User not found');
+      }
+      return user;
+    } catch (error) {
+      throw new Error('Invalid or expired token');
+    }
   },
 };
