@@ -16,6 +16,8 @@ COPY ./backend .
 # Copy the documentation folder
 COPY ./doc ./doc
 
+RUN npx prisma generate
+
 # Build the application
 RUN npm run build
 
