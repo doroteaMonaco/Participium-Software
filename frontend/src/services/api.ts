@@ -80,7 +80,7 @@ export const register = async (userData: UserRegistration): Promise<User> => {
  * @throws ApiError on failure
  */
 export const login = async (credentials: LoginRequest): Promise<User> => {
-  const response = await api.post('/auth', credentials);
+  const response = await api.post('/auth/session', credentials);
   return response.data;
 };
 
@@ -90,7 +90,7 @@ export const login = async (credentials: LoginRequest): Promise<User> => {
  * @throws ApiError if not authenticated
  */
 export const verifyAuth = async (): Promise<User> => {
-  const response = await api.get('/auth');
+  const response = await api.get('/auth/session');
   return response.data;
 };
 
@@ -99,7 +99,7 @@ export const verifyAuth = async (): Promise<User> => {
  * Note: You may need to implement a logout endpoint on the backend
  */
 export const logout = async (): Promise<void> => {
-  await api.delete('/auth');
+  await api.delete('/auth/session');
 };
 
 // ==================== Report APIs ====================
