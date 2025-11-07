@@ -69,12 +69,12 @@ export const NavBar: React.FC = () => {
             >
               Map
             </Link>
-            <a
-              href="#cta"
+            <Link
+              to="/register"
               className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
             >
               Sign up
-            </a>
+            </Link>
           </nav>
           <button
             className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg border"
@@ -138,12 +138,13 @@ export const NavBar: React.FC = () => {
                 <ArrowRight className="h-4 w-4 text-slate-400" />
               </Link>
 
-              <a
-                href="#cta"
+              <Link
+                to="/register"
                 className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-all"
+                onClick={() => setOpen(false)}
               >
                 Sign up
-              </a>
+              </Link>
             </nav>
           </div>
         </div>
