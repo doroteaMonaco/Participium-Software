@@ -14,3 +14,26 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Override Leaflet's z-index to prevent it from appearing above modals/menus */
+.leaflet-container,
+.leaflet-pane,
+.leaflet-tile-pane,
+.leaflet-overlay-pane,
+.leaflet-shadow-pane,
+.leaflet-marker-pane,
+.leaflet-tooltip-pane,
+.leaflet-popup-pane,
+.leaflet-map-pane,
+.leaflet-control {
+  z-index: 1 !important;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 1000 !important;
+}
+
+.leaflet-popup {
+  z-index: 1001 !important;
+}
