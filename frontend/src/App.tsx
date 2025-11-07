@@ -5,6 +5,7 @@ import UsersPage from 'src/pages/UsersPage'
 import { Login } from 'src/pages/LoginPage'
 import { Register } from 'src/pages/RegisterPage'
 import { NavBar } from 'src/components/Navbar'
+import UserDashboardPage from './pages/UserDashboard/UserDashboardPage'
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
               <UsersPage />
             </>
           } />
+          <Route path="/dashboard" element={<UserDashboardPage />} />
         </Routes>
       </div>
     </Router>
