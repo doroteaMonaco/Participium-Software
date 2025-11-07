@@ -16,7 +16,7 @@ const swaggerDocument = YAML.load(swaggerPath);
 
 app.use(cors());
 app.use(express.json());
-app.use('/api/auth', authRouter);
+app.use('/api', authRouter);
 app.use('/api', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use((err: any, _req: any, res: any, _next: any) => {

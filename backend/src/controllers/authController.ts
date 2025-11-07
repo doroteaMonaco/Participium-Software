@@ -7,10 +7,12 @@ export const authController = {
       const { email, username, firstName, lastName, password } = req.body;
 
       // Call the service to register the user
-      const user = await authService.registerUser(email, username, firstName, lastName, password);
+      const {user, token} = await authService.registerUser(email, username, firstName, lastName, password);
+      
+      res.setHeader('Set-Cookie', `authToken=${token}`);
       // Set Location header
       res.setHeader('Location', '/reports');
-      res.status(201).json(user);
+      res.status(201).send();
     } catch (error: any) {
       if (error.message === 'Email is already in use' || error.message === 'Username is already in use') {
         res.status(409).json({ error: 'Conflict Error', message: error.message });
@@ -27,7 +29,7 @@ export const authController = {
 
       res.setHeader('Set-Cookie', `authToken=${token}`);
       res.setHeader('Location', '/reports');
-      res.status(200).json(user);
+      res.status(200).send();
     } catch (error: any) {
       res.status(401).json({ error: 'Authentication Error', message: error.message });
     }
