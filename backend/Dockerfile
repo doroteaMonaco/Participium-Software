@@ -11,7 +11,12 @@ COPY package*.json ./
 RUN npm install
 
 # Copy the rest of the application
-COPY . .
+COPY ./backend .
+
+# Copy the documentation folder
+COPY ./doc ./doc
+
+RUN npx prisma generate
 
 # Build the application
 RUN npm run build
