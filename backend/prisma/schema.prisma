@@ -16,9 +16,24 @@ model user {
   lastName  String
   password  String
   createdAt DateTime @default(now())
+  role      roleType     @default(CUSTOMER)
+  municipality_role_id Int?
+  municipality_role   municipality_role?   @relation(fields: [municipality_role_id], references: [id], onDelete: Restrict)
 }
 
 model report {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
+}
+
+model municipality_role {
+  id        Int      @id @default(autoincrement())
+  name      String    @unique
+  users     user[]
+}
+
+enum roleType {
+  CUSTOMER
+  ADMIN
+  MUNICIPALITY
 }

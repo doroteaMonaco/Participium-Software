@@ -3,8 +3,9 @@ import cors from 'cors';
 import authRouter from './routes/authRouter';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
-import path from 'path';
-import cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser'; // NEW: parser cookie per leggere authToken dai cookie
+import reportRouter from './routes/reportRouter';
+import userRouter from './routes/userRouter';
 
 const app = express();
 
@@ -18,8 +19,10 @@ const swaggerDocument = YAML.load(swaggerPath);
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser()); 
-app.use('/api', authRouter);
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use('/api/auth', authRouter); 
+app.use('/api/reports', reportRouter);
+app.use('/api/users', userRouter);
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument)); 
 
 app.use((err: any, _req: any, res: any, _next: any) => {
   if (err instanceof SyntaxError && 'body' in err) {

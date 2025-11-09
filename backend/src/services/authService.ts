@@ -1,4 +1,5 @@
 import { authRepository } from '../repositories/authRepository';
+import { roleRepository } from '../repositories/roleRepository';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
@@ -25,7 +26,7 @@ export const authService = {
     const user = await authRepository.createUser(email, username, firstName, lastName, hashedPassword);
 
     // Generate JWT token
-    const token = jwt.sign({ id: user.id, email: user.email }, SECRET_KEY, { expiresIn: '1h' });
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, SECRET_KEY, { expiresIn: '1h' });
 
     return { user, token };
   },
@@ -41,7 +42,7 @@ export const authService = {
       throw new Error('Invalid password');
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email }, SECRET_KEY, { expiresIn: '1h' });
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, SECRET_KEY, { expiresIn: '1h' });
     return { user, token };
   },
 
@@ -62,4 +63,52 @@ export const authService = {
       throw new Error('Invalid or expired token');
     }
   },
+
+  async createMunicipalityUser(
+    email: string, 
+    username: string, 
+    firstName: string, 
+    lastName: string, 
+    password: string,
+    municipality_role_id: number
+  ) {
+    const existingEmail = await authRepository.findUserByEmail(email);
+    if (existingEmail) {
+      throw new Error('Email is already in use');
+    }
+
+    const existingUsername = await authRepository.findUserByUsername(username);
+    if (existingUsername) {
+      throw new Error('Username is already in use');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await authRepository.createUserWithRole(email, username, firstName, lastName, hashedPassword, 'MUNICIPALITY', municipality_role_id);
+
+    return user;
+  },
+
+
+  async getAllUsers() {
+    return await authRepository.getAllUsers();
+  },
+
+
+  async getUserById(userId: number) {
+    return await authRepository.findUserById(userId);
+  },
+
+  async deleteUser(userId: number) {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return await authRepository.deleteUser(userId);
+  },
+
+  async getAllMunicipalityRoles() {
+    return await roleRepository.getAllMunicipalityRoles();
+  },
+  
 };
