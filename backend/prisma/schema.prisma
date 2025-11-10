@@ -24,6 +24,8 @@ model user {
 model report {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
+  latitude  Float
+  longitude Float
 }
 
 model municipality_role {
