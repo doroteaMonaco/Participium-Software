@@ -9,6 +9,7 @@ import {
   BarChart3,
   Settings,
   X,
+  Wrench,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -20,8 +21,13 @@ const adminNav = [
   },
   {
     href: "/admin/reports",
-    label: "All Reports",
+    label: "Review Reports",
     icon: <FileText className="h-4 w-4" />,
+  },
+  {
+    href: "/admin/technical-reports",
+    label: "Technical Office",
+    icon: <Wrench className="h-4 w-4" />,
   },
   {
     href: "/admin/users",
