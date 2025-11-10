@@ -10,6 +10,7 @@ jest.mock('../../../services/authService', () => ({
 
 import { authController } from '../../../controllers/authController';
 import { authService } from '../../../services/authService';
+import { userController } from '../../../controllers/userController';
 
 type ResMock = Partial<Response> & {
   status: jest.Mock;
@@ -72,7 +73,7 @@ describe('authController', () => {
         token: 'jwt-123',
       });
 
-      await authController.register(req, res as unknown as Response);
+      await userController.register(req, res as unknown as Response);
 
       expect(authService.registerUser).toHaveBeenCalledWith(
         'mario.rossi@example.com',
@@ -111,7 +112,7 @@ describe('authController', () => {
         new Error('Email is already in use')
       );
 
-      await authController.register(req, res as unknown as Response);
+      await userController.register(req, res as unknown as Response);
 
       expect(res.status).toHaveBeenCalledWith(409);
       expect(res.json).toHaveBeenCalledWith({
@@ -130,7 +131,7 @@ describe('authController', () => {
         new Error('Username is already in use')
       );
 
-      await authController.register(req, res as unknown as Response);
+      await userController.register(req, res as unknown as Response);
 
       expect(res.status).toHaveBeenCalledWith(409);
       expect(res.json).toHaveBeenCalledWith({
@@ -147,7 +148,7 @@ describe('authController', () => {
 
       (authService.registerUser as jest.Mock).mockRejectedValue(new Error('boom'));
 
-      await authController.register(req, res as unknown as Response);
+      await userController.register(req, res as unknown as Response);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({

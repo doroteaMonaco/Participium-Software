@@ -1,5 +1,5 @@
-jest.mock('../../../repositories/authRepository', () => ({
-    authRepository: {
+jest.mock('../../../repositories/userRepository', () => ({
+    userRepository: {
         findUserByEmail: jest.fn(),
         findUserByUsername: jest.fn(),
         findUserById: jest.fn(),
@@ -18,7 +18,7 @@ jest.mock('jsonwebtoken', () => ({
 }));
 
 import { authService } from '../../../services/authService'; // <--- verifica path
-import { authRepository } from '../../../repositories/authRepository';
+import { userRepository } from '../../../repositories/userRepository';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
@@ -29,7 +29,7 @@ type RepoMock = {
     createUser: jest.Mock;
 };
 
-const repo = authRepository as unknown as RepoMock;
+const repo = userRepository as unknown as RepoMock;
 
 const makeUser = (overrides: Partial<any> = {}) => ({
     id: 1,

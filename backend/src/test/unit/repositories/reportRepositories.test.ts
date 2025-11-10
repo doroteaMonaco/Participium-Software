@@ -1,4 +1,4 @@
-jest.mock('../../../prisma/client', () => {
+jest.mock('../../../database/connection', () => {
     const mPrisma = {
         report: {
             findMany: jest.fn(),
@@ -7,10 +7,10 @@ jest.mock('../../../prisma/client', () => {
             delete: jest.fn(),
         },
     };
-    return { __esModule: true, default: mPrisma };
+    return { prisma: mPrisma };
 });
 
-import prisma from '../../../prisma/client'; 
+import { prisma } from '../../../database/connection'; 
 import reportRepository from '../../../repositories/reportRepository'; 
 
 type PrismaMock = {

@@ -18,6 +18,7 @@ jest.mock('../../../controllers/authController', () => ({
 
 import authRouter from '../../../routes/authRouter';
 import { authController } from '../../../controllers/authController';
+import { userController } from '../../../controllers/userController';
 
 const makeApp = () => {
     const app = express();
@@ -46,7 +47,7 @@ describe('authRouter', () => {
 
             expect(res.status).toBe(201);
             expect(res.body).toEqual({ route: 'register', body: payload });
-            expect(authController.register).toHaveBeenCalledTimes(1);
+            expect(userController.register).toHaveBeenCalledTimes(1);
         });
     });
 

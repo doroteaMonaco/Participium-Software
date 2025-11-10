@@ -34,6 +34,10 @@ paths:
                 schema:
                   type: string
                   example: /reports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '400':
           description: Bad Request
           content:
@@ -75,6 +79,10 @@ paths:
                 schema:
                   type: string
                   example: /reports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '400':
           description: Bad Request
           content:

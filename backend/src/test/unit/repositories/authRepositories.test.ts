@@ -10,7 +10,7 @@ jest.mock('@prisma/client', () => {
 });
 
 import { PrismaClient } from '@prisma/client';
-import { authRepository } from '../../../repositories/authRepository';
+import { userRepository } from '../../../repositories/userRepository';
 
 type PrismaMock = {
     user: {
@@ -35,7 +35,7 @@ const makeUser = (overrides: Partial<any> = {}) => ({
     ...overrides,
 });
 
-describe('authRepository', () => {
+describe('userRepository', () => {
     beforeEach(() => {
         prismaMock.user.create.mockReset();
         prismaMock.user.findUnique.mockReset();
@@ -46,7 +46,7 @@ describe('authRepository', () => {
             const u = makeUser();
             prismaMock.user.create.mockResolvedValue(u);
 
-            const res = await authRepository.createUser(
+            const res = await userRepository.createUser(
                 u.email, u.username, u.firstName, u.lastName, u.password
             );
 
@@ -68,7 +68,7 @@ describe('authRepository', () => {
             const u = makeUser();
             prismaMock.user.findUnique.mockResolvedValue(u);
 
-            const res = await authRepository.findUserByEmail(u.email);
+            const res = await userRepository.findUserByEmail(u.email);
 
             expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
                 where: { email: u.email },
@@ -79,7 +79,7 @@ describe('authRepository', () => {
         it('return null if not found', async () => {
             prismaMock.user.findUnique.mockResolvedValue(null);
 
-            const res = await authRepository.findUserByEmail('missing@example.com');
+            const res = await userRepository.findUserByEmail('missing@example.com');
             expect(res).toBeNull();
         });
     });
@@ -89,7 +89,7 @@ describe('authRepository', () => {
             const u = makeUser();
             prismaMock.user.findUnique.mockResolvedValue(u);
 
-            const res = await authRepository.findUserByUsername(u.username);
+            const res = await userRepository.findUserByUsername(u.username);
 
             expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
                 where: { username: u.username },
@@ -100,7 +100,7 @@ describe('authRepository', () => {
         it('return null if not found', async () => {
             prismaMock.user.findUnique.mockResolvedValue(null);
 
-            const res = await authRepository.findUserByUsername('ghost');
+            const res = await userRepository.findUserByUsername('ghost');
             expect(res).toBeNull();
         });
     });
@@ -110,7 +110,7 @@ describe('authRepository', () => {
             const u = makeUser({ id: 42 });
             prismaMock.user.findUnique.mockResolvedValue(u);
 
-            const res = await authRepository.findUserById(42);
+            const res = await userRepository.findUserById(42);
 
             expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
                 where: { id: 42 },
@@ -121,7 +121,7 @@ describe('authRepository', () => {
         it('return null if not found', async () => {
             prismaMock.user.findUnique.mockResolvedValue(null);
 
-            const res = await authRepository.findUserById(999);
+            const res = await userRepository.findUserById(999);
             expect(res).toBeNull();
         });
     });

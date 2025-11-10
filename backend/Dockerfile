@@ -4,18 +4,19 @@ FROM node:20
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
+# Copy package.json and package-lock.json from backend folder
+COPY backend/package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy the rest of the application
-COPY ./backend .
+# Copy the backend application code
+COPY backend/ ./
 
-# Copy the documentation folder
-COPY ./doc ./doc
+# Copy the documentation folder (from project root to /app/doc)
+COPY doc/ ./doc/
 
+# Generate Prisma Client
 RUN npx prisma generate
 
 # Build the application

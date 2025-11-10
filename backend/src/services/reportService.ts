@@ -1,5 +1,5 @@
 import reportRepository from '../repositories/reportRepository';
-import { CreateReportDto, ReportResponseDto } from '../dto/reportDto';
+import { CreateReportDto, ReportResponseDto } from '../models/dto/reportDto';
 
 const findAll = async (): Promise<ReportResponseDto[]> => {
   return reportRepository.findAll();

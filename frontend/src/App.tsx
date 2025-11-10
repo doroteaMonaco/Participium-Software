@@ -13,7 +13,7 @@ import { NavBar } from "src/components/Navbar";
 import { Footer } from "src/components/Footer";
 
 import LandingPage from "src/pages/LandingPage";
-import UsersPage from "src/pages/UsersPage";
+
 import MapPage from "./pages/MapPage";
 
 function App() {
