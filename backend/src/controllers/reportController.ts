@@ -27,7 +27,13 @@ export const getReportById = async (req: Request, res: Response) => {
 
 export const submitReport = async (req: Request, res: Response) => {
   try {
-    const report = await reportService.submitReport({});
+    const { latitude, longitude } = req.body;
+
+    if (latitude === undefined || longitude === undefined) {
+      return res.status(400).json({ error: 'latitude and longitude are required' });
+    }
+
+    const report = await reportService.submitReport({ latitude: Number(latitude), longitude: Number(longitude) });
     res.status(201).json(report);
   } catch (error) {
     res.status(500).json({ error: 'Failed to submit report' });

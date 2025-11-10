@@ -16,8 +16,11 @@ const findById = async (id: number) => {
 };
 
 const create = async (data: CreateReportDto) => {
-  return prisma.report.create({ 
-    data: {} 
+  return prisma.report.create({
+    data: {
+      latitude: data.latitude,
+      longitude: data.longitude,
+    },
   });
 };
 
