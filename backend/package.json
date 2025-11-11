@@ -8,9 +8,10 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
-    "test:unit": "cross-env NODE_ENV=test jest --runInBand src/test/unit",
-    "test:integration": "dotenv-cli -e .env.test -- jest --runInBand src/test/integration",
-    "test": "npm run test:unit"
+    "test-unit": "jest --runInBand src/test/unit",
+    "test-integration": "dotenv -e .env.test -- jest --runInBand src/test/integration",
+    "test": "dotenv -e .env.test -- jest --runInBand src/test",
+    "test-coverage": "npm run test -- --coverage"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",
@@ -42,8 +43,9 @@
     "@types/swagger-ui-express": "^4.1.8",
     "@types/winston": "^2.4.4",
     "@types/yamljs": "^0.2.34",
-    "cross-env": "^10.1.0",
+    "dotenv-cli": "^11.0.0",
     "jest": "^30.2.0",
+    "prettier": "^3.6.2",
     "prisma": "^5.0.0",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.5",

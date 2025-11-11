@@ -35,17 +35,17 @@ export const userController = {
       const { email, username, firstName, lastName, password, municipality_role_id } = req.body || {};
 
       if (!email || !username || !firstName || !lastName || !password || !municipality_role_id) {
-        return res.status(400).json({ 
-          error: 'Bad Request', 
-          message: 'Missing required fields: email, username, firstName, lastName, password, municipality_role_id' 
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: 'Missing required fields: email, username, firstName, lastName, password, municipality_role_id'
         });
       }
 
       const user = await authService.createMunicipalityUser(
-        email, 
-        username, 
-        firstName, 
-        lastName, 
+        email,
+        username,
+        firstName,
+        lastName,
         password,
         municipality_role_id
       );
@@ -55,7 +55,7 @@ export const userController = {
       if (error?.message === 'Email is already in use' || error?.message === 'Username is already in use') {
         return res.status(409).json({ error: 'Conflict Error', message: error.message });
       }
-      return res.status(400).json({ error: 'Bad Request', message: error?.message || 'User creation failed' });
+      return res.status(500).json({ error: 'Internal Server Error', message: error?.message || 'User creation failed' });
     }
   },
 
@@ -71,13 +71,13 @@ export const userController = {
   async getUserById(req: Request, res: Response) {
     try {
       const userId = parseInt(req.params.id);
-      
+
       if (isNaN(userId)) {
         return res.status(400).json({ error: 'Bad Request', message: 'Invalid user ID' });
       }
 
       const user = await authService.getUserById(userId);
-      
+
       if (!user) {
         return res.status(404).json({ error: 'Not Found', message: 'User not found' });
       }
@@ -91,7 +91,7 @@ export const userController = {
   async deleteUser(req: Request, res: Response) {
     try {
       const userId = parseInt(req.params.id);
-      
+
       if (isNaN(userId)) {
         return res.status(400).json({ error: 'Bad Request', message: 'Invalid user ID' });
       }
@@ -114,4 +114,16 @@ export const userController = {
       return res.status(500).json({ error: 'Internal Server Error', message: error?.message || 'Failed to retrieve municipality roles' });
     }
   },
+
+  async getMunicipalityUsers(req: Request, res: Response) {
+    try {
+      const users = await authService.getMunicipalityUsers();
+      return res.status(200).json(users);
+    } catch (error: any) {
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: error?.message || "Failed to retrieve users",
+      });
+    }
+  }
 };

@@ -1,128 +1,306 @@
-jest.mock('@prisma/client', () => {
-    const mPrisma = {
-        user: {
-        create: jest.fn(),
-        findUnique: jest.fn(),
-        },
-    };
-    const MockedPrismaClient = jest.fn(() => mPrisma);
-    return { PrismaClient: MockedPrismaClient };
+jest.mock("@prisma/client", () => {
+  const mPrisma = {
+    user: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      delete: jest.fn(),
+    },
+  };
+  const MockedPrismaClient = jest.fn(() => mPrisma);
+  return { PrismaClient: MockedPrismaClient };
 });
 
 import { PrismaClient } from '@prisma/client';
 import { userRepository } from '../../../repositories/userRepository';
 
 type PrismaMock = {
-    user: {
-        create: jest.Mock;
-        findUnique: jest.Mock;
-    };
+  user: {
+    create: jest.Mock;
+    findUnique: jest.Mock;
+    findMany: jest.Mock;
+    delete: jest.Mock;
+  };
 };
 
 let prismaMock: PrismaMock;
 
 beforeAll(() => {
-    prismaMock = new PrismaClient() as unknown as PrismaMock;
+  prismaMock = new PrismaClient() as unknown as PrismaMock;
 });
 
 const makeUser = (overrides: Partial<any> = {}) => ({
-    id: 1,
-    email: 'mario.rossi@example.com',
-    username: 'mrossi',
-    firstName: 'Mario',
-    lastName: 'Rossi',
-    password: 'hashed',
-    ...overrides,
+  id: 1,
+  email: "mario.rossi@example.com",
+  username: "mrossi",
+  firstName: "Mario",
+  lastName: "Rossi",
+  password: "hashed",
+  ...overrides,
 });
 
-describe('userRepository', () => {
-    beforeEach(() => {
-        prismaMock.user.create.mockReset();
-        prismaMock.user.findUnique.mockReset();
+describe("userRepository", () => {
+  beforeEach(() => {
+    prismaMock.user.create.mockReset();
+    prismaMock.user.findUnique.mockReset();
+    prismaMock.user.findMany.mockReset();
+    prismaMock.user.delete.mockReset();
+  });
+
+  describe("createUser", () => {
+    it("create user correctly", async () => {
+      const u = makeUser();
+      prismaMock.user.create.mockResolvedValue(u);
+
+      const res = await userRepository.createUser(
+        u.email,
+        u.username,
+        u.firstName,
+        u.lastName,
+        u.password
+      );
+
+      expect(prismaMock.user.create).toHaveBeenCalledWith({
+        data: {
+          username: u.username,
+          email: u.email,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          password: u.password,
+        },
+      });
+      expect(res).toBe(u);
+    });
+  });
+
+  describe("findUserByEmail", () => {
+    it("return user", async () => {
+      const u = makeUser();
+      prismaMock.user.findUnique.mockResolvedValue(u);
+
+      const res = await userRepository.findUserByEmail(u.email);
+
+      expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+        where: { email: u.email },
+      });
+      expect(res).toBe(u);
     });
 
-    describe('createUser', () => {
-        it('create user correctly', async () => {
-            const u = makeUser();
-            prismaMock.user.create.mockResolvedValue(u);
+    it("return null if not found", async () => {
+      prismaMock.user.findUnique.mockResolvedValue(null);
 
-            const res = await userRepository.createUser(
-                u.email, u.username, u.firstName, u.lastName, u.password
-            );
+      const res = await userRepository.findUserByEmail("missing@example.com");
+      expect(res).toBeNull();
+    });
+  });
 
-            expect(prismaMock.user.create).toHaveBeenCalledWith({
-                data: {
-                    username: u.username,
-                    email: u.email,
-                    firstName: u.firstName,
-                    lastName: u.lastName,
-                    password: u.password,
-                },
-            });
-            expect(res).toBe(u);
-        });
+  describe("findUserByUsername", () => {
+    it("call where: { username }", async () => {
+      const u = makeUser();
+      prismaMock.user.findUnique.mockResolvedValue(u);
+
+      const res = await userRepository.findUserByUsername(u.username);
+
+      expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+        where: { username: u.username },
+      });
+      expect(res).toBe(u);
     });
 
-    describe('findUserByEmail', () => {
-        it('return user', async () => {
-            const u = makeUser();
-            prismaMock.user.findUnique.mockResolvedValue(u);
+    it("return null if not found", async () => {
+      prismaMock.user.findUnique.mockResolvedValue(null);
 
-            const res = await userRepository.findUserByEmail(u.email);
+      const res = await userRepository.findUserByUsername("ghost");
+      expect(res).toBeNull();
+    });
+  });
 
-            expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
-                where: { email: u.email },
-            });
-            expect(res).toBe(u);
-        });
+  describe("findUserById", () => {
+    it("call where: { id }", async () => {
+      const u = makeUser({ id: 42 });
+      prismaMock.user.findUnique.mockResolvedValue(u);
 
-        it('return null if not found', async () => {
-            prismaMock.user.findUnique.mockResolvedValue(null);
+      const res = await userRepository.findUserById(42);
 
-            const res = await userRepository.findUserByEmail('missing@example.com');
-            expect(res).toBeNull();
-        });
+      expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 42 },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          createdAt: true,
+          municipality_role_id: true,
+          municipality_role: true,
+        },
+      });
+      expect(res).toBe(u);
     });
 
-    describe('findUserByUsername', () => {
-        it('call where: { username }', async () => {
-            const u = makeUser();
-            prismaMock.user.findUnique.mockResolvedValue(u);
+    it("return null if not found", async () => {
+      prismaMock.user.findUnique.mockResolvedValue(null);
 
-            const res = await userRepository.findUserByUsername(u.username);
+      const res = await userRepository.findUserById(999);
+      expect(res).toBeNull();
+    });
+  });
 
-            expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
-                where: { username: u.username },
-            });
-            expect(res).toBe(u);
-        });
+  describe("createUserWithRole", () => {
+    it("creates user with role and select fields", async () => {
+      const created = makeUser({ id: 10, role: "MUNICIPALITY" });
+      prismaMock.user.create.mockResolvedValue(created);
 
-        it('return null if not found', async () => {
-            prismaMock.user.findUnique.mockResolvedValue(null);
+      const res = await userRepository.createUserWithRole(
+        created.email,
+        created.username,
+        created.firstName,
+        created.lastName,
+        "hashed-pwd",
+        "MUNICIPALITY",
+        3
+      );
 
-            const res = await userRepository.findUserByUsername('ghost');
-            expect(res).toBeNull();
-        });
+      expect(prismaMock.user.create).toHaveBeenCalledWith({
+        data: {
+          username: created.username,
+          email: created.email,
+          firstName: created.firstName,
+          lastName: created.lastName,
+          password: "hashed-pwd",
+          role: "MUNICIPALITY",
+          municipality_role_id: 3,
+        },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          createdAt: true,
+          municipality_role_id: true,
+          municipality_role: true,
+        },
+      });
+
+      expect(res).toBe(created);
     });
 
-    describe('findUserById', () => {
-        it('call where: { id }', async () => {
-            const u = makeUser({ id: 42 });
-            prismaMock.user.findUnique.mockResolvedValue(u);
+    it("creates user with role when municipality_role_id is undefined", async () => {
+      const created = makeUser({ id: 11 });
+      prismaMock.user.create.mockResolvedValue(created);
 
-            const res = await userRepository.findUserById(42);
+      const res = await userRepository.createUserWithRole(
+        created.email,
+        created.username,
+        created.firstName,
+        created.lastName,
+        "hashed-pwd",
+        "MUNICIPALITY"
+      );
 
-            expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
-                where: { id: 42 },
-            });
-            expect(res).toBe(u);
-        });
+      expect(prismaMock.user.create).toHaveBeenCalledWith({
+        data: {
+          username: created.username,
+          email: created.email,
+          firstName: created.firstName,
+          lastName: created.lastName,
+          password: "hashed-pwd",
+          role: "MUNICIPALITY",
+          municipality_role_id: undefined,
+        },
+        select: expect.any(Object),
+      });
 
-        it('return null if not found', async () => {
-            prismaMock.user.findUnique.mockResolvedValue(null);
-
-            const res = await userRepository.findUserById(999);
-            expect(res).toBeNull();
-        });
+      expect(res).toBe(created);
     });
+  });
+
+  describe("getAllUsers", () => {
+    it("returns all users", async () => {
+      const users = [makeUser(), makeUser({ id: 2 })];
+      prismaMock.user.findMany.mockResolvedValue(users);
+
+      const res = await userRepository.getAllUsers();
+
+      expect(prismaMock.user.findMany).toHaveBeenCalledWith({
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          createdAt: true,
+          municipality_role_id: true,
+          municipality_role: true,
+        },
+      });
+      expect(res).toBe(users);
+    });
+
+    it("returns empty array if no user", async () => {
+      const users: any[] = [];
+      prismaMock.user.findMany.mockResolvedValue(users);
+
+      const res = await userRepository.getAllUsers();
+
+      expect(prismaMock.user.findMany).toHaveBeenCalledWith({
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          createdAt: true,
+          municipality_role_id: true,
+          municipality_role: true,
+        },
+      });
+      expect(res).toBe(users);
+    });
+  });
+
+  describe("deleteUser", () => {
+    it("calls prisma.delete with given id and returns result", async () => {
+      const deleted = makeUser({ id: 5 });
+      prismaMock.user.delete.mockResolvedValue(deleted);
+
+      const res = await userRepository.deleteUser(5);
+
+      expect(prismaMock.user.delete).toHaveBeenCalledWith({
+        where: { id: 5 },
+      });
+      expect(res).toBe(deleted);
+    });
+  });
+
+  describe("getUsersByRole", () => {
+    it("calls prisma.findMany with provided Prisma role string and returns users", async () => {
+      const users = [makeUser(), makeUser({ id: 2 })];
+      prismaMock.user.findMany.mockResolvedValue(users);
+
+      const res = await userRepository.getUsersByRole("MUNICIPALITY");
+
+      expect(prismaMock.user.findMany).toHaveBeenCalledWith({
+        where: { role: "MUNICIPALITY" },
+      });
+      expect(res).toBe(users);
+    });
+
+    it("accepts custom role value and forwards it to prisma (type-cast branch)", async () => {
+      const users = [makeUser({ id: 3, role: "ADMIN" })];
+      prismaMock.user.findMany.mockResolvedValue(users);
+
+      const res = await userRepository.getUsersByRole("ADMIN" as any);
+
+      expect(prismaMock.user.findMany).toHaveBeenCalledWith({
+        where: { role: "ADMIN" },
+      });
+      expect(res).toBe(users);
+    });
+  });
 });

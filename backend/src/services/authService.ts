@@ -1,5 +1,6 @@
 import { userRepository } from '../repositories/userRepository';
 import { roleRepository } from '../repositories/roleRepository';
+import { roleType } from "../models/enums"
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
@@ -65,10 +66,10 @@ export const authService = {
   },
 
   async createMunicipalityUser(
-    email: string, 
-    username: string, 
-    firstName: string, 
-    lastName: string, 
+    email: string,
+    username: string,
+    firstName: string,
+    lastName: string,
     password: string,
     municipality_role_id: number
   ) {
@@ -110,5 +111,9 @@ export const authService = {
   async getAllMunicipalityRoles() {
     return await roleRepository.getAllMunicipalityRoles();
   },
-  
+
+  async getMunicipalityUsers() {
+    return await userRepository.getUsersByRole(roleType.MUNICIPALITY);
+  }
+
 };
