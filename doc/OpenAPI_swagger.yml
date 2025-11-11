@@ -542,11 +542,10 @@ components:
     ReportRequest:
       type: object
       required:
-#        - title
-#        - description
-#        - anonymous
-#        - category
-#        - photos
+        - title
+        - description
+        - category
+        - photos
         - latitude
         - longitude
       properties:
