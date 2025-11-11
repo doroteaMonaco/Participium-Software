@@ -7,7 +7,6 @@ import {
   getMunicipalityUsers,
   getMunicipalityRoles,
   createMunicipalityUser,
-  updateMunicipalityUserRole,
   type MunicipalityRole,
   type MunicipalityUserCreateRequest,
 } from "../../services/api";
@@ -30,8 +29,6 @@ export const AdminUsersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<DisplayUser | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState<string>("");
   const [newUser, setNewUser] = useState({
@@ -113,34 +110,6 @@ export const AdminUsersPage: React.FC = () => {
     } catch (err: any) {
       console.error("Failed to create user:", err);
       setError(err.response?.data?.message || "Failed to create user");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleEditUser = (user: DisplayUser) => {
-    setEditingUser(user);
-    setShowEditModal(true);
-  };
-
-  const handleUpdateRole = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingUser) return;
-
-    try {
-      setSubmitting(true);
-      setError(null);
-
-      await updateMunicipalityUserRole(editingUser.id, editingUser.roleId);
-      
-      // Reload data to get updated list
-      await loadData();
-
-      setShowEditModal(false);
-      setEditingUser(null);
-    } catch (err: any) {
-      console.error("Failed to update user role:", err);
-      setError(err.response?.data?.message || "Failed to update user role");
     } finally {
       setSubmitting(false);
     }
@@ -317,14 +286,6 @@ export const AdminUsersPage: React.FC = () => {
                     {new Date(user.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-
-                <button
-                  onClick={() => handleEditUser(user)}
-                  className="w-full rounded-xl bg-slate-100 hover:bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition flex items-center justify-center gap-2"
-                >
-                  <UserCog className="h-4 w-4" />
-                  Edit Role
-                </button>
               </motion.div>
             ))}
           </div>
@@ -470,79 +431,6 @@ export const AdminUsersPage: React.FC = () => {
                   >
                     {submitting && <Loader className="h-4 w-4 animate-spin" />}
                     {submitting ? "Creating..." : "Create User"}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>,
-          document.body
-        )}
-
-      {/* Edit Role Modal */}
-      {showEditModal && editingUser &&
-        createPortal(
-          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.25 }}
-              className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
-            >
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-4">
-                <UserCog className="h-5 w-5 text-indigo-600" />
-                Edit User Role
-              </h2>
-
-              <form onSubmit={handleUpdateRole} className="space-y-4">
-                <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
-                  <p className="text-sm font-semibold text-slate-900">
-                    {editingUser.firstName} {editingUser.lastName}
-                  </p>
-                  <p className="text-xs text-slate-600 mt-1">{editingUser.email}</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Select Role <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    value={editingUser.roleId}
-                    onChange={(e) =>
-                      setEditingUser({
-                        ...editingUser,
-                        roleId: parseInt(e.target.value),
-                      })
-                    }
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
-                  >
-                    {roles.map((role) => (
-                      <option key={role.id} value={role.id}>
-                        {role.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setEditingUser(null);
-                    }}
-                    disabled={submitting}
-                    className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {submitting && <Loader className="h-4 w-4 animate-spin" />}
-                    {submitting ? "Updating..." : "Update Role"}
                   </button>
                 </div>
               </form>

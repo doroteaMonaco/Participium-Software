@@ -1,10 +1,9 @@
 -- CreateEnum
-CREATE TYPE "roleType" AS ENUM ('CUSTOMER', 'ADMIN', 'MUNICIPALITY');
+CREATE TYPE "roleType" AS ENUM ('CITIZEN', 'ADMIN', 'MUNICIPALITY');
 
 -- AlterTable
 ALTER TABLE "user" ADD COLUMN     "municipality_role_id" INTEGER,
-ADD COLUMN     "role" "roleType" NOT NULL DEFAULT 'CUSTOMER';
-
+ADD COLUMN     "role" "roleType" NOT NULL DEFAULT 'CITIZEN';
 -- CreateTable
 CREATE TABLE "municipality_role" (
     "id" SERIAL NOT NULL,

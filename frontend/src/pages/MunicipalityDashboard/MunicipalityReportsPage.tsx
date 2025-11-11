@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { AdminDashboardLayout } from "../../components/dashboard/AdminDashboardLayout";
+import { MunicipalityDashboardLayout } from "../../components/dashboard/MunicipalityDashboardLayout";
 import { motion } from "framer-motion";
 import {
   FileText,
@@ -210,7 +210,7 @@ export const AdminReportsPage: React.FC = () => {
   const rejectedCount = reports.filter((r) => r.status === "Rejected").length;
 
   return (
-    <AdminDashboardLayout>
+    <MunicipalityDashboardLayout>
       <div className="space-y-6 w-full max-w-full">
         {/* Header */}
         <div>
@@ -642,7 +642,7 @@ export const AdminReportsPage: React.FC = () => {
           </div>,
           document.body,
         )}
-    </AdminDashboardLayout>
+    </MunicipalityDashboardLayout>
   );
 };
 

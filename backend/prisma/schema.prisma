@@ -16,7 +16,7 @@ model user {
   lastName  String
   password  String
   createdAt DateTime @default(now())
-  role      roleType     @default(CUSTOMER)
+  role      roleType     @default(CITIZEN)
   municipality_role_id Int?
   municipality_role   municipality_role?   @relation(fields: [municipality_role_id], references: [id], onDelete: Restrict)
 }
@@ -39,7 +39,7 @@ model municipality_role {
 }
 
 enum roleType {
-  CUSTOMER
+  CITIZEN
   ADMIN
   MUNICIPALITY
 }

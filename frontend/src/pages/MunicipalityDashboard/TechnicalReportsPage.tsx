@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { AdminDashboardLayout } from "../../components/dashboard/AdminDashboardLayout";
+import { MunicipalityDashboardLayout } from "../../components/dashboard/MunicipalityDashboardLayout";
 import { motion } from "framer-motion";
 import {
   FileText,
@@ -218,12 +218,12 @@ export const TechnicalReportsPage: React.FC = () => {
   const resolvedCount = reports.filter((r) => r.status === "Resolved").length;
 
   return (
-    <AdminDashboardLayout>
+    <MunicipalityDashboardLayout>
       <div className="space-y-6 w-full max-w-full">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <FileText className="h-6 w-6 text-indigo-600" /> Technical Office
+            <FileText className="h-6 w-6 text-blue-600" /> Technical Office
             Reports
           </h1>
           <p className="text-sm text-slate-600 mt-1">
@@ -648,7 +648,7 @@ export const TechnicalReportsPage: React.FC = () => {
           </div>,
           document.body,
         )}
-    </AdminDashboardLayout>
+    </MunicipalityDashboardLayout>
   );
 };
 

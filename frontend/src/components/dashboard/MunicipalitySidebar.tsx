@@ -1,9 +1,10 @@
-// Admin Sidebar Component
+// Municipality Sidebar Component
 import React from "react";
 import {
-  Shield,
+  Building2,
   LayoutDashboard,
-  Users,
+  FileText,
+  Wrench,
   MapPin,
   BarChart3,
   Settings,
@@ -11,40 +12,45 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
-const adminNav = [
+const municipalityNav = [
   {
-    href: "/admin",
+    href: "/municipality",
     label: "Dashboard",
     icon: <LayoutDashboard className="h-4 w-4" />,
   },
   {
-    href: "/admin/users",
-    label: "Municipality Users",
-    icon: <Users className="h-4 w-4" />,
+    href: "/municipality/reports",
+    label: "Review Reports",
+    icon: <FileText className="h-4 w-4" />,
   },
   {
-    href: "/admin/map",
+    href: "/municipality/technical-reports",
+    label: "Technical Office",
+    icon: <Wrench className="h-4 w-4" />,
+  },
+  {
+    href: "/municipality/map",
     label: "Map View",
     icon: <MapPin className="h-4 w-4" />,
   },
   {
-    href: "/admin/analytics",
+    href: "/municipality/analytics",
     label: "Analytics",
     icon: <BarChart3 className="h-4 w-4" />,
   },
   {
-    href: "/admin/settings",
+    href: "/municipality/settings",
     label: "Settings",
     icon: <Settings className="h-4 w-4" />,
   },
 ];
 
-interface AdminSidebarProps {
+interface MunicipalitySidebarProps {
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
 }
 
-export const AdminSidebar: React.FC<AdminSidebarProps> = ({
+export const MunicipalitySidebar: React.FC<MunicipalitySidebarProps> = ({
   mobileMenuOpen,
   setMobileMenuOpen,
 }) => {
@@ -54,14 +60,14 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     <>
       <div className="flex h-16 items-center justify-between gap-2 border-b border-slate-200 px-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-md">
-            <Shield className="h-5 w-5" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-md">
+            <Building2 className="h-5 w-5" />
           </div>
           <div>
             <span className="text-sm font-bold text-slate-900">
               Participium
             </span>
-            <p className="text-xs text-slate-500">Admin Panel</p>
+            <p className="text-xs text-slate-500">Municipality Panel</p>
           </div>
         </div>
         {/* Close button for mobile */}
@@ -74,7 +80,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       </div>
 
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-        {adminNav.map((item) => {
+        {municipalityNav.map((item) => {
           const active = pathname === item.href;
           return (
             <Link
@@ -84,11 +90,11 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition
                 ${
                   active
-                    ? "bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm"
+                    ? "bg-blue-50 text-blue-700 border border-blue-200 shadow-sm"
                     : "text-slate-700 hover:bg-slate-50 border border-transparent"
                 }`}
             >
-              <span className={active ? "text-indigo-600" : "text-slate-500"}>
+              <span className={active ? "text-blue-600" : "text-slate-500"}>
                 {item.icon}
               </span>
               {item.label}
@@ -98,11 +104,11 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       </nav>
 
       <div className="p-4 border-t border-slate-200">
-        <div className="rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 p-4">
+        <div className="rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 p-4">
           <p className="text-xs font-semibold text-slate-900 mb-1">
-            Administrator
+            Municipality Staff
           </p>
-          <p className="text-xs text-slate-600">Full system access</p>
+          <p className="text-xs text-slate-600">Internal Access</p>
         </div>
       </div>
 

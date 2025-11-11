@@ -32,13 +32,13 @@ export interface LoginRequest {
   password: string;
 }
 
-// export interface ReportRequest {
-//   title: string;
-//   description: string;
-//   anonymous: boolean;
-//   category: ReportCategory;
-//   photos: File[]; // 1-3 photos
-// }
+export interface ReportRequest {
+  title: string;
+  description: string;
+  anonymous: boolean;
+  category: ReportCategory;
+  photos: File[]; // 1-3 photos
+}
 
 export interface Report {
   id?: number;
@@ -140,7 +140,19 @@ export const logout = async (): Promise<void> => {
  * @returns Created report
  * @throws ApiError on failure
  */
-export const createReport = async (formData: FormData): Promise<Report> => {
+export const createReport = async (reportData: ReportRequest): Promise<Report> => {
+  const formData = new FormData();
+
+   formData.append('title', reportData.title);
+   formData.append('description', reportData.description);
+   formData.append('anonymous', String(reportData.anonymous));
+   formData.append('category', reportData.category);
+
+   // Append photos (1-3 photos)
+   reportData.photos.forEach((photo) => {
+     formData.append('photos', photo);
+   });
+
   const response = await api.post("/reports", formData, {
     headers: {
       "Content-Type": "multipart/form-data",

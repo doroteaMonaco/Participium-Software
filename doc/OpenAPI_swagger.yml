@@ -541,12 +541,13 @@ components:
 
     ReportRequest:
       type: object
-#      required:
-#        - title
-#        - description
-#        - anonymous
-#        - category
-#        - photos
+      required:
+        - title
+        - description
+        - category
+        - photos
+        - latitude
+        - longitude
       properties:
         title:
           type: string
@@ -569,17 +570,17 @@ components:
           example: 
             - "https://example.com/photos/report1_photo1.jpg"
             - "https://example.com/photos/report1_photo2.jpg"
+        latitude:
+          type: number
+          format: float
+          example: 45.4642
+        longitude:
+          type: number
+          format: float 
+          example: 9.1900
 
     Report:
       type: object
-#      required:
-#        - id
-#        - title
-#        - description
-#        - anonymous
-#        - category
-#        - photos
-#        - createdAt
       properties:
         id:
           type: integer
@@ -610,6 +611,14 @@ components:
           type: string
           format: date-time
           example: "2025-11-04T14:30:00Z"
+        latitude:
+          type: number
+          format: float
+          example: 45.4642
+        longitude:
+          type: number
+          format: float 
+          example: 9.1900
 
     MunicipalityUserCreateRequest:
       type: object
@@ -702,6 +711,10 @@ components:
           type: string
           format: email
           example: "mario.rossi@example.com"
+        role:
+          type: string
+          example: "CITIZEN"
+          description: User role (can be CITIZEN, ADMIN, MUNICIPALITY)
         municipality_role_id:
           type: integer
           format: int64
