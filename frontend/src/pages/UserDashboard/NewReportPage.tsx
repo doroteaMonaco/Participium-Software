@@ -1,12 +1,76 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "src/components/dashboard/DashboardLayout";
 import MapView from "src/components/map/MapView";
 import { ArrowLeft, Info } from "lucide-react";
+import { getReports } from "src/services/api";
+import { Report, ReportStatus } from "src/services/models";
 
 const NewReportPage: React.FC = () => {
   const navigate = useNavigate();
-  const [reports] = useState([]);
+  const [reports, setReports] = useState<Report[]>([]);
+
+  useEffect(() => {
+    // Fetch all existing reports to show on the map
+    const fetchReports = async () => {
+      try {
+        const data = await getReports();
+        const mapped = (data ?? []).map((r: any) => {
+          return new Report(
+            Number(r.latitude ?? r.lat ?? 0),
+            Number(r.longitude ?? r.lng ?? 0),
+            r.title ?? "",
+            (r.status as any) ?? ReportStatus.PENDING,
+            r.id,
+            r.description,
+            r.anonymous,
+            r.category,
+            r.photos,
+            r.createdAt,
+          );
+        });
+        setReports(mapped);
+      } catch (err) {
+        console.error("Error fetching reports:", err);
+      }
+    };
+
+    fetchReports();
+
+    // Listen for newly created reports and add them to the map
+    const onReportsChanged = (e: Event) => {
+      try {
+        const ce = e as CustomEvent<any>;
+        if (ce?.detail) {
+          const r = ce.detail;
+          const rep = new Report(
+            Number(r.latitude ?? r.lat ?? 0),
+            Number(r.longitude ?? r.lng ?? 0),
+            r.title ?? "",
+            (r.status as any) ?? ReportStatus.PENDING,
+            r.id,
+            r.description,
+            r.anonymous,
+            r.category,
+            r.photos,
+            r.createdAt,
+          );
+          setReports((prev) => [rep, ...prev]);
+          return;
+        }
+      } catch (err) {
+        // fallback to refetch
+      }
+
+      fetchReports();
+    };
+
+    window.addEventListener("reports:changed", onReportsChanged as EventListener);
+
+    return () => {
+      window.removeEventListener("reports:changed", onReportsChanged as EventListener);
+    };
+  }, []);
 
   return (
     <DashboardLayout>

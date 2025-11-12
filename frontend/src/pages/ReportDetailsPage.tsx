@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getReportById } from "src/services/api";
+import { getReportById, verifyAuth } from "src/services/api";
 
 // Reverse map backend enum -> human-friendly labels (keep in sync with form)
 const ENUM_TO_LABEL: Record<string, string> = {
@@ -21,6 +21,20 @@ const ReportDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Check if user is authenticated
+    const checkAuth = async () => {
+      try {
+        await verifyAuth();
+        setIsAuthenticated(true);
+      } catch {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -36,12 +50,15 @@ const ReportDetailsPage: React.FC = () => {
     fetch();
   }, [id]);
 
+  const backLink = isAuthenticated ? "/dashboard/new-report" : "/map";
+  const backText = isAuthenticated ? "Back to Dashboard" : "Back to map";
+
   if (error) {
     return (
       <main className="p-6">
         <p className="text-red-600">{error}</p>
-        <Link to="/map" className="text-indigo-600 underline">
-          Back to map
+        <Link to={backLink} className="text-indigo-600 underline">
+          {backText}
         </Link>
       </main>
     );
@@ -85,8 +102,8 @@ const ReportDetailsPage: React.FC = () => {
       )}
 
       <div className="mt-6">
-        <Link to="/map" className="text-indigo-600 hover:underline">
-          ← Back to map
+        <Link to={backLink} className="text-indigo-600 hover:underline">
+          ← {backText}
         </Link>
       </div>
     </main>
