@@ -39,13 +39,20 @@ export const Login: React.FC = () => {
         password: formData.password,
       };
 
-      await login(credentials);
-      // Login successful, redirect to home or dashboard
-      navigate("/");
+      const user = await login(credentials);
+      // Role-based routing
+      if (user.role === "ADMIN") {
+        navigate("/admin");
+      } else if (user.role === "MUNICIPALITY") {
+        navigate("/municipality/reports");
+      } else {
+        // CITIZEN role or default
+        navigate("/dashboard");
+      }
     } catch (err: any) {
       setError(
         err.response?.data?.message ||
-          "Login failed. Please check your credentials.",
+        "Login failed. Please check your credentials.",
       );
     } finally {
       setLoading(false);

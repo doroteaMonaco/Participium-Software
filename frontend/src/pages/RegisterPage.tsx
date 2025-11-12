@@ -64,8 +64,8 @@ export const Register: React.FC = () => {
       };
 
       await register(userData);
-      // Registration successful, redirect to login
-      navigate("/login");
+   
+      navigate("/dashboard");
     } catch (err: any) {
       setError(
         err.response?.data?.message || "Registration failed. Please try again.",
