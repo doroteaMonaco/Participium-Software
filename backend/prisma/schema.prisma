@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
@@ -9,16 +9,16 @@ datasource db {
 }
 
 model user {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  email     String   @unique
-  firstName String
-  lastName  String
-  password  String
-  createdAt DateTime @default(now())
-  role      roleType     @default(CITIZEN)
+  id                   Int                @id @default(autoincrement())
+  username             String             @unique
+  email                String             @unique
+  firstName            String
+  lastName             String
+  password             String
+  createdAt            DateTime           @default(now())
   municipality_role_id Int?
-  municipality_role   municipality_role?   @relation(fields: [municipality_role_id], references: [id], onDelete: Restrict)
+  role                 roleType           @default(CITIZEN)
+  municipality_role    municipality_role? @relation(fields: [municipality_role_id], references: [id], onDelete: Restrict)
 }
 
 model report {
@@ -26,16 +26,16 @@ model report {
   createdAt   DateTime @default(now())
   latitude    Float
   longitude   Float
-  title       String
-  description String
   category    Category
+  description String
   photos      String[]
+  title       String
 }
 
 model municipality_role {
-  id        Int      @id @default(autoincrement())
-  name      String    @unique
-  users     user[]
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users user[]
 }
 
 enum roleType {

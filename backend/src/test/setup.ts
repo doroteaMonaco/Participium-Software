@@ -44,6 +44,8 @@ jest.mock('../database/connection', () => {
   };
   return {
     __esModule: true,
-    default: mockPrismaClient,
+    prisma: mockPrismaClient,  
+    initializeDatabase: jest.fn(),
+    closeDatabase: jest.fn(),
   };
 });

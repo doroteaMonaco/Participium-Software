@@ -7,8 +7,11 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies with proper optional dependencies handling
+# This fixes the rollup linux-x64-gnu issue
+RUN rm -rf node_modules package-lock.json && \
+    npm install && \
+    npm rebuild
 
 # Copy the rest of the application
 COPY . .

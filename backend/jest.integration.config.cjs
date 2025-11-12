@@ -8,7 +8,6 @@ module.exports = {
   transform: {
     ...tsJestTransformCfg,
   },
-  setupFilesAfterEnv: ["<rootDir>/src/test/setup.ts"],
   testPathIgnorePatterns: ["/node_modules/", "/dist/"],
-  testMatch: ["**/unit/**/*.test.ts"],
+  testMatch: ["**/*.integration.test.ts", "**/debug.test.ts"],
 };

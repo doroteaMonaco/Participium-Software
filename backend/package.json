@@ -8,10 +8,10 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
-    "test-unit": "jest --runInBand src/test/unit",
-    "test-integration": "dotenv -e .env.test -- jest --runInBand src/test/integration",
-    "test": "dotenv -e .env.test -- jest --runInBand src/test",
-    "test-coverage": "npm run test -- --coverage"
+    "test-unit": "jest --config=jest.unit.config.cjs --runInBand src/test/unit",
+    "test-integration": "dotenv -e .env.test -- jest --config=jest.integration.config.cjs --runInBand src/test/integration",
+    "test": "npm run test-unit && npm run test-integration",
+    "test-coverage": "npm run test-unit -- --coverage"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",

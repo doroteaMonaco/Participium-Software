@@ -1,16 +1,16 @@
 import React, { useState } from "react";
-import { Sidebar } from "./Sidebar";
+import { AdminSidebar } from "./AdminSidebar";
 import { Topbar } from "./Topbar";
 
-export const DashboardLayout: React.FC<React.PropsWithChildren> = ({
+export const AdminDashboardLayout: React.FC<React.PropsWithChildren> = ({
   children,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="flex min-h-svh w-full bg-slate-50">
-      {/* Sidebar */}
-      <Sidebar
+      {/* Admin Sidebar */}
+      <AdminSidebar
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
       />

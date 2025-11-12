@@ -54,7 +54,7 @@ export const UserDashboard: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 w-full">
+      <div className="space-y-8 w-full max-w-full">
         {/* Header */}
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold text-slate-900">Your Dashboard</h1>
@@ -64,21 +64,21 @@ export const UserDashboard: React.FC = () => {
         </div>
 
         {/* Stat cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
           {kpis.map((k) => (
             <StatCard key={k.label} label={k.label} value={k.value} />
           ))}
         </div>
 
         {/* Filters + Actions */}
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <input
               placeholder="Search by title or ID…"
-              className="w-full sm:w-64 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
+              className="w-full sm:w-auto sm:min-w-[200px] rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
             />
 
-            <select className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition">
+            <select className="w-full sm:w-auto rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition">
               <option value="">All categories</option>
               <option>Public Lighting</option>
               <option>Waste</option>
@@ -91,7 +91,7 @@ export const UserDashboard: React.FC = () => {
               <option>Other</option>
             </select>
 
-            <select className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition">
+            <select className="w-full sm:w-auto rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition">
               <option value="">All statuses</option>
               <option>Pending Approval</option>
               <option>Assigned</option>
@@ -103,7 +103,7 @@ export const UserDashboard: React.FC = () => {
           </div>
 
           <button
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50 whitespace-nowrap"
             onClick={() => alert("Hook up to CSV export")}
           >
             <FileDown className="h-4 w-4" /> Export CSV
@@ -111,9 +111,9 @@ export const UserDashboard: React.FC = () => {
         </div>
 
         {/* Content grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 grid-cols-1 xl:grid-cols-3">
           {/* Table */}
-          <div className="lg:col-span-2">
+          <div className="xl:col-span-2 min-w-0">
             <ReportsTable data={sampleReports} />
           </div>
 
@@ -144,7 +144,7 @@ export const UserDashboard: React.FC = () => {
                   key={r.id}
                   className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1 mr-2">
                     <p className="truncate text-sm font-medium text-slate-900">
                       {r.title}
                     </p>

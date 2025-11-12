@@ -3,8 +3,6 @@ import { Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import type { Marker as LeafMarker } from "leaflet";
 import ReportForm from "src/components/report/ReportFrom";
 
-import { Link } from "react-router-dom"; // TODO: remove it after integrating the form properly
-
 function CustomMarker({
   draggable = false,
   location = false,
@@ -22,10 +20,11 @@ function CustomMarker({
   const handleLocate = () => {
     map.locate();
   };
+
   const mapEvents = useMapEvents({
     locationfound(e) {
       setPosition(e.latlng);
-      const zoomLevel = 16; // mapEvents.getZoom();
+      const zoomLevel = 16;
       mapEvents.setView(e.latlng, zoomLevel, { animate: true });
     },
     move() {
@@ -52,6 +51,13 @@ function CustomMarker({
     [draggable],
   );
 
+  const handleReportSuccess = () => {
+    setShowReport(false);
+    setShowMarker(false);
+    setPosition(null);
+    // Optionally reload reports here
+  };
+
   return (
     <>
       {location && (
@@ -76,30 +82,32 @@ function CustomMarker({
           ref={markerRef}
         >
           <Popup>
-            {/* open the overlay form when pressed */}
-            <div className="space-y-3">
-              <Link
-                to="/report"
-                className="text-sm font-medium text-slate-700 hover:text-slate-900"
-                onClick={(e) => e.stopPropagation()}
-              >
-                Add Report
-              </Link>
+            <div className="space-y-2 py-1">
+              <p className="text-sm text-slate-600 font-medium">
+                Create a report at this location?
+              </p>
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowReport(true);
                 }}
-                className="w-full rounded-md bg-indigo-600 text-white px-3 py-1 text-sm hover:bg-indigo-700 transition"
+                className="w-full rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-semibold hover:bg-indigo-700 transition"
               >
-                Add Report
+                Create Report
               </button>
             </div>
           </Popup>
-          {showReport && <ReportForm lat={position.lat} lng={position.lng} />}
-          {/* {children} */}
         </Marker>
+      )}
+
+      {showReport && position && (
+        <ReportForm
+          lat={position.lat}
+          lng={position.lng}
+          onClose={() => setShowReport(false)}
+          onSuccess={handleReportSuccess}
+        />
       )}
     </>
   );

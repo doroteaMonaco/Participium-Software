@@ -32,7 +32,7 @@ router.get(
 );
 
 // POST /api/users - User registration
-router.post('', userController.register);
+router.post('/', userController.register);
 
 // GET /api/users - Get all users (admin required)
 router.get("/", isAuthenticated, isAdmin, userController.getAllUsers);

@@ -93,12 +93,25 @@ describe('authController', () => {
       expect(res.setHeader).toHaveBeenCalledWith('Location', '/reports');
       expect(res.status).toHaveBeenCalledWith(201);
 
-      // il tuo controller restituisce { firstName, lastName, username, token }
       expect(res.json).toHaveBeenCalledWith({
         firstName: 'Mario',
         lastName: 'Rossi',
         username: 'mrossi',
-        token: 'jwt-123',
+      });
+    });
+
+    it('returns 400 when required fields are missing', async () => {
+      const req = {
+        body: { email: 'e@e.com', username: 'u' }, // missing firstName, lastName, password
+      } as unknown as Request;
+      const res = makeRes();
+
+      await userController.register(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Bad Request',
+        message: 'Missing required fields',
       });
     });
 
@@ -200,6 +213,21 @@ describe('authController', () => {
       expect(res.json).toHaveBeenCalledWith({
         error: 'Authentication Error',
         message: 'Invalid password',
+      });
+    });
+
+    it('returns 400 when identifier or password are missing', async () => {
+      const req = {
+        body: { identifier: 'mrossi' }, // missing password
+      } as unknown as Request;
+      const res = makeRes();
+
+      await authController.login(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Bad Request',
+        message: 'identifier and password are required',
       });
     });
   });

@@ -1,18 +1,17 @@
-jest.mock("@prisma/client", () => {
-  const mPrisma = {
+
+jest.mock("../../../database/connection", () => ({
+  prisma: {
     user: {
       create: jest.fn(),
       findUnique: jest.fn(),
       findMany: jest.fn(),
       delete: jest.fn(),
     },
-  };
-  const MockedPrismaClient = jest.fn(() => mPrisma);
-  return { PrismaClient: MockedPrismaClient };
-});
+  },
+}));
 
-import { PrismaClient } from '@prisma/client';
 import { userRepository } from '../../../repositories/userRepository';
+import { prisma } from '../../../database/connection';
 
 type PrismaMock = {
   user: {
@@ -23,11 +22,7 @@ type PrismaMock = {
   };
 };
 
-let prismaMock: PrismaMock;
-
-beforeAll(() => {
-  prismaMock = new PrismaClient() as unknown as PrismaMock;
-});
+const prismaMock = prisma as unknown as PrismaMock;
 
 const makeUser = (overrides: Partial<any> = {}) => ({
   id: 1,

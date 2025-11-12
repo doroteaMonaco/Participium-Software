@@ -17,7 +17,15 @@ const swaggerPath = isDocker
 
 const swaggerDocument = YAML.load(swaggerPath);
 
-app.use(cors());
+// Configure CORS to allow credentials and frontend origin
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:4173",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 
