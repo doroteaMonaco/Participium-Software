@@ -72,7 +72,7 @@ describe("Admin routes integration tests", () => {
     expect(loginRes.status).toBe(200);
     const setCookie = loginRes.headers["set-cookie"] || [];
     expect(Array.isArray(setCookie) ? setCookie.join(";") : setCookie).toMatch(
-      /authToken=/i
+      /authToken=/i,
     );
 
     return agent;

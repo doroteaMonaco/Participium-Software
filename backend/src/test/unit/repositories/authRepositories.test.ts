@@ -1,4 +1,3 @@
-
 jest.mock("../../../database/connection", () => ({
   prisma: {
     user: {
@@ -10,8 +9,8 @@ jest.mock("../../../database/connection", () => ({
   },
 }));
 
-import { userRepository } from '../../../repositories/userRepository';
-import { prisma } from '../../../database/connection';
+import { userRepository } from "../../../repositories/userRepository";
+import { prisma } from "../../../database/connection";
 
 type PrismaMock = {
   user: {
@@ -52,7 +51,7 @@ describe("userRepository", () => {
         u.username,
         u.firstName,
         u.lastName,
-        u.password
+        u.password,
       );
 
       expect(prismaMock.user.create).toHaveBeenCalledWith({
@@ -154,7 +153,7 @@ describe("userRepository", () => {
         created.lastName,
         "hashed-pwd",
         "MUNICIPALITY",
-        3
+        3,
       );
 
       expect(prismaMock.user.create).toHaveBeenCalledWith({
@@ -193,7 +192,7 @@ describe("userRepository", () => {
         created.firstName,
         created.lastName,
         "hashed-pwd",
-        "MUNICIPALITY"
+        "MUNICIPALITY",
       );
 
       expect(prismaMock.user.create).toHaveBeenCalledWith({

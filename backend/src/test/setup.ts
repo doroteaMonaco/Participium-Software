@@ -1,5 +1,5 @@
 // Mock Redis client before any imports
-jest.mock('../database/redis', () => {
+jest.mock("../database/redis", () => {
   const mockRedisClient = {
     get: jest.fn(),
     set: jest.fn(),
@@ -17,7 +17,7 @@ jest.mock('../database/redis', () => {
 });
 
 // Mock Prisma client
-jest.mock('../database/connection', () => {
+jest.mock("../database/connection", () => {
   const mockPrismaClient = {
     user: {
       create: jest.fn(),
@@ -44,7 +44,7 @@ jest.mock('../database/connection', () => {
   };
   return {
     __esModule: true,
-    prisma: mockPrismaClient,  
+    prisma: mockPrismaClient,
     initializeDatabase: jest.fn(),
     closeDatabase: jest.fn(),
   };

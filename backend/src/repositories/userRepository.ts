@@ -3,7 +3,13 @@ import { roleType } from "../models/enums";
 import { roleType as PrismaRole } from "@prisma/client";
 
 export const userRepository = {
-  async createUser(email: string, username: string, firstName: string, lastName: string, password: string) {
+  async createUser(
+    email: string,
+    username: string,
+    firstName: string,
+    lastName: string,
+    password: string,
+  ) {
     return prisma.user.create({
       data: {
         username,
@@ -51,7 +57,7 @@ export const userRepository = {
     lastName: string,
     password: string,
     role: string,
-    municipality_role_id?: number
+    municipality_role_id?: number,
   ) {
     return prisma.user.create({
       data: {

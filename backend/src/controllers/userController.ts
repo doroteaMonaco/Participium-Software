@@ -1,43 +1,76 @@
-import { Request, Response } from 'express';
-import { authService } from '../services/authService';
-import { cookieOpts } from './authController';
+import { Request, Response } from "express";
+import { authService } from "../services/authService";
+import { cookieOpts } from "./authController";
 
 export const userController = {
   async register(req: Request, res: Response) {
-      try {
-        const { email, username, firstName, lastName, password } = req.body || {};
-  
-        if (!email || !username || !firstName || !lastName || !password) {
-          return res.status(400).json({ error: 'Bad Request', message: 'Missing required fields' });
-        }
-  
-        const { user } = await authService.registerUser(email, username, firstName, lastName, password);
-        const { token } = await authService.login(email, password);
-  
-        res.cookie('authToken', token, cookieOpts);
-        res.setHeader('Location', '/reports');
-  
-        return res.status(201).json({
-          firstName: user.firstName,
-          lastName: user.lastName,
-          username: user.username,
-        });
-      } catch (error: any) {
-        if (error?.message === 'Email is already in use' || error?.message === 'Username is already in use') {
-          return res.status(409).json({ error: 'Conflict Error', message: error.message });
-        }
-        return res.status(400).json({ error: 'Bad Request', message: error?.message || 'Registration failed' });
+    try {
+      const { email, username, firstName, lastName, password } = req.body || {};
+
+      if (!email || !username || !firstName || !lastName || !password) {
+        return res
+          .status(400)
+          .json({ error: "Bad Request", message: "Missing required fields" });
       }
-    },
+
+      const { user } = await authService.registerUser(
+        email,
+        username,
+        firstName,
+        lastName,
+        password,
+      );
+      const { token } = await authService.login(email, password);
+
+      res.cookie("authToken", token, cookieOpts);
+      res.setHeader("Location", "/reports");
+
+      return res.status(201).json({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        username: user.username,
+      });
+    } catch (error: any) {
+      if (
+        error?.message === "Email is already in use" ||
+        error?.message === "Username is already in use"
+      ) {
+        return res
+          .status(409)
+          .json({ error: "Conflict Error", message: error.message });
+      }
+      return res
+        .status(400)
+        .json({
+          error: "Bad Request",
+          message: error?.message || "Registration failed",
+        });
+    }
+  },
 
   async createMunicipalityUser(req: Request, res: Response) {
     try {
-      const { email, username, firstName, lastName, password, municipality_role_id } = req.body || {};
+      const {
+        email,
+        username,
+        firstName,
+        lastName,
+        password,
+        municipality_role_id,
+      } = req.body || {};
 
-      if (!email || !username || !firstName || !lastName || !password || !municipality_role_id) {
+      if (
+        !email ||
+        !username ||
+        !firstName ||
+        !lastName ||
+        !password ||
+        !municipality_role_id
+      ) {
         return res.status(400).json({
-          error: 'Bad Request',
-          message: 'Missing required fields: email, username, firstName, lastName, password, municipality_role_id'
+          error: "Bad Request",
+          message:
+            "Missing required fields: email, username, firstName, lastName, password, municipality_role_id",
         });
       }
 
@@ -47,15 +80,25 @@ export const userController = {
         firstName,
         lastName,
         password,
-        municipality_role_id
+        municipality_role_id,
       );
 
       return res.status(201).json(user);
     } catch (error: any) {
-      if (error?.message === 'Email is already in use' || error?.message === 'Username is already in use') {
-        return res.status(409).json({ error: 'Conflict Error', message: error.message });
+      if (
+        error?.message === "Email is already in use" ||
+        error?.message === "Username is already in use"
+      ) {
+        return res
+          .status(409)
+          .json({ error: "Conflict Error", message: error.message });
       }
-      return res.status(500).json({ error: 'Internal Server Error', message: error?.message || 'User creation failed' });
+      return res
+        .status(500)
+        .json({
+          error: "Internal Server Error",
+          message: error?.message || "User creation failed",
+        });
     }
   },
 
@@ -64,7 +107,12 @@ export const userController = {
       const users = await authService.getAllUsers();
       return res.status(200).json(users);
     } catch (error: any) {
-      return res.status(500).json({ error: 'Internal Server Error', message: error?.message || 'Failed to retrieve users' });
+      return res
+        .status(500)
+        .json({
+          error: "Internal Server Error",
+          message: error?.message || "Failed to retrieve users",
+        });
     }
   },
 
@@ -73,18 +121,27 @@ export const userController = {
       const userId = parseInt(req.params.id);
 
       if (isNaN(userId)) {
-        return res.status(400).json({ error: 'Bad Request', message: 'Invalid user ID' });
+        return res
+          .status(400)
+          .json({ error: "Bad Request", message: "Invalid user ID" });
       }
 
       const user = await authService.getUserById(userId);
 
       if (!user) {
-        return res.status(404).json({ error: 'Not Found', message: 'User not found' });
+        return res
+          .status(404)
+          .json({ error: "Not Found", message: "User not found" });
       }
 
       return res.status(200).json(user);
     } catch (error: any) {
-      return res.status(500).json({ error: 'Internal Server Error', message: error?.message || 'Failed to retrieve user' });
+      return res
+        .status(500)
+        .json({
+          error: "Internal Server Error",
+          message: error?.message || "Failed to retrieve user",
+        });
     }
   },
 
@@ -93,16 +150,25 @@ export const userController = {
       const userId = parseInt(req.params.id);
 
       if (isNaN(userId)) {
-        return res.status(400).json({ error: 'Bad Request', message: 'Invalid user ID' });
+        return res
+          .status(400)
+          .json({ error: "Bad Request", message: "Invalid user ID" });
       }
 
       await authService.deleteUser(userId);
       return res.status(204).send();
     } catch (error: any) {
-      if (error?.message === 'User not found') {
-        return res.status(404).json({ error: 'Not Found', message: error.message });
+      if (error?.message === "User not found") {
+        return res
+          .status(404)
+          .json({ error: "Not Found", message: error.message });
       }
-      return res.status(500).json({ error: 'Internal Server Error', message: error?.message || 'Failed to delete user' });
+      return res
+        .status(500)
+        .json({
+          error: "Internal Server Error",
+          message: error?.message || "Failed to delete user",
+        });
     }
   },
 
@@ -111,7 +177,12 @@ export const userController = {
       const roles = await authService.getAllMunicipalityRoles();
       return res.status(200).json(roles);
     } catch (error: any) {
-      return res.status(500).json({ error: 'Internal Server Error', message: error?.message || 'Failed to retrieve municipality roles' });
+      return res
+        .status(500)
+        .json({
+          error: "Internal Server Error",
+          message: error?.message || "Failed to retrieve municipality roles",
+        });
     }
   },
 
@@ -125,5 +196,5 @@ export const userController = {
         message: error?.message || "Failed to retrieve users",
       });
     }
-  }
+  },
 };

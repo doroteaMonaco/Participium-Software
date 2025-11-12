@@ -53,7 +53,7 @@ describe("userController", () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           error: "Bad Request",
-        })
+        }),
       );
       expect(authService.createMunicipalityUser).not.toHaveBeenCalled();
     });
@@ -64,7 +64,7 @@ describe("userController", () => {
       const res = makeRes();
 
       (authService.createMunicipalityUser as jest.Mock).mockRejectedValue(
-        new Error("Email is already in use")
+        new Error("Email is already in use"),
       );
 
       await userController.createMunicipalityUser(req, res);
@@ -84,7 +84,7 @@ describe("userController", () => {
       const created = makeUser({ id: 10, role: "MUNICIPALITY" });
 
       (authService.createMunicipalityUser as jest.Mock).mockResolvedValue(
-        created
+        created,
       );
 
       await userController.createMunicipalityUser(req, res);
@@ -95,7 +95,7 @@ describe("userController", () => {
         payload.firstName,
         payload.lastName,
         payload.password,
-        payload.municipality_role_id
+        payload.municipality_role_id,
       );
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(created);
@@ -107,14 +107,14 @@ describe("userController", () => {
       const res = makeRes();
 
       (authService.createMunicipalityUser as jest.Mock).mockRejectedValue(
-        new Error("some failure")
+        new Error("some failure"),
       );
 
       await userController.createMunicipalityUser(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: "Internal Server Error" })
+        expect.objectContaining({ error: "Internal Server Error" }),
       );
     });
   });
@@ -140,14 +140,14 @@ describe("userController", () => {
       const res = makeRes();
 
       (authService.getAllUsers as jest.Mock).mockRejectedValue(
-        new Error("db fail")
+        new Error("db fail"),
       );
 
       await userController.getAllUsers(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: "Internal Server Error" })
+        expect.objectContaining({ error: "Internal Server Error" }),
       );
     });
   });
@@ -162,7 +162,7 @@ describe("userController", () => {
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: "Bad Request" })
+        expect.objectContaining({ error: "Bad Request" }),
       );
     });
 
@@ -201,14 +201,14 @@ describe("userController", () => {
       const res = makeRes();
 
       (authService.getUserById as jest.Mock).mockRejectedValue(
-        new Error("boom")
+        new Error("boom"),
       );
 
       await userController.getUserById(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: "Internal Server Error" })
+        expect.objectContaining({ error: "Internal Server Error" }),
       );
     });
   });
@@ -223,7 +223,7 @@ describe("userController", () => {
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: "Bad Request" })
+        expect.objectContaining({ error: "Bad Request" }),
       );
     });
 
@@ -245,7 +245,7 @@ describe("userController", () => {
       const res = makeRes();
 
       (authService.deleteUser as jest.Mock).mockRejectedValue(
-        new Error("User not found")
+        new Error("User not found"),
       );
 
       await userController.deleteUser(req, res);
@@ -262,14 +262,14 @@ describe("userController", () => {
       const res = makeRes();
 
       (authService.deleteUser as jest.Mock).mockRejectedValue(
-        new Error("boom")
+        new Error("boom"),
       );
 
       await userController.deleteUser(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: "Internal Server Error" })
+        expect.objectContaining({ error: "Internal Server Error" }),
       );
     });
   });
@@ -285,7 +285,7 @@ describe("userController", () => {
       ];
 
       (authService.getAllMunicipalityRoles as jest.Mock).mockResolvedValue(
-        roles
+        roles,
       );
 
       await userController.getAllMunicipalityRoles(req, res);
@@ -300,14 +300,14 @@ describe("userController", () => {
       const res = makeRes();
 
       (authService.getAllMunicipalityRoles as jest.Mock).mockRejectedValue(
-        new Error("db fail")
+        new Error("db fail"),
       );
 
       await userController.getAllMunicipalityRoles(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: "Internal Server Error" })
+        expect.objectContaining({ error: "Internal Server Error" }),
       );
     });
   });
@@ -333,14 +333,14 @@ describe("userController", () => {
       const res = makeRes();
 
       (authService.getMunicipalityUsers as jest.Mock).mockRejectedValue(
-        new Error("boom")
+        new Error("boom"),
       );
 
       await userController.getMunicipalityUsers(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: "Internal Server Error" })
+        expect.objectContaining({ error: "Internal Server Error" }),
       );
     });
   });

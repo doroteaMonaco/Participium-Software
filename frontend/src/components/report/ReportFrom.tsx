@@ -119,7 +119,7 @@ const ReportForm: React.FC<ReportFormProps> = ({
         anonymous,
         photos,
         latitude: lat,
-        longitude: lng
+        longitude: lng,
       };
 
       await createReport(reportData);

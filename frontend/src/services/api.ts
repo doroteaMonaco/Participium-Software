@@ -25,6 +25,7 @@ export interface User {
   firstName?: string;
   lastName?: string;
   username?: string;
+  role?: string;
 }
 
 export interface LoginRequest {
@@ -151,7 +152,7 @@ export const createReport = async (
   formData.append("description", reportData.description);
   formData.append("anonymous", String(reportData.anonymous));
   formData.append("category", reportData.category);
-  
+
   // Add coordinates if provided
   if (reportData.latitude !== undefined) {
     formData.append("lat", String(reportData.latitude));

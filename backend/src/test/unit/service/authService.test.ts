@@ -73,12 +73,12 @@ describe("authService", () => {
           "mrossi",
           "Mario",
           "Rossi",
-          "plain"
-        )
+          "plain",
+        ),
       ).rejects.toThrow("Email is already in use");
 
       expect(repo.findUserByEmail).toHaveBeenCalledWith(
-        "mario.rossi@example.com"
+        "mario.rossi@example.com",
       );
       expect(repo.findUserByUsername).not.toHaveBeenCalled();
       expect(repo.createUser).not.toHaveBeenCalled();
@@ -96,8 +96,8 @@ describe("authService", () => {
           "mrossi",
           "Mario",
           "Rossi",
-          "plain"
-        )
+          "plain",
+        ),
       ).rejects.toThrow("Username is already in use");
 
       expect(repo.findUserByEmail).toHaveBeenCalledWith("new@example.com");
@@ -122,7 +122,7 @@ describe("authService", () => {
         "mrossi",
         "Mario",
         "Rossi",
-        "plain-pass"
+        "plain-pass",
       );
 
       expect(bcrypt.hash).toHaveBeenCalledWith("plain-pass", 10);
@@ -131,12 +131,12 @@ describe("authService", () => {
         "mrossi",
         "Mario",
         "Rossi",
-        "hashed-123"
+        "hashed-123",
       );
       expect(jwt.sign).toHaveBeenCalledWith(
         { id: created.id, email: created.email },
         expect.any(String),
-        expect.objectContaining({ expiresIn: "1h" })
+        expect.objectContaining({ expiresIn: "1h" }),
       );
 
       expect(res).toEqual({ user: created, token: "signed-token" });
@@ -150,7 +150,7 @@ describe("authService", () => {
       repo.findUserByUsername.mockResolvedValue(null);
 
       await expect(authService.login("unknown", "pwd")).rejects.toThrow(
-        "Invalid username or email"
+        "Invalid username or email",
       );
 
       expect(bcrypt.compare).not.toHaveBeenCalled();
@@ -163,7 +163,7 @@ describe("authService", () => {
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
       await expect(authService.login(user.email, "wrong")).rejects.toThrow(
-        "Invalid password"
+        "Invalid password",
       );
 
       expect(bcrypt.compare).toHaveBeenCalledWith("wrong", user.password);
@@ -182,7 +182,7 @@ describe("authService", () => {
       expect(jwt.sign).toHaveBeenCalledWith(
         { id: user.id, email: user.email },
         expect.any(String),
-        expect.objectContaining({ expiresIn: "1h" })
+        expect.objectContaining({ expiresIn: "1h" }),
       );
       expect(res).toEqual({ user, token: "token-123" });
     });
@@ -192,7 +192,7 @@ describe("authService", () => {
   describe("verifyAuth", () => {
     it("throws if authToken cookie is missing", async () => {
       await expect(authService.verifyAuth({})).rejects.toThrow(
-        "No token provided"
+        "No token provided",
       );
       expect(jwt.verify).not.toHaveBeenCalled();
     });
@@ -203,7 +203,7 @@ describe("authService", () => {
       });
 
       await expect(
-        authService.verifyAuth({ cookies: { authToken: "bad" } })
+        authService.verifyAuth({ cookies: { authToken: "bad" } }),
       ).rejects.toThrow("Invalid or expired token");
 
       expect(jwt.verify).toHaveBeenCalledWith("bad", expect.any(String));
@@ -217,7 +217,7 @@ describe("authService", () => {
       repo.findUserById.mockResolvedValue(null);
 
       await expect(
-        authService.verifyAuth({ cookies: { authToken: "ok" } })
+        authService.verifyAuth({ cookies: { authToken: "ok" } }),
       ).rejects.toThrow("Invalid or expired token");
 
       expect(repo.findUserById).toHaveBeenCalledWith(99);
@@ -251,8 +251,8 @@ describe("authService", () => {
           user.firstName,
           user.lastName,
           user.password,
-          2
-        )
+          2,
+        ),
       ).rejects.toThrow("Email is already in use");
 
       expect(repo.findUserByEmail).toHaveBeenCalledWith(user.email);
@@ -276,8 +276,8 @@ describe("authService", () => {
           user.firstName,
           user.lastName,
           user.password,
-          2
-        )
+          2,
+        ),
       ).rejects.toThrow("Username is already in use");
 
       expect(repo.findUserByEmail).toHaveBeenCalledWith(new_email);
@@ -303,7 +303,7 @@ describe("authService", () => {
         created.firstName,
         created.lastName,
         "muni",
-        5
+        5,
       );
 
       expect(bcrypt.hash).toHaveBeenCalledWith("muni", 10);
@@ -314,7 +314,7 @@ describe("authService", () => {
         created.lastName,
         created.password,
         "MUNICIPALITY",
-        5
+        5,
       );
       expect(res).toBe(created);
     });
@@ -344,7 +344,7 @@ describe("authService", () => {
       repo.findUserById.mockResolvedValue(null);
 
       await expect(authService.deleteUser(99)).rejects.toThrow(
-        "User not found"
+        "User not found",
       );
       expect(repo.findUserById).toHaveBeenCalledWith(99);
       expect(repo.deleteUser).not.toHaveBeenCalled();
@@ -370,7 +370,7 @@ describe("authService", () => {
         { id: 2, name: "VALIDATOR" },
       ];
       (roleRepository.getAllMunicipalityRoles as jest.Mock).mockResolvedValue(
-        roles
+        roles,
       );
 
       const res = await authService.getAllMunicipalityRoles();
@@ -381,11 +381,11 @@ describe("authService", () => {
 
     it("propagates errors from roleRepository", async () => {
       (roleRepository.getAllMunicipalityRoles as jest.Mock).mockRejectedValue(
-        new Error("db fail")
+        new Error("db fail"),
       );
 
       await expect(authService.getAllMunicipalityRoles()).rejects.toThrow(
-        "db fail"
+        "db fail",
       );
       expect(roleRepository.getAllMunicipalityRoles).toHaveBeenCalled();
     });
@@ -400,21 +400,21 @@ describe("authService", () => {
       const res = await authService.getMunicipalityUsers();
 
       expect(userRepository.getUsersByRole).toHaveBeenCalledWith(
-        roleType.MUNICIPALITY
+        roleType.MUNICIPALITY,
       );
       expect(res).toBe(users);
     });
 
     it("propagates errors from userRepository.getUsersByRole", async () => {
       (userRepository.getUsersByRole as jest.Mock).mockRejectedValue(
-        new Error("repo fail")
+        new Error("repo fail"),
       );
 
       await expect(authService.getMunicipalityUsers()).rejects.toThrow(
-        "repo fail"
+        "repo fail",
       );
       expect(userRepository.getUsersByRole).toHaveBeenCalledWith(
-        roleType.MUNICIPALITY
+        roleType.MUNICIPALITY,
       );
     });
   });

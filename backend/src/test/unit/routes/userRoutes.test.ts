@@ -4,7 +4,7 @@ import request from "supertest";
 jest.mock("../../../controllers/authController", () => ({
   authController: {
     register: jest.fn((req: Request, res: Response) =>
-      res.status(201).json({ route: "register", body: req.body })
+      res.status(201).json({ route: "register", body: req.body }),
     ),
   },
 }));
@@ -12,30 +12,30 @@ jest.mock("../../../controllers/authController", () => ({
 jest.mock("../../../controllers/userController", () => ({
   userController: {
     register: jest.fn((req: Request, res: Response) =>
-      res.status(201).json({ route: "register", body: req.body })
+      res.status(201).json({ route: "register", body: req.body }),
     ),
     // Admin endpoints
     createMunicipalityUser: jest.fn((req: Request, res: Response) =>
-      res.status(201).json({ route: "createMunicipalityUser", body: req.body })
+      res.status(201).json({ route: "createMunicipalityUser", body: req.body }),
     ),
     getAllUsers: jest.fn((_req: Request, res: Response) =>
-      res.status(200).json([{ id: 1 }, { id: 2 }])
+      res.status(200).json([{ id: 1 }, { id: 2 }]),
     ),
     getUserById: jest.fn((req: Request, res: Response) =>
-      res.status(200).json({ route: "getUserById", id: Number(req.params.id) })
+      res.status(200).json({ route: "getUserById", id: Number(req.params.id) }),
     ),
     deleteUser: jest.fn((_req: Request, res: Response) =>
-      res.status(204).send()
+      res.status(204).send(),
     ),
     getMunicipalityUsers: jest.fn((_req: Request, res: Response) =>
-      res.status(200).json([{ id: 10, username: "muni1" }])
+      res.status(200).json([{ id: 10, username: "muni1" }]),
     ),
     getAllMunicipalityRoles: jest.fn((_req: Request, res: Response) =>
       res.status(200).json([
         { id: 1, name: "OPERATOR" },
         { id: 2, name: "VALIDATOR" },
         { id: 3, name: "SUPERVISOR" },
-      ])
+      ]),
     ),
   },
 }));
@@ -75,8 +75,8 @@ const roleMiddleware = {
   isAdmin: jest.fn((req: any, res: any, next: any) => next()),
 };
 
-jest.mock('../../../middlewares/authMiddleware', () => authMiddleware);
-jest.mock('../../../middlewares/roleMiddleware', () => roleMiddleware);
+jest.mock("../../../middlewares/authMiddleware", () => authMiddleware);
+jest.mock("../../../middlewares/roleMiddleware", () => roleMiddleware);
 
 import userRouter from "../../../routes/userRouter";
 import { userController } from "../../../controllers/userController";
@@ -94,10 +94,10 @@ describe("userRouter (admin routes)", () => {
     jest.clearAllMocks();
     // default: allow auth and admin
     (authMiddleware.isAuthenticated as jest.Mock).mockImplementation(
-      (req, res, next) => next()
+      (req, res, next) => next(),
     );
     (roleMiddleware.isAdmin as jest.Mock).mockImplementation((req, res, next) =>
-      next()
+      next(),
     );
   });
 
@@ -127,7 +127,7 @@ describe("userRouter (admin routes)", () => {
 
     it("returns 401 when not authenticated", async () => {
       (authMiddleware.isAuthenticated as jest.Mock).mockImplementation(
-        (req: any, res: any) => res.status(401).json({ error: "Unauthorized" })
+        (req: any, res: any) => res.status(401).json({ error: "Unauthorized" }),
       );
       const app = makeApp();
 
@@ -140,7 +140,7 @@ describe("userRouter (admin routes)", () => {
 
     it("returns 403 when authenticated but not admin", async () => {
       (roleMiddleware.isAdmin as jest.Mock).mockImplementation(
-        (req: any, res: any) => res.status(403).json({ error: "Forbidden" })
+        (req: any, res: any) => res.status(403).json({ error: "Forbidden" }),
       );
       const app = makeApp();
 
@@ -165,7 +165,7 @@ describe("userRouter (admin routes)", () => {
 
     it("401 when not authenticated", async () => {
       (authMiddleware.isAuthenticated as jest.Mock).mockImplementation(
-        (req: any, res: any) => res.status(401).json({ error: "Unauthorized" })
+        (req: any, res: any) => res.status(401).json({ error: "Unauthorized" }),
       );
       const app = makeApp();
       await request(app).get("/api/users").expect(401);

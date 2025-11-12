@@ -26,6 +26,7 @@ export const authController = {
         firstName: user.firstName,
         lastName: user.lastName,
         username: user.username,
+        role: user.role,
       });
     } catch (error: any) {
       return res.status(401).json({ error: 'Authentication Error', message: error?.message || 'Invalid username or password' });
@@ -39,6 +40,7 @@ export const authController = {
         firstName: user.firstName,
         lastName: user.lastName,
         username: user.username,
+        role: user.role,
       });
     } catch {
       return res.status(401).json({ error: 'Authentication Error', message: 'Session is invalid or has expired' });

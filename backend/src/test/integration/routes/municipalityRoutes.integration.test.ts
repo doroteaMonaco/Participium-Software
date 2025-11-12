@@ -27,7 +27,7 @@ describe("Municipality Integration Tests", () => {
   beforeEach(async () => {
     // Clean database
     await prisma.user.deleteMany();
-    
+
     // Create and login admin user using the regular flow
     const adminUser = {
       username: "admin_integration",
@@ -39,10 +39,10 @@ describe("Municipality Integration Tests", () => {
 
     // Create agent and register admin
     adminAgent = request.agent(app);
-    
+
     // Register admin user
     await adminAgent.post("/api/users").send(adminUser).expect(201);
-    
+
     // Promote to admin manually
     await prisma.user.update({
       where: { email: adminUser.email },
@@ -81,7 +81,9 @@ describe("Municipality Integration Tests", () => {
       expect(response.body.email).toBe(validPayload.email);
       expect(response.body.username).toBe(validPayload.username);
       expect(response.body.role).toBe("MUNICIPALITY");
-      expect(response.body.municipality_role_id).toBe(validPayload.municipality_role_id);
+      expect(response.body.municipality_role_id).toBe(
+        validPayload.municipality_role_id,
+      );
     });
 
     it("400 when required fields are missing", async () => {
@@ -129,7 +131,10 @@ describe("Municipality Integration Tests", () => {
         .expect(201);
 
       // Try to create with different email but same username
-      const duplicateUsername = { ...validPayload, email: "different@test.com" };
+      const duplicateUsername = {
+        ...validPayload,
+        email: "different@test.com",
+      };
       const response = await adminAgent
         .post(`${base}/municipality-users`)
         .send(duplicateUsername)
@@ -194,7 +199,7 @@ describe("Municipality Integration Tests", () => {
     it("200 returns empty array when no municipality users exist", async () => {
       // Clean up municipality users
       await prisma.user.deleteMany({
-        where: { role: "MUNICIPALITY" }
+        where: { role: "MUNICIPALITY" },
       });
 
       const response = await adminAgent
@@ -206,9 +211,7 @@ describe("Municipality Integration Tests", () => {
     });
 
     it("401 when not authenticated", async () => {
-      await request(app)
-        .get(`${base}/municipality-users`)
-        .expect(401);
+      await request(app).get(`${base}/municipality-users`).expect(401);
     });
   });
 
@@ -235,9 +238,7 @@ describe("Municipality Integration Tests", () => {
     });
 
     it("401 when not authenticated", async () => {
-      await request(app)
-        .get(`${base}/municipality-users/roles`)
-        .expect(401);
+      await request(app).get(`${base}/municipality-users/roles`).expect(401);
     });
   });
 });

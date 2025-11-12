@@ -1,16 +1,15 @@
-import { prisma } from '../database/connection';
-
+import { prisma } from "../database/connection";
 
 export const roleRepository = {
   async createMunicipalityRole(name: string) {
     return prisma.municipality_role.create({
       data: {
-        name
+        name,
       },
     });
   },
 
-  async getAllMunicipalityRoles(){
+  async getAllMunicipalityRoles() {
     return prisma.municipality_role.findMany();
   },
 
@@ -32,4 +31,4 @@ export const roleRepository = {
       where: { id },
     });
   },
-}
+};

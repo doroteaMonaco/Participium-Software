@@ -3,7 +3,7 @@ export interface CreateReportDto {
   longitude: number;
   title: string;
   description: string;
-  category: string; 
+  category: string;
   photoKeys: string[]; // Keys for images stored in Redis
 }
 
@@ -15,5 +15,5 @@ export interface ReportResponseDto {
   title: string;
   description: string;
   category: string;
-  photos: string[]; 
+  photos: string[];
 }
