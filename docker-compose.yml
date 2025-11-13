@@ -7,7 +7,6 @@ services:
       POSTGRES_DB: participium
     ports:
       - "5432:5432"
-      - "5555:5555"
       - "54320:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -26,7 +25,9 @@ services:
       dockerfile: backend/Dockerfile
     ports:
       - "4000:4000"
+      - "5555:5555"
     environment:
+      - NODE_ENV=production
       - DATABASE_URL=postgresql://postgres:password@db:5432/participium?schema=public
       - REDIS_URL=redis://redis:6379
       - IS_DOCKER=true

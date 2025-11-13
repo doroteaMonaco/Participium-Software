@@ -36,9 +36,10 @@ const MapPlaceholder: React.FC = () => {
     </div>
   );
 };
-const MapView: React.FC<React.PropsWithChildren<{ reports: Report[] }>> = ({
+const MapView: React.FC<React.PropsWithChildren<{ reports: Report[]; fromDashboard?: boolean }>> = ({
   children,
   reports,
+  fromDashboard = false,
 }) => {
   const markers = reports.filter(
     (r) => typeof r.lat === "number" && typeof r.lng === "number",
@@ -60,7 +61,7 @@ const MapView: React.FC<React.PropsWithChildren<{ reports: Report[] }>> = ({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {displayMarkers.map((r) => (
-          <ReportMarker key={r.id} report={r} />
+          <ReportMarker key={r.id} report={r} fromDashboard={fromDashboard} />
         ))}
         {children}
         <CustomMarker draggable={true} location={true} />

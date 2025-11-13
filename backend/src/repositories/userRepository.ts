@@ -110,6 +110,9 @@ export const userRepository = {
     const prismaRole = role as PrismaRole;
     return prisma.user.findMany({
       where: { role: prismaRole },
+      include: {
+        municipality_role: true,
+      },
     });
   },
 };

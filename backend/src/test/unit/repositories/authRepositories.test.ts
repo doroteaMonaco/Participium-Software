@@ -281,6 +281,7 @@ describe("userRepository", () => {
 
       expect(prismaMock.user.findMany).toHaveBeenCalledWith({
         where: { role: "MUNICIPALITY" },
+        include: { municipality_role: true },
       });
       expect(res).toBe(users);
     });
@@ -293,6 +294,7 @@ describe("userRepository", () => {
 
       expect(prismaMock.user.findMany).toHaveBeenCalledWith({
         where: { role: "ADMIN" },
+        include: { municipality_role: true },
       });
       expect(res).toBe(users);
     });

@@ -1,12 +1,41 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "src/components/dashboard/DashboardLayout";
 import MapView from "src/components/map/MapView";
 import { ArrowLeft, Info } from "lucide-react";
+import { getReports } from "src/services/api";
+import { Report, ReportStatus } from "src/services/models";
 
 const NewReportPage: React.FC = () => {
   const navigate = useNavigate();
-  const [reports] = useState([]);
+  const [reports, setReports] = useState<Report[]>([]);
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const data = await getReports();
+        const mapped = (data ?? []).map((r: any) => {
+          return new Report(
+            Number(r.latitude ?? r.lat ?? 0),
+            Number(r.longitude ?? r.lng ?? 0),
+            r.title ?? "",
+            (r.status as any) ?? ReportStatus.PENDING,
+            r.id,
+            r.description,
+            r.anonymous,
+            r.category,
+            r.photos,
+            r.createdAt
+          );
+        });
+        setReports(mapped);
+      } catch (err) {
+        console.error("Error fetching reports:", err);
+      }
+    };
+
+    fetchReports();
+  }, []);
 
   return (
     <DashboardLayout>
@@ -70,7 +99,7 @@ const NewReportPage: React.FC = () => {
           className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
           style={{ height: "calc(100vh - 380px)", minHeight: "500px" }}
         >
-          <MapView reports={reports} />
+          <MapView reports={reports} fromDashboard={true} />
         </div>
 
         {/* Quick Tips */}
