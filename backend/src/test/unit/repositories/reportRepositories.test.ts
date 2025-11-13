@@ -1,3 +1,5 @@
+// reportRepository.test.ts
+
 jest.mock("../../../database/connection", () => {
   const mPrisma = {
     report: {
@@ -5,6 +7,7 @@ jest.mock("../../../database/connection", () => {
       findUnique: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
+      update: jest.fn(), // NEW: serve per testare update()
     },
   };
   return { prisma: mPrisma };
@@ -19,6 +22,7 @@ type PrismaMock = {
     findUnique: jest.Mock;
     create: jest.Mock;
     delete: jest.Mock;
+    update: jest.Mock; // NEW
   };
 };
 
@@ -27,6 +31,12 @@ const prismaMock = prisma as unknown as PrismaMock;
 // Helper
 const makeReport = (overrides: Partial<any> = {}) => ({
   id: 1,
+  latitude: 45.072,
+  longitude: 7.682,
+  title: "Buche in via Roma",
+  description: "Buca profonda vicino al numero 12",
+  category: "ROAD_DAMAGE",
+  photos: ["p1", "p2"],
   createdAt: new Date("2025-11-04T14:30:00Z"),
   ...overrides,
 });
@@ -75,15 +85,39 @@ describe("reportRepository", () => {
 
   // -------- create --------
   describe("create", () => {
-    it("create report", async () => {
-      const created = makeReport({ id: 10 });
+    it("maps DTO fields and creates report", async () => {
+      const dto = {
+        latitude: 45.1001,
+        longitude: 7.6502,
+        title: "Lampione rotto",
+        description: "Il lampione non si accende",
+        category: "LIGHTING", // enum lato dominio; in repo viene castato ad any
+        photoKeys: ["k1", "k2"],
+      };
+
+      const created = makeReport({
+        id: 10,
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        title: dto.title,
+        description: dto.description,
+        category: dto.category,
+        photos: dto.photoKeys,
+      });
+
       prismaMock.report.create.mockResolvedValue(created);
 
-      // anche se la funzione accetta un DTO, in questa storia crea un record vuoto
-      const res = await reportRepository.create({} as any);
+      const res = await reportRepository.create(dto as any);
 
       expect(prismaMock.report.create).toHaveBeenCalledWith({
-        data: {},
+        data: {
+          latitude: dto.latitude,
+          longitude: dto.longitude,
+          title: dto.title,
+          description: dto.description,
+          category: dto.category,
+          photos: dto.photoKeys,
+        },
       });
       expect(res).toBe(created);
 
@@ -92,8 +126,28 @@ describe("reportRepository", () => {
         expect.objectContaining({
           id: expect.any(Number),
           createdAt: expect.any(Date),
+          photos: expect.any(Array),
         }),
       );
+    });
+  });
+
+  // -------- update --------
+  describe("update", () => {
+    it("updates photos by id", async () => {
+      const id = 7;
+      const patch = { photos: ["new1", "new2"] };
+      const updated = makeReport({ id, photos: patch.photos });
+
+      prismaMock.report.update.mockResolvedValue(updated);
+
+      const res = await reportRepository.update(id, patch);
+
+      expect(prismaMock.report.update).toHaveBeenCalledWith({
+        where: { id },
+        data: patch,
+      });
+      expect(res).toBe(updated);
     });
   });
 
