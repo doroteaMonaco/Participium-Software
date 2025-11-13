@@ -2,7 +2,6 @@ import React from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import ReportMarker from "./ReportMarker";
-import CustomMarker from "./CustomMarker";
 
 import type { LatLngExpression } from "leaflet";
 import type { Report } from "src/services/models";
@@ -36,13 +35,12 @@ const MapPlaceholder: React.FC = () => {
     </div>
   );
 };
-const MapView: React.FC<React.PropsWithChildren<{ reports: Report[]; fromDashboard?: boolean }>> = ({
+const MapView: React.FC<React.PropsWithChildren<{ reports: Report[] }>> = ({
   children,
   reports,
-  fromDashboard = false,
 }) => {
   const markers = reports.filter(
-    (r) => typeof r.lat === "number" && typeof r.lng === "number",
+    (r) => typeof r.lat === "number" && typeof r.lng === "number"
   );
 
   const displayMarkers = markers.length ? markers : reports;
@@ -61,10 +59,9 @@ const MapView: React.FC<React.PropsWithChildren<{ reports: Report[]; fromDashboa
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {displayMarkers.map((r) => (
-          <ReportMarker key={r.id} report={r} fromDashboard={fromDashboard} />
+          <ReportMarker key={r.id} report={r} />
         ))}
         {children}
-        <CustomMarker draggable={true} location={true} />
       </MapContainer>
     </div>
   );

@@ -76,11 +76,9 @@ export const AdminUsersPage: React.FC = () => {
 
       setUsers(transformedUsers);
       setRoles(rolesData);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to load data:", err);
-      setError(
-        err.response?.data?.message || "Failed to load municipality users",
-      );
+      setError("Failed to load municipality users");
     } finally {
       setLoading(false);
     }
@@ -116,9 +114,9 @@ export const AdminUsersPage: React.FC = () => {
         roleId: 1,
       });
       setShowAddModal(false);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to create user:", err);
-      setError(err.response?.data?.message || "Failed to create user");
+      setError("Failed to create user");
     } finally {
       setSubmitting(false);
     }

@@ -27,12 +27,12 @@ const MapPage: React.FC = () => {
             r.anonymous,
             r.category,
             r.photos,
-            r.createdAt,
+            r.createdAt
           );
         });
         setReports(mapped);
       } catch (err) {
-        console.debug(`Error fetching reports:`, err);
+        console.error("Error fetching reports:", err);
         setError("Could not fetch reports.");
       }
     };
@@ -55,7 +55,7 @@ const MapPage: React.FC = () => {
             r.anonymous,
             r.category,
             r.photos,
-            r.createdAt,
+            r.createdAt
           );
           setReports((prev) => [rep, ...prev]);
           return;
@@ -67,10 +67,16 @@ const MapPage: React.FC = () => {
       fetchReports();
     };
 
-    window.addEventListener("reports:changed", onReportsChanged as EventListener);
+    window.addEventListener(
+      "reports:changed",
+      onReportsChanged as EventListener
+    );
 
     return () => {
-      window.removeEventListener("reports:changed", onReportsChanged as EventListener);
+      window.removeEventListener(
+        "reports:changed",
+        onReportsChanged as EventListener
+      );
     };
   }, []);
 
@@ -80,7 +86,7 @@ const MapPage: React.FC = () => {
         <Container>
           <SectionTitle
             title="Explore reported issues on the map"
-            subtitle="Pan, zoom and click markers to see details. Choose a location to report new issues."
+            subtitle="Pan, zoom and click markers to see details."
           />
           {error && (
             <div className="mb-4 rounded-md bg-amber-50 border border-amber-200 p-3 text-amber-800 shadow-sm">

@@ -64,7 +64,7 @@ const ReportForm: React.FC<ReportFormProps> = ({
     // Validate file types
     const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
     const invalidFiles = files.filter(
-      (file) => !validTypes.includes(file.type),
+      (file) => !validTypes.includes(file.type)
     );
 
     if (invalidFiles.length > 0) {
@@ -143,11 +143,9 @@ const ReportForm: React.FC<ReportFormProps> = ({
         onSuccess?.(created);
         onClose();
       }, 1500);
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message ||
-          "Failed to submit report. Please try again.",
-      );
+    } catch (err) {
+      console.error("Report submission error:", err)
+      setError("Failed to submit report. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -367,7 +365,7 @@ const ReportForm: React.FC<ReportFormProps> = ({
         </form>
       </div>
     </div>,
-    document.body,
+    document.body
   );
 };
 

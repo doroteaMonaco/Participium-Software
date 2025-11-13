@@ -22,7 +22,7 @@ function getColorForStatus(status?: ReportStatus): string {
   }
 }
 
-const ReportMarker: React.FC<{ report: Report; fromDashboard?: boolean }> = ({ report, fromDashboard = false }) => {
+const ReportMarker: React.FC<{ report: Report }> = ({ report }) => {
   const color = getColorForStatus(report.status);
 
   return (

@@ -102,12 +102,12 @@ export const UserDashboard: React.FC = () => {
             </select>
           </div>
 
-          <button
+          {/* <button
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50 whitespace-nowrap"
             onClick={() => alert("Hook up to CSV export")}
           >
             <FileDown className="h-4 w-4" /> Export CSV
-          </button>
+          </button> */}
         </div>
 
         {/* Content grid */}

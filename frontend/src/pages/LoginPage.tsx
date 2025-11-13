@@ -49,11 +49,9 @@ export const Login: React.FC = () => {
         // CITIZEN role or default
         navigate("/dashboard");
       }
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message ||
-        "Login failed. Please check your credentials.",
-      );
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
     }

@@ -15,7 +15,9 @@ const ENUM_TO_LABEL: Record<string, string> = {
   OTHER: "Other",
 };
 
-const backendOrigin = (import.meta.env.VITE_API_URL || "http://localhost:4000/api").replace(/\/api\/?$/, "");
+const backendOrigin = (
+  import.meta.env.VITE_API_URL || "http://localhost:4000/api"
+).replace(/\/api\/?$/, "");
 
 const ReportDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,7 +31,7 @@ const ReportDetailsPage: React.FC = () => {
       try {
         const data = await getReportById(id);
         setReport(data);
-      } catch (err: any) {
+      } catch (err) {
         console.error(err);
         setError("Could not load report details");
       }
@@ -64,7 +66,9 @@ const ReportDetailsPage: React.FC = () => {
   return (
     <main className="p-6 max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">{report.title}</h1>
-      <p className="text-sm text-slate-500 mb-4">Created: {new Date(report.createdAt).toLocaleString()}</p>
+      <p className="text-sm text-slate-500 mb-4">
+        Created: {new Date(report.createdAt).toLocaleString()}
+      </p>
       <div className="mb-4">
         <strong>Category:</strong>{" "}
         <span>{ENUM_TO_LABEL[report.category] ?? report.category}</span>

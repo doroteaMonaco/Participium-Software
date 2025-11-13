@@ -64,12 +64,11 @@ export const Register: React.FC = () => {
       };
 
       await register(userData);
-   
+
       navigate("/dashboard");
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message || "Registration failed. Please try again.",
-      );
+    } catch (err) {
+      console.error("Registration error:", err);
+      setError("Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
