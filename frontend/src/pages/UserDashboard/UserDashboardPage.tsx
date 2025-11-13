@@ -7,7 +7,7 @@ import {
 } from "src/components/dashboard/ReportsTable";
 import { StatusBadge } from "src/components/dashboard/StatusBadge";
 
-import { MapPin, FileDown } from "lucide-react";
+import { MapPin } from "lucide-react";
 
 const sampleReports: Report[] = [
   {

@@ -53,7 +53,6 @@ const ReportMarker: React.FC<{ report: Report }> = ({ report }) => {
           {/* Link to report details; stop propagation so popup/map behavior is preserved. */}
           <Link
             to={`/report/${report.id}`}
-            state={{ fromDashboard }}
             className="inline-block text-sm font-medium text-indigo-600 hover:underline"
             onClick={(e) => e.stopPropagation()}
           >

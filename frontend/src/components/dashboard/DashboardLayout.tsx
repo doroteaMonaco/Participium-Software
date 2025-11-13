@@ -23,13 +23,11 @@ export const DashboardLayout: React.FC<React.PropsWithChildren> = ({
       />
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col lg:ml-64">
-        <Topbar onMenuClick={() => setMobileMenuOpen(true)} />
-        <button
-          onClick={handleLogout}
-          className="absolute top-4 right-4 rounded bg-red-500 px-4 py-2 text-white"
-        >
-          Logout
-        </button>
+        <Topbar 
+          onMenuClick={() => setMobileMenuOpen(true)} 
+          onLogout={handleLogout}
+          title="Citizen Dashboard"
+        />
         <main className="flex-1 w-full max-w-full overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl w-full">{children}</div>
         </main>
