@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
@@ -8,14 +8,50 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  createdAt DateTime @default(now())
+model user {
+  id                   Int                @id @default(autoincrement())
+  username             String             @unique
+  email                String             @unique
+  firstName            String
+  lastName             String
+  password             String
+  createdAt            DateTime           @default(now())
+  municipality_role_id Int?
+  role                 roleType           @default(CITIZEN)
+  municipality_role    municipality_role? @relation(fields: [municipality_role_id], references: [id], onDelete: Restrict)
 }
 
-model Report {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
+model report {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  latitude    Float
+  longitude   Float
+  category    Category
+  description String
+  photos      String[]
+  title       String
+}
+
+model municipality_role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users user[]
+}
+
+enum roleType {
+  CITIZEN
+  ADMIN
+  MUNICIPALITY
+}
+
+enum Category {
+  WATER_SUPPLY_DRINKING_WATER
+  ARCHITECTURAL_BARRIERS
+  SEWER_SYSTEM
+  PUBLIC_LIGHTING
+  WASTE
+  ROAD_SIGNS_TRAFFIC_LIGHTS
+  ROADS_URBAN_FURNISHINGS
+  PUBLIC_GREEN_AREAS_PLAYGROUNDS
+  OTHER
 }

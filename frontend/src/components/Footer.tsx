@@ -1,4 +1,3 @@
-// src/sections/Footer.tsx
 import React from "react";
 import { ShieldCheck } from "lucide-react";
 import { Container } from "../components/shared/Container";
@@ -11,10 +10,13 @@ export const Footer: React.FC = () => (
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white">
             <ShieldCheck className="h-5 w-5" />
           </div>
-          <span className="text-sm font-semibold text-slate-900">Participium</span>
+          <span className="text-sm font-semibold text-slate-900">
+            Participium
+          </span>
         </div>
         <p className="text-center text-xs text-slate-500 sm:text-right">
-          © {new Date().getFullYear()} Municipality of Turin • Designed for transparency & accessibility
+          © {new Date().getFullYear()} Municipality of Turin • Designed for
+          transparency & accessibility
         </p>
       </div>
     </Container>

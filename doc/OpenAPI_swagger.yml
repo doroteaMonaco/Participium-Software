@@ -9,51 +9,10 @@ servers:
     description: Development server
 
 paths:
-  /users:
-    # registration endpoint
-    post:
-      tags: [Users]
-      summary: Registration
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserRegistration'
-      responses:
-        '201':
-          description: Created
-          headers:
-            Set-Cookie:
-              description: Authentication cookie
-              schema:
-                type: string
-                example: "authToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoibXJvc3NpIiwiaWF0IjoxNjk5MDAwMDAwLCJleHAiOjE2OTkwODY0MDB9"
-            Location:
-                description: URL of the reserved area for submitting reports
-                schema:
-                  type: string
-                  example: /reports
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error: "Conflict Error"
-                message: "Username or email already exists"
-
   /auth/session:
     # login endpoint
     post:
-      tags: [Users]
+      tags: [Authentication]
       summary: Login
       requestBody:
         required: true
@@ -75,6 +34,10 @@ paths:
                 schema:
                   type: string
                   example: /reports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '400':
           description: Bad Request
           content:
@@ -93,7 +56,7 @@ paths:
 
     # verify authentication endpoint
     get:
-      tags: [Users]
+      tags: [Authentication]
       summary: Verify authentication
       description: Check if the user is currently authenticated
       security:
@@ -115,7 +78,7 @@ paths:
                 error: "Authentication Error"
                 message: "Session is invalid or has expired"
     delete:
-      tags: [Users]
+      tags: [Authentication]
       summary: Logout
       description: Logout the authenticated user
       security:
@@ -168,6 +131,342 @@ paths:
               example:
                 error: "Authentication Error"
                 message: "You must be logged in to create a report"
+
+  /users:
+    # registration endpoint
+    post:
+      tags: [Users]
+      summary: Registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+      responses:
+        '201':
+          description: Created
+          headers:
+            Set-Cookie:
+              description: Authentication cookie
+              schema:
+                type: string
+                example: "authToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoibXJvc3NpIiwiaWF0IjoxNjk5MDAwMDAwLCJleHAiOjE2OTkwODY0MDB9"
+            Location:
+                description: URL of the reserved area for submitting reports
+                schema:
+                  type: string
+                  example: /reports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Conflict Error"
+                message: "Username or email already exists"
+    get:
+      tags: [Users]
+      summary: List all users
+      description: >
+        Returns the list of all users (citizens and municipality staff).
+        **Requires role: ADMIN**.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminUser'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - You don't have admin permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      description: >
+        Get user details by ID.
+        **Requires role: ADMIN**.
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: User ID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '400':
+          description: Bad Request - Invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Bad Request"
+                message: "Invalid user ID"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - You don't have admin permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found - User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Not Found"
+                message: "User not found"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Users]
+      summary: Delete user
+      description: >
+        Delete a user by ID.
+        **Requires role: ADMIN**.
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: User ID
+      responses:
+        '204':
+          description: No Content - Successfully deleted
+        '400':
+          description: Bad Request - Invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Bad Request"
+                message: "Invalid user ID"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - You don't have admin permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found - User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Not Found"
+                message: "User not found"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /users/municipality-users:
+    post:
+      tags: [Users]
+      summary: Create a municipality user
+      description: >
+        Create an account for a municipality user.
+        **Requires role: ADMIN**.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MunicipalityUserCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '400':
+          description: Bad Request - Missing or invalid data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Bad Request"
+                message: "Missing required fields: email, username, firstName, lastName, password, municipality_role_id"
+        '401':
+          description: Unauthorized - Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - admin permissions required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict - Email or username already in use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Conflict Error"
+                message: "Email is already in use"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      tags: [Users]
+      summary: List municipality users
+      description: >
+        Returns the municipality users.
+        **Requires role: ADMIN**.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MunicipalityUser'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - You don't have admin permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /users/municipality-users/roles:
+    get:
+      tags: [Users]
+      summary: List municipality roles
+      description: >
+        Returns the available roles for municipality users.
+        **Requires role: ADMIN**.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MunicipalityRole'
+              examples:
+                example:
+                  value:
+                    - id: 1
+                      name: "OPERATOR"
+                    - id: 2
+                      name: "VALIDATOR"
+                    - id: 3
+                      name: "SUPERVISOR"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - You don't have admin permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 
 components:
   schemas:    
@@ -242,12 +541,13 @@ components:
 
     ReportRequest:
       type: object
-#      required:
-#        - title
-#        - description
-#        - anonymous
-#        - category
-#        - photos
+      required:
+        - title
+        - description
+        - category
+        - photos
+        - latitude
+        - longitude
       properties:
         title:
           type: string
@@ -270,17 +570,17 @@ components:
           example: 
             - "https://example.com/photos/report1_photo1.jpg"
             - "https://example.com/photos/report1_photo2.jpg"
+        latitude:
+          type: number
+          format: float
+          example: 45.4642
+        longitude:
+          type: number
+          format: float 
+          example: 9.1900
 
     Report:
       type: object
-#      required:
-#        - id
-#        - title
-#        - description
-#        - anonymous
-#        - category
-#        - photos
-#        - createdAt
       properties:
         id:
           type: integer
@@ -311,6 +611,123 @@ components:
           type: string
           format: date-time
           example: "2025-11-04T14:30:00Z"
+        latitude:
+          type: number
+          format: float
+          example: 45.4642
+        longitude:
+          type: number
+          format: float 
+          example: 9.1900
+
+    MunicipalityUserCreateRequest:
+      type: object
+      required:
+        - email
+        - username
+        - firstName
+        - lastName
+        - password
+        - municipality_role_id
+      properties:
+        email:
+          type: string
+          format: email
+          example: "tecnico.comune@example.it"
+        username:
+          type: string
+          example: "tcomune"
+        firstName:
+          type: string
+          example: "Teodoro"
+        lastName:
+          type: string
+          example: "Comune"
+        password:
+          type: string
+          format: password
+          example: "Str0ngP@ss!"
+        municipality_role_id:
+          type: integer
+          format: int64
+          example: 2
+          description: Municipality role ID (see /users/municipality-users/roles GET endpoint)
+
+    MunicipalityUser:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: "tecnico.comune@example.it"
+        username:
+          type: string
+          example: "tcomune"
+        firstName:
+          type: string
+          example: "Teodoro"
+        lastName:
+          type: string
+          example: "Comune"
+        municipality_role_id:
+          type: integer
+          format: int64
+          example: 2
+          description: Municipality role ID
+        municipality_role_name:
+          type: string
+          example: "VALIDATOR"
+          description: Municipality role name
+
+    MunicipalityRole:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 2
+        name:
+          type: string
+          example: "VALIDATOR"
+
+    AdminUser:
+      type: object
+      description: Admin view of a user
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 15
+        firstName:
+          type: string
+          example: "Mario"
+        lastName:
+          type: string
+          example: "Rossi"
+        username:
+          type: string
+          example: "mrossi"
+        email:
+          type: string
+          format: email
+          example: "mario.rossi@example.com"
+        role:
+          type: string
+          example: "CITIZEN"
+          description: User role (can be CITIZEN, ADMIN, MUNICIPALITY)
+        municipality_role_id:
+          type: integer
+          format: int64
+          nullable: true
+          example: 1
+        municipality_role_name:
+          type: string
+          nullable: true
+          example: "OPERATOR"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-11-04T14:30:00Z"
 
     Error:
       type: object
@@ -334,9 +751,11 @@ components:
       name: authToken
       description: Authentication cookie containing session ID
 
-tags: 
+tags:
+  - name: Authentication
+    description: Endpoints for user authentication
   - name: Users
-    description: User registration and authentication
+    description: User registration and management
   - name: Reports
     description: Report management and submission
 
