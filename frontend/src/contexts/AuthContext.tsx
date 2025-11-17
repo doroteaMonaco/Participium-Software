@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { verifyAuth, logout as apiLogout, type User as ApiUser } from "../services/api";
+import {
+  verifyAuth,
+  logout as apiLogout,
+  type User as ApiUser,
+} from "../services/api";
 
 export type UserRole = "ADMIN" | "MUNICIPALITY" | "CITIZEN";
 

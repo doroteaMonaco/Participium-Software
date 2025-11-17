@@ -13,21 +13,25 @@ const HOME_LINKS = [
 
 const NAV_LINKS = [
   { to: "/users", label: "Users" },
-  { to: "/map", label: "Map" },
+  //   { to: "/map", label: "Map" },
 ];
 
 const AUTH_BUTTONS = [
   {
     to: "/login",
     label: "Login",
-    className: "rounded-xl border border-indigo-600 px-4 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors",
-    mobileClassName: "mt-4 inline-flex w-full items-center justify-center rounded-xl border border-indigo-600 px-4 py-3 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors",
+    className:
+      "rounded-xl border border-indigo-600 px-4 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors",
+    mobileClassName:
+      "mt-4 inline-flex w-full items-center justify-center rounded-xl border border-indigo-600 px-4 py-3 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors",
   },
   {
     to: "/register",
     label: "Sign up",
-    className: "rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm",
-    mobileClassName: "inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors",
+    className:
+      "rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm",
+    mobileClassName:
+      "inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors",
   },
 ];
 
@@ -138,11 +142,7 @@ export const NavBar: React.FC = () => {
 
             {/* Auth Buttons */}
             {AUTH_BUTTONS.map((button) => (
-              <Link
-                key={button.to}
-                to={button.to}
-                className={button.className}
-              >
+              <Link key={button.to} to={button.to} className={button.className}>
                 {button.label}
               </Link>
             ))}

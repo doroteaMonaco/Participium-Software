@@ -16,7 +16,7 @@ import { ProtectedRoute } from "src/components/ProtectedRoute";
 
 import LandingPage from "src/pages/LandingPage";
 
-import MapPage from "./pages/MapPage";
+// import MapPage from "./pages/MapPage";
 import ReportDetailsPage from "./pages/ReportDetailsPage";
 
 function App() {
@@ -95,23 +95,23 @@ function App() {
               }
             />
 
-          {/* Public routes - with navbar/footer */}
-          <Route
-            path="*"
-            element={
-              <>
-                <NavBar />
-                <Routes>
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/map" element={<MapPage />} />
-                  <Route path="/report/:id" element={<ReportDetailsPage />} />
-                </Routes>
-                <Footer />
-              </>
-            }
-          />
+            {/* Public routes - with navbar/footer */}
+            <Route
+              path="*"
+              element={
+                <>
+                  <NavBar />
+                  <Routes>
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    {/* <Route path="/map" element={<MapPage />} /> */}
+                    <Route path="/report/:id" element={<ReportDetailsPage />} />
+                  </Routes>
+                  <Footer />
+                </>
+              }
+            />
           </Routes>
         </div>
       </Router>

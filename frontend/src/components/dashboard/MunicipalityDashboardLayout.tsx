@@ -26,8 +26,8 @@ export const MunicipalityDashboardLayout: React.FC<React.PropsWithChildren> = ({
       />
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col lg:ml-64">
-        <Topbar 
-          onMenuClick={() => setMobileMenuOpen(true)} 
+        <Topbar
+          onMenuClick={() => setMobileMenuOpen(true)}
           onLogout={handleLogout}
           title="Municipality Dashboard"
         />

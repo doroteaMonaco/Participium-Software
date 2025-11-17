@@ -5,7 +5,6 @@ import MapView from "src/components/map/MapView";
 import { ArrowLeft, Info } from "lucide-react";
 import { getReports } from "src/services/api";
 import { Report, ReportStatus } from "src/services/models";
-import CustomMarker from "src/components/map/CustomMarker";
 
 const NewReportPage: React.FC = () => {
   const navigate = useNavigate();
@@ -26,7 +25,7 @@ const NewReportPage: React.FC = () => {
             r.anonymous,
             r.category,
             r.photos,
-            r.createdAt
+            r.createdAt,
           );
         });
         setReports(mapped);
@@ -53,7 +52,7 @@ const NewReportPage: React.FC = () => {
           newReport.anonymous,
           newReport.category,
           newReport.photos,
-          newReport.createdAt
+          newReport.createdAt,
         );
         setReports((prev) => [...prev, mappedReport]);
       }
@@ -128,9 +127,11 @@ const NewReportPage: React.FC = () => {
           className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
           style={{ height: "calc(100vh - 380px)", minHeight: "500px" }}
         >
-          <MapView reports={reports}>
-            <CustomMarker draggable={true} location={true} />
-          </MapView>
+          <MapView
+            reports={reports}
+            markerDraggable={true}
+            markerLocation={true}
+          />
         </div>
 
         {/* Quick Tips */}

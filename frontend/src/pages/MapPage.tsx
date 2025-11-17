@@ -27,7 +27,7 @@ const MapPage: React.FC = () => {
             r.anonymous,
             r.category,
             r.photos,
-            r.createdAt
+            r.createdAt,
           );
         });
         setReports(mapped);
@@ -55,7 +55,7 @@ const MapPage: React.FC = () => {
             r.anonymous,
             r.category,
             r.photos,
-            r.createdAt
+            r.createdAt,
           );
           setReports((prev) => [rep, ...prev]);
           return;
@@ -69,13 +69,13 @@ const MapPage: React.FC = () => {
 
     window.addEventListener(
       "reports:changed",
-      onReportsChanged as EventListener
+      onReportsChanged as EventListener,
     );
 
     return () => {
       window.removeEventListener(
         "reports:changed",
-        onReportsChanged as EventListener
+        onReportsChanged as EventListener,
       );
     };
   }, []);

@@ -57,7 +57,7 @@ export const Login: React.FC = () => {
       const user = await login(credentials);
       // Save user to context
       setAuthUser(user);
-      
+
       // Role-based routing
       if (user.role === "ADMIN") {
         navigate("/admin");

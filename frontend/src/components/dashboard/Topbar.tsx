@@ -1,4 +1,3 @@
-// src/dashboard/components/Topbar.tsx
 import React from "react";
 import { Menu, Bell, LogOut } from "lucide-react";
 
@@ -7,7 +6,11 @@ interface TopbarProps {
   onLogout?: () => void;
   title?: string;
 }
-export const Topbar: React.FC<TopbarProps> = ({ onMenuClick, onLogout, title = "Dashboard" }) => {
+export const Topbar: React.FC<TopbarProps> = ({
+  onMenuClick,
+  onLogout,
+  title = "Dashboard",
+}) => {
   return (
     <div className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-slate-50 px-4 backdrop-blur sm:px-6 lg:px-8">
       <div className="flex items-center gap-3">
@@ -17,9 +20,7 @@ export const Topbar: React.FC<TopbarProps> = ({ onMenuClick, onLogout, title = "
         >
           <Menu className="h-5 w-5 text-slate-700" />
         </button>
-        <span className="text-sm font-semibold text-slate-900">
-          {title}
-        </span>
+        <span className="text-sm font-semibold text-slate-900">{title}</span>
       </div>
       <div className="flex items-center gap-2">
         <button className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-100 transition">

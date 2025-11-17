@@ -29,11 +29,11 @@ const CATEGORY_MAP: Record<string, string> = {
   "Architectural Barriers": "ARCHITECTURAL_BARRIERS",
   "Sewer System": "SEWER_SYSTEM",
   "Public Lighting": "PUBLIC_LIGHTING",
-  "Waste": "WASTE",
+  Waste: "WASTE",
   "Road Signs and Traffic Lights": "ROAD_SIGNS_TRAFFIC_LIGHTS",
   "Roads and Urban Furnishings": "ROADS_URBAN_FURNISHINGS",
   "Public Green Areas and Playgrounds": "PUBLIC_GREEN_AREAS_PLAYGROUNDS",
-  "Other": "OTHER",
+  Other: "OTHER",
 };
 
 const ReportForm: React.FC<ReportFormProps> = ({
@@ -64,7 +64,7 @@ const ReportForm: React.FC<ReportFormProps> = ({
     // Validate file types
     const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
     const invalidFiles = files.filter(
-      (file) => !validTypes.includes(file.type)
+      (file) => !validTypes.includes(file.type),
     );
 
     if (invalidFiles.length > 0) {
@@ -144,7 +144,7 @@ const ReportForm: React.FC<ReportFormProps> = ({
         onClose();
       }, 1500);
     } catch (err) {
-      console.error("Report submission error:", err)
+      console.error("Report submission error:", err);
       setError("Failed to submit report. Please try again.");
     } finally {
       setLoading(false);
@@ -365,7 +365,7 @@ const ReportForm: React.FC<ReportFormProps> = ({
         </form>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 

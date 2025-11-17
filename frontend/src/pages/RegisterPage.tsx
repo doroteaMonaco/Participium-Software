@@ -8,7 +8,13 @@ import { useAuth } from "src/contexts/AuthContext";
 
 export const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { login: setAuthUser, checkAuth, isAuthenticated, user, isLoading } = useAuth();
+  const {
+    login: setAuthUser,
+    checkAuth,
+    isAuthenticated,
+    user,
+    isLoading,
+  } = useAuth();
 
   // Redirect if already logged in
   useEffect(() => {
