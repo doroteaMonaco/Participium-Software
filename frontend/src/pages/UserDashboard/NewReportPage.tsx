@@ -36,6 +36,34 @@ const NewReportPage: React.FC = () => {
     };
 
     fetchReports();
+
+    // Listen for new reports being created
+    const handleReportCreated = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const newReport = customEvent.detail;
+      if (newReport) {
+        // Add the new report to the map
+        const mappedReport = new Report(
+          Number(newReport.latitude ?? newReport.lat ?? 0),
+          Number(newReport.longitude ?? newReport.lng ?? 0),
+          newReport.title ?? "",
+          (newReport.status as any) ?? ReportStatus.PENDING,
+          newReport.id,
+          newReport.description,
+          newReport.anonymous,
+          newReport.category,
+          newReport.photos,
+          newReport.createdAt
+        );
+        setReports((prev) => [...prev, mappedReport]);
+      }
+    };
+
+    window.addEventListener("reports:changed", handleReportCreated);
+
+    return () => {
+      window.removeEventListener("reports:changed", handleReportCreated);
+    };
   }, []);
 
   return (
