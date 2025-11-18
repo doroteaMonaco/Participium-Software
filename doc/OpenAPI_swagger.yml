@@ -131,6 +131,117 @@ paths:
               example:
                 error: "Authentication Error"
                 message: "You must be logged in to create a report"
+  /reports/pending:
+    get:
+      tags: [Reports]
+      summary: List all pending reports
+      description: >
+        Returns the list of all pending reports.
+        **Requires role: ADMIN or MUNICIPALITY**. //TODO check roles
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Report'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - You don't have admin or municipality permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reports/pending/{id}:
+    post:
+      tags: [Reports]
+      summary: Validate a report
+      description: >
+        Validate a pending report by ID.
+        **Requires role: MUNICIPALITY**.
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: Report ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - ASSIGNED
+                    - REJECTED
+                  example: Assigned
+                motivation:
+                  type: string
+                  example: "The report is valid and has been assigned to a technician."
+      responses:
+        '204':
+          description: OK - Report successfully validated
+        '400':
+          description: Bad Request - Invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Bad Request"
+                message: "Invalid report ID"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - You don't have municipality permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found - Report not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Not Found"
+                message: "Report not found"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /users:
     # registration endpoint
@@ -619,6 +730,16 @@ components:
           type: number
           format: float 
           example: 9.1900
+        status:
+          type: string
+          enum:
+            - PENDING_APPROVAL
+            - ASSIGNED
+            - IN_PROGRESS
+            - SUSPENDED
+            - REJECTED
+            - RESOLVED
+          example: "ASSIGNED"
 
     MunicipalityUserCreateRequest:
       type: object
