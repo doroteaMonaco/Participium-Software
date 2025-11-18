@@ -131,7 +131,6 @@ paths:
               example:
                 error: "Authentication Error"
                 message: "You must be logged in to create a report"
-  /reports/pending:
     get:
       tags: [Reports]
       summary: List all pending reports
@@ -140,6 +139,14 @@ paths:
         **Requires role: ADMIN or MUNICIPALITY**. //TODO check roles
       security:
         - cookieAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum:
+              - PENDING_APPROVAL
+          description: Filter reports by status
       responses:
         '200':
           description: OK
