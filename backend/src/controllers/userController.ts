@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { authService } from "../services/authService";
-import { cookieOpts } from "./authController";
+import { authService } from "@services/authService";
+import { cookieOpts } from "@controllers/authController";
 
 export const userController = {
   async register(req: Request, res: Response) {

@@ -1,4 +1,4 @@
-import { logError, logInfo } from "../services/loggingService";
+import { logError, logInfo } from "@services/loggingService";
 import { PrismaClient } from "@prisma/client";
 
 export const prisma = new PrismaClient();

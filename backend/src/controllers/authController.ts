@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import { authService } from "../services/authService";
+import { authService } from "@services/authService";
 
 export const cookieOpts = {
   httpOnly: true,
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
+  secure: process.env.NODE_ENV !== "test",
   path: "/",
 };
 

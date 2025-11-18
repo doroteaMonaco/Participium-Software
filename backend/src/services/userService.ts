@@ -1,4 +1,4 @@
-import { userRepository } from "../repositories/userRepository";
+import { userRepository } from "@repositories/userRepository";
 import bcrypt from "bcrypt";
 
 export const userService = {

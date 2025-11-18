@@ -38,8 +38,8 @@ const MapPlaceholder: React.FC = () => {
 
 type Props = {
   reports: Report[];
-  markerDraggable: boolean;
-  markerLocation: boolean;
+  markerDraggable?: boolean;
+  markerLocation?: boolean;
 };
 
 const MapView: React.FC<React.PropsWithChildren<Props>> = ({

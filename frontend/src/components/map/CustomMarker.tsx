@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import { LatLng, type Marker as LeafMarker } from "leaflet";
 import * as turf from "@turf/turf";
@@ -100,14 +100,12 @@ function CustomMarker({
     move() {
       if (!showMarker) return;
       const pos = mapEvents.getCenter();
-      if (boundaryExceeded(pos)) return;
       setPosition(pos);
     },
     click(e) {
       const pos = e.latlng;
-      if (boundaryExceeded(pos)) return;
-      setShowMarker(true);
       setPosition(pos);
+      setShowMarker(true);
     },
   });
 

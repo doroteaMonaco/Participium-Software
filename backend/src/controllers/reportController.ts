@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import reportService from "../services/reportService";
-import imageService from "../services/imageService";
+import reportService from "@services/reportService";
+import imageService from "@services/imageService";
 
 const VALID_CATEGORIES = [
   "WATER_SUPPLY_DRINKING_WATER",

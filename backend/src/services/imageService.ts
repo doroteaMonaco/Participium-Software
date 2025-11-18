@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import redisClient from "../database/redis";
+import { redisClient } from "@redis";
 
 interface ImageData {
   buffer: Buffer;
@@ -17,7 +17,7 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   console.log("Created uploads directory:", UPLOADS_DIR);
 }
 
-/**Immagini salvate temporaneamente in Redis prima della creazione del report */
+/* Immagini salvate temporaneamente in Redis prima della creazione del report */
 const storeTemporaryImages = async (images: ImageData[]): Promise<string[]> => {
   const tempKeys: string[] = [];
 
@@ -64,7 +64,7 @@ const persistImagesForReport = async (
     const buffer = Buffer.from(imageObject.buffer, "base64");
     const extension = imageObject.mimetype.split("/")[1] || "jpg";
 
-    // Genara nome del file: reportId_index.extension
+    // Genera nome del file: reportId_index.extension
     const filename = `${reportId}_${i + 1}.${extension}`;
     const filepath = path.join(reportDir, filename);
 
@@ -74,7 +74,7 @@ const persistImagesForReport = async (
     const relativePath = `${reportId}/${filename}`;
     filePaths.push(relativePath);
 
-    //Cache in Redis per ottenere velocemente l'immagine
+    // Cache in Redis per ottenere velocemente l'immagine
     const cacheKey = `image:${relativePath}`;
     await redisClient.set(
       cacheKey,
@@ -93,7 +93,7 @@ const persistImagesForReport = async (
   return filePaths;
 };
 
-/*Prende immagine o da cache o da filesystem*/
+/* Prende immagine o da cache o da filesystem*/
 const getImage = async (relativePath: string): Promise<string | null> => {
   const cacheKey = `image:${relativePath}`;
 
@@ -126,8 +126,7 @@ const getImage = async (relativePath: string): Promise<string | null> => {
   return `data:${mimetype};base64,${buffer.toString("base64")}`;
 };
 
-/*Prende multiple immagini (con caching)
- */
+/* Prende multiple immagini (con caching) */
 const getMultipleImages = async (
   relativePaths: string[],
 ): Promise<string[]> => {

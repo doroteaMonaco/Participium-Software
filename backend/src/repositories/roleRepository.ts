@@ -1,4 +1,4 @@
-import { prisma } from "../database/connection";
+import { prisma } from "@database";
 
 export const roleRepository = {
   async createMunicipalityRole(name: string) {

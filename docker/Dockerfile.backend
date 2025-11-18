@@ -1,0 +1,46 @@
+# Stage 1: builder
+FROM node:25-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy package.json and package-lock.json from backend folder
+COPY ./backend/package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the backend application code
+COPY ./backend ./
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Build the application
+RUN npm run build
+
+# Remove dev deps to keep only production packages
+RUN npm prune --omit=dev
+
+# Stage 2: production
+FROM node:25-alpine AS production
+
+# Set working directory
+WORKDIR /app
+
+# Copy the documentation folder
+COPY ./doc /doc
+
+# Copy other folders needed at runtime
+COPY --from=builder /app/*.json ./
+# Copy production node_modules and build artifacts from builder
+COPY --from=builder /app/node_modules ./node_modules
+# Copy prisma schema or runtime files
+COPY --from=builder /app/prisma ./prisma
+# Copy production build artifacts from builder
+COPY --from=builder /app/dist ./
+
+EXPOSE 4000
+
+# Start the application
+CMD ["npm", "start"]

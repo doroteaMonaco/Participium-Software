@@ -1,5 +1,5 @@
-import { prisma } from "../database/connection";
-import { roleType } from "../models/enums";
+import { prisma } from "@database";
+import { roleType } from "@models/enums";
 import { roleType as PrismaRole } from "@prisma/client";
 
 export const userRepository = {

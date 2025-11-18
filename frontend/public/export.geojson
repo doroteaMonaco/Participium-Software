@@ -1,14 +1,11 @@
 {
   "type": "FeatureCollection",
-  "generator": "overpass-turbo",
-  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
-  "timestamp": "2025-11-11T17:06:11Z",
   "features": [
     {
       "type": "Feature",
       "properties": {
         "@id": "relation/43992",
-        "admin_level": "8",
+        "admin_level": 8,
         "boundary": "administrative",
         "name": "Torino",
         "name:azb": "تورین",
@@ -6825,47 +6822,6 @@
         ]
       },
       "id": "relation/43992"
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "@id": "node/63621589",
-        "@relations": [
-          {
-            "role": "admin_centre",
-            "rel": 43992,
-            "reltags": {
-              "admin_level": "8",
-              "boundary": "administrative",
-              "name": "Torino",
-              "name:azb": "تورین",
-              "name:be": "Турын",
-              "name:be-tarask": "Турын",
-              "name:ca": "Torí",
-              "name:de": "Turin",
-              "name:en": "Turin",
-              "name:es": "Turín",
-              "name:fr": "Turin",
-              "name:gl": "Turín",
-              "name:it": "Torino",
-              "name:ja": "トリノ",
-              "name:ko": "토리노",
-              "name:nl": "Turijn",
-              "name:pl": "Turyn",
-              "name:sc": "Torinu",
-              "name:sk": "Turín",
-              "name:sr": "Торино",
-              "name:ur": "تورینو",
-              "ref:ISTAT": "001272",
-              "ref:catasto": "L219",
-              "type": "boundary",
-              "wikidata": "Q495",
-              "wikipedia": "it:Torino"
-            }
-          }
-        ]
-      },
-      "id": "node/63621589"
     }
   ]
 }

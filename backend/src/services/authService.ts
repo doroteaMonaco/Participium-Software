@@ -1,10 +1,10 @@
-import { userRepository } from "../repositories/userRepository";
-import { roleRepository } from "../repositories/roleRepository";
-import { roleType } from "../models/enums";
+import { userRepository } from "@repositories/userRepository";
+import { roleRepository } from "@repositories/roleRepository";
+import { roleType } from "@models/enums";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
-const SECRET_KEY = process.env.JWT_SECRET || "default_secret_key";
+import { SECRET_KEY } from "@config";
 
 export const authService = {
   async registerUser(

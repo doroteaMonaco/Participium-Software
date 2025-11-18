@@ -1,6 +1,6 @@
-import reportRepository from "../repositories/reportRepository";
-import { CreateReportDto, ReportResponseDto } from "../models/dto/reportDto";
-import imageService from "./imageService";
+import reportRepository from "@repositories/reportRepository";
+import { CreateReportDto, ReportResponseDto } from "@dto/reportDto";
+import imageService from "@services/imageService";
 
 const findAll = async (): Promise<ReportResponseDto[]> => {
   // Return repository results directly (unit tests expect the same reference)
