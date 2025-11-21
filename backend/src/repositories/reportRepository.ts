@@ -61,7 +61,7 @@ const update = async (
     photos: string[];
     status: ReportStatus;
     rejectionReason: string;
-  }>
+  }>,
 ) => {
   return prisma.report.update({
     where: { id },

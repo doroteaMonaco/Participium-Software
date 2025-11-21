@@ -296,7 +296,7 @@ describe("reportController", () => {
       await submitReport(req as Request, res as unknown as Response);
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: "Invalid category" })
+        expect.objectContaining({ error: "Invalid category" }),
       );
     });
 

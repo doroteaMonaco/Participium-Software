@@ -51,6 +51,16 @@ export interface Report {
   category?: ReportCategory;
   photos?: string[]; // URLs
   createdAt?: string;
+  latitude?: number;
+  longitude?: number;
+  status?: string;
+  rejectionReason?: string;
+}
+
+export interface ApproveReportRequest {
+  status: "ASSIGNED" | "REJECTED" | string;
+  category?: string;
+  motivation?: string;
 }
 
 export interface ApiError {
@@ -192,6 +202,22 @@ export const getReports = async (): Promise<Report[]> => {
  */
 export const getReportById = async (id: string | number): Promise<Report> => {
   const response = await api.get(`/reports/${id}`);
+  return response.data;
+};
+
+/**
+ * Approve or reject a report
+ * @param id Report ID
+ * @param status "ASSIGNED" or "REJECTED"
+ * @param motivation Rejection reason (required if status is "REJECTED")
+ * @returns Updated report status
+ * @throws ApiError on failure
+ */
+export const approveOrRejectReport = async (
+  id: string | number,
+  request: ApproveReportRequest,
+): Promise<{ status: string }> => {
+  const response = await api.post(`/reports/${id}`, request);
   return response.data;
 };
 

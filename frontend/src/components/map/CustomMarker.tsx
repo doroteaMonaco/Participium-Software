@@ -40,7 +40,7 @@ function CustomMarker({
             console.error("Error checking feature:", error);
             return false;
           }
-        }
+        },
       );
     }
 
@@ -133,7 +133,7 @@ function CustomMarker({
         setPosition(pos);
       },
     }),
-    [draggable]
+    [draggable],
   );
 
   const handleReportSuccess = (createdReport?: any) => {

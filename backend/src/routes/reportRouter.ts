@@ -3,9 +3,10 @@ import {
   submitReport,
   getReports,
   getReportById,
+  approveOrRejectReport,
 } from "@controllers/reportController";
 import { isAuthenticated } from "@middlewares/authMiddleware";
-import { isCitizen } from "@middlewares/roleMiddleware";
+import { isCitizen, isMunicipality } from "@middlewares/roleMiddleware";
 import multer from "multer";
 
 const router = Router();
@@ -30,9 +31,13 @@ const upload = multer({
 // POST /api/reports - Create a new report (authenticated users only)
 router.post("/", isAuthenticated, upload.array("photos", 3), submitReport);
 
-// Public endpoints for fetching reports (mounted at /api in tests)
+// GET /api/reports - Get all reports (public)
 router.get("/", getReports);
 
+// GET /api/reports/:id - Get report by ID (public)
 router.get("/:id", getReportById);
+
+// POST /api/reports/:id - Approve or reject a report (municipality role only)
+router.post("/:id", isAuthenticated, isMunicipality, approveOrRejectReport);
 
 export default router;

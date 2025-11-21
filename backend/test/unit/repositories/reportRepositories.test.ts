@@ -89,7 +89,7 @@ describe("reportRepository", () => {
       prismaMock.report.findMany.mockResolvedValue(rows);
 
       const res = await reportRepository.findByStatus(
-        ReportStatus.ASSIGNED as any
+        ReportStatus.ASSIGNED as any,
       );
 
       expect(prismaMock.report.findMany).toHaveBeenCalledWith({
@@ -144,7 +144,7 @@ describe("reportRepository", () => {
           id: expect.any(Number),
           createdAt: expect.any(Date),
           photos: expect.any(Array),
-        })
+        }),
       );
     });
   });

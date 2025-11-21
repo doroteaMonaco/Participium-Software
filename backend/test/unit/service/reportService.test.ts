@@ -143,7 +143,7 @@ describe("reportService", () => {
 
     it("throws for invalid status", async () => {
       await expect(
-        reportService.updateReportStatus(1, "BAD")
+        reportService.updateReportStatus(1, "BAD"),
       ).rejects.toThrow();
     });
   });
@@ -188,7 +188,7 @@ describe("reportService", () => {
 
       expect(img.persistImagesForReport).toHaveBeenCalledWith(
         dto.photoKeys,
-        123
+        123,
       );
       expect(repo.update).toHaveBeenCalledWith(123, {
         photos: ["/img/r/1.jpg", "/img/r/2.jpg"],
@@ -201,7 +201,7 @@ describe("reportService", () => {
         expect.objectContaining({
           id: 123,
           photos: ["BINARY1", "BINARY2"],
-        })
+        }),
       );
     });
 
@@ -221,11 +221,11 @@ describe("reportService", () => {
           photoKeys: [],
           user_id: 123,
           status: ReportStatus.PENDING_APPROVAL,
-        })
+        }),
       );
       expect(img.persistImagesForReport).toHaveBeenCalledWith(
         dto.photoKeys,
-        created.id
+        created.id,
       );
       expect(repo.update).toHaveBeenCalledWith(created.id, {
         photos: ["p1"],
@@ -235,29 +235,32 @@ describe("reportService", () => {
 
     it("throws if missing required fields", async () => {
       await expect(
-        reportService.submitReport(makeCreateDto({ title: "   " }) as any, 1)
+        reportService.submitReport(makeCreateDto({ title: "   " }) as any, 1),
       ).rejects.toThrow("Title is required");
 
       await expect(
-        reportService.submitReport(makeCreateDto({ description: "" }) as any, 1)
+        reportService.submitReport(
+          makeCreateDto({ description: "" }) as any,
+          1,
+        ),
       ).rejects.toThrow("Description is required");
 
       await expect(
         reportService.submitReport(
           makeCreateDto({ category: undefined }) as any,
-          1
-        )
+          1,
+        ),
       ).rejects.toThrow("Category is required");
 
       await expect(
-        reportService.submitReport(makeCreateDto({ photoKeys: [] }) as any, 1)
+        reportService.submitReport(makeCreateDto({ photoKeys: [] }) as any, 1),
       ).rejects.toThrow("At least 1 photo is required");
 
       await expect(
         reportService.submitReport(
           makeCreateDto({ photoKeys: ["a", "b", "c", "d"] }) as any,
-          1
-        )
+          1,
+        ),
       ).rejects.toThrow("Maximum 3 photos are allowed");
     });
   });
@@ -312,7 +315,7 @@ describe("reportService", () => {
     it("throws when report not found", async () => {
       repo.findById.mockResolvedValue(null);
       await expect(reportService.deleteReport(999)).rejects.toThrow(
-        "Report not found"
+        "Report not found",
       );
     });
   });

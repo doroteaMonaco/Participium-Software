@@ -12,7 +12,7 @@ const mapStringToStatus = (status: string): ReportStatus => {
   }
 
   throw new Error(
-    `Invalid status: ${status}. Valid values are: ${Object.values(ReportStatus).join(", ")}`
+    `Invalid status: ${status}. Valid values are: ${Object.values(ReportStatus).join(", ")}`,
   );
 };
 
@@ -26,7 +26,7 @@ const findAll = async (): Promise<ReportResponseDto[]> => {
         ...report,
         photos,
       };
-    })
+    }),
   );
 
   return reportsWithImages;
@@ -64,7 +64,7 @@ const findByStatus = async (status: string): Promise<ReportResponseDto[]> => {
         ...report,
         photos,
       };
-    })
+    }),
   );
 
   return reportsWithImages;
@@ -73,7 +73,7 @@ const findByStatus = async (status: string): Promise<ReportResponseDto[]> => {
 const updateReportStatus = async (
   id: number,
   status: string,
-  rejectionReason?: string
+  rejectionReason?: string,
 ) => {
   // Map string to enum
   const statusEnum = mapStringToStatus(status);
@@ -89,7 +89,7 @@ const updateReportStatus = async (
 
 const submitReport = async (
   data: CreateReportDto,
-  user_id: number
+  user_id: number,
 ): Promise<ReportResponseDto> => {
   // In unit tests we sometimes call submitReport with an empty dto ({}).
   // Shortcut: if empty, delegate directly to repository.create so tests can mock it.
@@ -128,7 +128,7 @@ const submitReport = async (
 
   const imagePaths = await imageService.persistImagesForReport(
     data.photoKeys,
-    report.id
+    report.id,
   );
 
   const updatedReport = await reportRepository.update(report.id, {

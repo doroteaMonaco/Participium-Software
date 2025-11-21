@@ -1,4 +1,4 @@
-import { ReportStatus } from '../enums';
+import { ReportStatus } from "../enums";
 
 export interface Report {
   id?: number;
@@ -6,7 +6,7 @@ export interface Report {
   longitude: number;
   title: string;
   description: string;
-  category: string; 
+  category: string;
   photoKeys: string[]; // Keys for images stored in Redis
   status: ReportStatus;
   user_id?: number | null;
