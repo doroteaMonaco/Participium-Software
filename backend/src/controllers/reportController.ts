@@ -133,14 +133,6 @@ export const submitReport = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Maximum 3 photos are allowed" });
     }
 
-    if (!req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    if (!req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
     const tempKeys = await imageService.storeTemporaryImages(
       files.map((file) => ({
         buffer: file.buffer,
