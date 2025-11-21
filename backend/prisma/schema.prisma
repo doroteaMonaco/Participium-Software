@@ -18,6 +18,9 @@ model user {
   createdAt            DateTime           @default(now())
   municipality_role_id Int?
   role                 roleType           @default(CITIZEN)
+  profilePhoto         String?
+  telegramUsername     String?
+  notifications        Boolean            @default(true)
   municipality_role    municipality_role? @relation(fields: [municipality_role_id], references: [id], onDelete: Restrict)
 }
 
