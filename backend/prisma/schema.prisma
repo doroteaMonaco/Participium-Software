@@ -19,6 +19,7 @@ model user {
   municipality_role_id Int?
   role                 roleType           @default(CITIZEN)
   municipality_role    municipality_role? @relation(fields: [municipality_role_id], references: [id], onDelete: Restrict)
+  reports              report[]
 }
 
 model report {
@@ -30,6 +31,10 @@ model report {
   description String
   photos      String[]
   title       String
+  status      ReportStatus  @default(PENDING_APPROVAL)
+  rejectionReason String?
+  userId     Int
+  user        user @relation(fields: [userId], references: [id])
 }
 
 model municipality_role {
@@ -54,4 +59,13 @@ enum Category {
   ROADS_URBAN_FURNISHINGS
   PUBLIC_GREEN_AREAS_PLAYGROUNDS
   OTHER
+}
+
+enum ReportStatus {
+  PENDING_APPROVAL
+  ASSIGNED
+  IN_PROGRESS
+  SUSPENDED
+  REJECTED
+  RESOLVED
 }
