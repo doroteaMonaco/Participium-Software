@@ -114,9 +114,28 @@ export const AdminUsersPage: React.FC = () => {
         roleId: 1,
       });
       setShowAddModal(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to create user:", err);
-      setError("Failed to create user");
+      
+      // Extract specific error message from API response
+      let errorMessage = "Failed to create user";
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      // Make specific errors more user-friendly
+      if (errorMessage.toLowerCase().includes("username")) {
+        errorMessage = "Username already exists. Please choose a different username.";
+      } else if (errorMessage.toLowerCase().includes("email")) {
+        errorMessage = "Email is already in use. Please use a different email address.";
+      }
+      
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -149,7 +168,10 @@ export const AdminUsersPage: React.FC = () => {
             </p>
           </div>
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              setError(null);
+              setShowAddModal(true);
+            }}
             disabled={loading}
             className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -318,6 +340,17 @@ export const AdminUsersPage: React.FC = () => {
                 Add Municipality User
               </h2>
 
+              {/* Error message inside modal */}
+              {error && (
+                <div className="mb-4 rounded-xl bg-red-50 border border-red-200 p-4 flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-red-900">Error</h4>
+                    <p className="text-sm text-red-700 mt-1">{error}</p>
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={handleAddUser} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -424,6 +457,7 @@ export const AdminUsersPage: React.FC = () => {
                     type="button"
                     onClick={() => {
                       setShowAddModal(false);
+                      setError(null);
                       setNewUser({
                         firstName: "",
                         lastName: "",
