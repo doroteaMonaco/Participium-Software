@@ -58,6 +58,11 @@ const makeRes = (): ResMock => {
 const makeReport = (overrides: Partial<any> = {}) => ({
   id: 1,
   createdAt: new Date("2025-11-04T14:30:00Z"),
+  latitude: "45.0",
+  longitude: "7.0",
+  title: "Valid title",
+  description: "Valid description",
+  category: "WASTE",
   ...overrides,
 });
 

@@ -27,14 +27,15 @@ model report {
   createdAt   DateTime @default(now())
   latitude    Float
   longitude   Float
+  title       String
   category    Category
   description String
   photos      String[]
-  title       String
-  status      ReportStatus  @default(PENDING_APPROVAL)
+  status      reportStatus @default(PENDING_APPROVAL)
   rejectionReason String?
-  userId     Int
-  user        user @relation(fields: [userId], references: [id])
+  assignedOffice String?
+  user_id     Int?
+  user        user? @relation(fields: [user_id], references: [id], onDelete: Restrict)
 }
 
 model municipality_role {
@@ -61,7 +62,7 @@ enum Category {
   OTHER
 }
 
-enum ReportStatus {
+enum reportStatus {
   PENDING_APPROVAL
   ASSIGNED
   IN_PROGRESS

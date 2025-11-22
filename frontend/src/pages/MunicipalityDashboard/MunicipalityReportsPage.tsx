@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { MunicipalityDashboardLayout } from "../../components/dashboard/MunicipalityDashboardLayout";
 import { motion } from "framer-motion";
 import {
@@ -7,27 +7,14 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  MapPin,
+  // MapPin,
   Calendar,
-  User,
+  // User,
 } from "lucide-react";
 import { createPortal } from "react-dom";
-
-interface Report {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  status: "Pending" | "Approved" | "Rejected" | "In Progress" | "Resolved";
-  location: string;
-  coordinates: { lat: number; lng: number };
-  createdAt: string;
-  submittedBy: string;
-  isAnonymous: boolean;
-  photos: string[];
-  rejectionReason?: string;
-  assignedOffice?: string;
-}
+import { getReports, approveOrRejectReport } from "src/services/api";
+import { Report, ReportStatus } from "src/services/models";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
 
 // Technical offices bound to each category
 const categoryOfficeMapping: Record<string, string> = {
@@ -43,91 +30,23 @@ const categoryOfficeMapping: Record<string, string> = {
   Other: "General Services Office",
 };
 
-const sampleReports: Report[] = [
-  {
-    id: "RPT-105",
-    title: "Broken streetlight on Via Roma",
-    description:
-      "The streetlight near building 45 has been broken for 3 days, creating safety concerns for pedestrians at night.",
-    category: "Public Lighting",
-    status: "Pending",
-    location: "Via Roma 45, Centro",
-    coordinates: { lat: 45.0703, lng: 7.6869 },
-    createdAt: "2025-11-09",
-    submittedBy: "Mario Rossi",
-    isAnonymous: false,
-    photos: ["/placeholder-report1.jpg", "/placeholder-report2.jpg"],
-  },
-  {
-    id: "RPT-104",
-    title: "Pothole near school entrance",
-    description:
-      "Large pothole at school entrance poses danger to children and vehicles.",
-    category: "Roads & Urban Furnishings",
-    status: "Pending",
-    location: "Via Garibaldi 12, Vanchiglia",
-    coordinates: { lat: 45.0702, lng: 7.697 },
-    createdAt: "2025-11-08",
-    submittedBy: "Anonymous",
-    isAnonymous: true,
-    photos: ["/placeholder-report3.jpg"],
-  },
-  {
-    id: "RPT-103",
-    title: "Overflowing trash bin",
-    description:
-      "Trash bin has been overflowing for days, attracting pests and creating unpleasant odors.",
-    category: "Waste",
-    status: "Approved",
-    location: "Corso Francia 100, San Salvario",
-    coordinates: { lat: 45.06, lng: 7.68 },
-    createdAt: "2025-11-08",
-    submittedBy: "Giulia Bianchi",
-    isAnonymous: false,
-    photos: ["/placeholder-report4.jpg"],
-    assignedOffice: "Environmental Services - Waste Management",
-  },
-  {
-    id: "RPT-102",
-    title: "Graffiti on public building",
-    description: "Recent graffiti vandalism on municipal building facade.",
-    category: "Other",
-    status: "Rejected",
-    location: "Piazza Castello, Centro",
-    coordinates: { lat: 45.0705, lng: 7.6858 },
-    createdAt: "2025-11-07",
-    submittedBy: "Marco Verdi",
-    isAnonymous: false,
-    photos: [],
-    rejectionReason:
-      "This issue does not fall under citizen-reportable categories. Please contact the cultural heritage office directly.",
-  },
-  {
-    id: "RPT-101",
-    title: "Water leak on street",
-    description:
-      "Continuous water leak from underground pipe causing street flooding.",
-    category: "Water Supply – Drinking Water",
-    status: "In Progress",
-    location: "Via Po 25, Lingotto",
-    coordinates: { lat: 45.0505, lng: 7.67 },
-    createdAt: "2025-11-06",
-    submittedBy: "Sara Ferrari",
-    isAnonymous: false,
-    photos: ["/placeholder-report5.jpg", "/placeholder-report6.jpg"],
-  },
-];
-
-const statusColors = {
-  Pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  Approved: "bg-green-50 text-green-700 border-green-200",
-  Rejected: "bg-red-50 text-red-700 border-red-200",
-  "In Progress": "bg-blue-50 text-blue-700 border-blue-200",
-  Resolved: "bg-slate-50 text-slate-700 border-slate-200",
+const statusColors = (status: ReportStatus) => {
+  switch (status) {
+    case ReportStatus.PENDING:
+      return "bg-yellow-50 text-yellow-700 border-yellow-200";
+    case ReportStatus.ASSIGNED:
+      return "bg-green-50 text-green-700 border-green-200";
+    case ReportStatus.REJECTED:
+      return "bg-red-50 text-red-700 border-red-200";
+    case ReportStatus.IN_PROGRESS:
+      return "bg-blue-50 text-blue-700 border-blue-200";
+    case ReportStatus.RESOLVED:
+      return "bg-slate-50 text-slate-700 border-slate-200";
+  }
 };
 
 export const AdminReportsPage: React.FC = () => {
-  const [reports, setReports] = useState<Report[]>(sampleReports);
+  const [reports, setReports] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewAction, setReviewAction] = useState<"approve" | "reject" | null>(
@@ -139,6 +58,34 @@ export const AdminReportsPage: React.FC = () => {
     "pending" | "approved" | "rejected"
   >("pending");
 
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const data = await getReports();
+        const reportsData = data.map(
+          (r) =>
+            new Report(
+                  r.latitude ?? 0,
+                  r.longitude ?? 0,
+                  r.title ?? "",
+                  r.status ?? "",
+                  r.id,
+                  r.description ?? "",
+                  r.category ?? "",
+                  r.photos ?? [],
+                  r.createdAt ?? "",
+                  r.rejectionReason,
+            ),
+        );
+        setReports(reportsData);
+      } catch (err) {
+        console.error("Error fetching reports:", err);
+      }
+    };
+
+    fetchReports();
+  }, []);
+
   const handleReviewClick = (report: Report, action: "approve" | "reject") => {
     setSelectedReport(report);
     setReviewAction(action);
@@ -146,7 +93,7 @@ export const AdminReportsPage: React.FC = () => {
     setShowReviewModal(true);
   };
 
-  const handleSubmitReview = (e: React.FormEvent) => {
+  const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (selectedReport && reviewAction) {
@@ -156,12 +103,26 @@ export const AdminReportsPage: React.FC = () => {
             "General Services Office"
           : undefined;
 
+      try {
+        // Do not send `category` (this must be one of report categories).
+        // Backend computes `assignedOffice` from the report's category.
+        await approveOrRejectReport(selectedReport.id, {
+          status: reviewAction === "approve" ? "ASSIGNED" : "REJECTED",
+          motivation: reviewAction === "reject" ? rejectionReason : undefined,
+        });
+      } catch (err) {
+        console.error("Error fetching reports:", err);
+      }
+
       setReports(
         reports.map((r) =>
           r.id === selectedReport.id
             ? {
                 ...r,
-                status: reviewAction === "approve" ? "Approved" : "Rejected",
+                status:
+                  reviewAction === "approve"
+                    ? ReportStatus.ASSIGNED
+                    : ReportStatus.REJECTED,
                 rejectionReason:
                   reviewAction === "reject" ? rejectionReason : undefined,
                 assignedOffice: assignedOffice,
@@ -180,34 +141,36 @@ export const AdminReportsPage: React.FC = () => {
   // Filter reports
   const filteredReports = reports.filter((report) => {
     const matchesSearch =
-      report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.location.toLowerCase().includes(searchQuery.toLowerCase());
+      (report.title ?? "").toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (report.id ?? "").toString().toLowerCase().includes(searchQuery.toLowerCase());
 
     // Tab-based filtering
     let matchesTab = true;
     if (activeTab === "pending") {
-      matchesTab = report.status === "Pending";
+      matchesTab = report.status === ReportStatus.PENDING;
     } else if (activeTab === "approved") {
       matchesTab =
-        report.status === "Approved" ||
-        report.status === "In Progress" ||
-        report.status === "Resolved";
+        report.status === ReportStatus.ASSIGNED ||
+        report.status === ReportStatus.IN_PROGRESS ||
+        report.status === ReportStatus.RESOLVED;
     } else if (activeTab === "rejected") {
-      matchesTab = report.status === "Rejected";
+      matchesTab = report.status === ReportStatus.REJECTED;
     }
 
     return matchesSearch && matchesTab;
   });
 
-  const pendingCount = reports.filter((r) => r.status === "Pending").length;
-  const approvedCount = reports.filter(
-    (r) =>
-      r.status === "Approved" ||
-      r.status === "In Progress" ||
-      r.status === "Resolved",
+  const pendingCount = reports.filter(
+    (r) => r.status === ReportStatus.PENDING,
   ).length;
-  const rejectedCount = reports.filter((r) => r.status === "Rejected").length;
+  const approvedCount = reports.filter((r) =>
+    r.status === ReportStatus.ASSIGNED ||
+    r.status === ReportStatus.IN_PROGRESS ||
+    r.status === ReportStatus.RESOLVED,
+  ).length;
+  const rejectedCount = reports.filter(
+    (r) => r.status === ReportStatus.REJECTED,
+  ).length;
 
   return (
     <MunicipalityDashboardLayout>
@@ -367,7 +330,7 @@ export const AdminReportsPage: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search by title, ID, or location..."
+              placeholder="Search by title or ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
@@ -408,9 +371,9 @@ export const AdminReportsPage: React.FC = () => {
                     </div>
 
                     <span
-                      className={`inline-flex items-center rounded-xl px-4 py-2 text-sm font-bold shadow-sm ${
-                        statusColors[report.status]
-                      }`}
+                      className={`inline-flex items-center rounded-xl px-4 py-2 text-sm font-bold shadow-sm ${statusColors(
+                        report.status,
+                      )}`}
                     >
                       {report.status}
                     </span>
@@ -423,24 +386,51 @@ export const AdminReportsPage: React.FC = () => {
                     {report.description}
                   </p>
 
+                  {/* Photos */}
+                  {report.photos && report.photos.length > 0 && (
+                    <div className="mb-4 flex gap-3">
+                      {report.photos.map((p, idx) => (
+                        <img
+                          key={idx}
+                          src={`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`}
+                          alt={`photo-${idx}`}
+                          className="h-28 w-28 object-cover rounded-lg border border-slate-200"
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Mini Map */}
+                  <div className="mb-4 h-40 w-full rounded-lg overflow-hidden border border-slate-200">
+                    <MapContainer
+                      center={[report.lat || 45.0, report.lng || 7.0]}
+                      zoom={15}
+                      style={{ height: "100%", width: "100%" }}
+                      scrollWheelZoom={false}
+                    >
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <Marker position={[report.lat || 45.0, report.lng || 7.0]} />
+                    </MapContainer>
+                  </div>
+
                   {/* Metadata Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                    <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
+                    {/* <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
                       <MapPin className="h-4 w-4 text-indigo-600" />
                       <span className="font-medium">{report.location}</span>
-                    </div>
+                    </div> */}
                     <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
                       <Calendar className="h-4 w-4 text-indigo-600" />
                       <span className="font-medium">{report.createdAt}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
+                    {/* <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
                       <User className="h-4 w-4 text-indigo-600" />
                       <span className="font-medium">
                         {report.isAnonymous
                           ? "Anonymous Report"
                           : `By ${report.submittedBy}`}
                       </span>
-                    </div>
+                    </div> */}
                     <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
                       <FileText className="h-4 w-4 text-indigo-600" />
                       <span className="font-medium">{report.category}</span>
@@ -448,41 +438,43 @@ export const AdminReportsPage: React.FC = () => {
                   </div>
 
                   {/* Status-specific info */}
-                  {report.status === "Approved" && report.assignedOffice && (
-                    <div className="rounded-xl bg-green-50 border-2 border-green-200 p-4 mb-4">
-                      <div className="flex items-start gap-3">
-                        <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-bold text-green-900 mb-1">
-                            ✓ Approved & Assigned
-                          </p>
-                          <p className="text-sm text-green-800">
-                            <strong>Technical Office:</strong>{" "}
-                            {report.assignedOffice}
-                          </p>
+                  {/* {report.status === ReportStatus.ASSIGNED &&
+                    report.assignedOffice && (
+                      <div className="rounded-xl bg-green-50 border-2 border-green-200 p-4 mb-4">
+                        <div className="flex items-start gap-3">
+                          <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-bold text-green-900 mb-1">
+                              ✓ Approved & Assigned
+                            </p>
+                            <p className="text-sm text-green-800">
+                              <strong>Technical Office:</strong>{" "}
+                              {report.assignedOffice}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )} */}
 
-                  {report.status === "Rejected" && report.rejectionReason && (
-                    <div className="rounded-xl bg-red-50 border-2 border-red-200 p-4 mb-4">
-                      <div className="flex items-start gap-3">
-                        <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-bold text-red-900 mb-2">
-                            ✗ Rejected - Reason:
-                          </p>
-                          <p className="text-sm text-red-800 leading-relaxed">
-                            {report.rejectionReason}
-                          </p>
+                  {report.status === ReportStatus.REJECTED &&
+                    report.rejectionReason && (
+                      <div className="rounded-xl bg-red-50 border-2 border-red-200 p-4 mb-4">
+                        <div className="flex items-start gap-3">
+                          <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-bold text-red-900 mb-2">
+                              ✗ Rejected - Reason:
+                            </p>
+                            <p className="text-sm text-red-800 leading-relaxed">
+                              {report.rejectionReason}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Action Buttons */}
-                  {report.status === "Pending" && (
+                  {report.status === ReportStatus.PENDING && (
                     <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200">
                       <button
                         onClick={() => handleReviewClick(report, "approve")}
@@ -539,9 +531,9 @@ export const AdminReportsPage: React.FC = () => {
                   <p className="text-sm font-semibold text-slate-900 mb-1">
                     {selectedReport.id}: {selectedReport.title}
                   </p>
-                  <p className="text-xs text-slate-600">
+                  {/* <p className="text-xs text-slate-600">
                     {selectedReport.location}
-                  </p>
+                  </p> */}
                   <p className="text-xs text-slate-600">
                     Category: {selectedReport.category}
                   </p>

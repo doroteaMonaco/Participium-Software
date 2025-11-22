@@ -5,7 +5,7 @@ jest.mock("@database", () => {
       findUnique: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
-      update: jest.fn(), // NEW: serve per testare update()
+      update: jest.fn(),
     },
   };
   return { prisma: mPrisma };
@@ -13,6 +13,7 @@ jest.mock("@database", () => {
 
 import { prisma } from "@database";
 import reportRepository from "@repositories/reportRepository";
+import { ReportStatus } from "@models/enums";
 
 type PrismaMock = {
   report: {
@@ -20,7 +21,7 @@ type PrismaMock = {
     findUnique: jest.Mock;
     create: jest.Mock;
     delete: jest.Mock;
-    update: jest.Mock; // NEW
+    update: jest.Mock;
   };
 };
 
@@ -78,6 +79,24 @@ describe("reportRepository", () => {
 
       const res = await reportRepository.findById(999);
       expect(res).toBeNull();
+    });
+  });
+
+  // -------- findByStatus --------
+  describe("findByStatus", () => {
+    it("returns reports filtered by status", async () => {
+      const rows = [makeReport({ id: 5, status: ReportStatus.ASSIGNED })];
+      prismaMock.report.findMany.mockResolvedValue(rows);
+
+      const res = await reportRepository.findByStatus(
+        ReportStatus.ASSIGNED as any,
+      );
+
+      expect(prismaMock.report.findMany).toHaveBeenCalledWith({
+        where: { status: ReportStatus.ASSIGNED } as any,
+        orderBy: { createdAt: "desc" },
+      });
+      expect(res).toBe(rows);
     });
   });
 

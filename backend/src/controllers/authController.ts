@@ -21,14 +21,19 @@ export const authController = {
 
       const { user, token } = await authService.login(identifier, password);
 
+      if (!user) {
+        throw new Error("Authenticated user data missing");
+      }
+
       res.cookie("authToken", token, cookieOpts);
       res.setHeader("Location", "/reports");
-
       return res.status(200).json({
         firstName: user.firstName,
         lastName: user.lastName,
         username: user.username,
         role: user.role,
+        municipality_role_id: (user as any).municipality_role_id,
+        municipality_role: (user as any).municipality_role ?? null,
       });
     } catch (error: any) {
       return res.status(401).json({
@@ -41,11 +46,19 @@ export const authController = {
   async verifyAuth(req: Request, res: Response) {
     try {
       const user = await authService.verifyAuth(req);
+      if (!user) {
+        return res.status(401).json({
+          error: "Authentication Error",
+          message: "Session is invalid or has expired",
+        });
+      }
       return res.status(200).json({
         firstName: user.firstName,
         lastName: user.lastName,
         username: user.username,
         role: user.role,
+        municipality_role_id: (user as any).municipality_role_id,
+        municipality_role: (user as any).municipality_role ?? null,
       });
     } catch {
       return res.status(401).json({

@@ -4,6 +4,7 @@ export interface CreateReportDto {
   title: string;
   description: string;
   category: string;
+  anonymous: boolean;
   photoKeys: string[]; // Keys for images stored in Redis
 }
 
@@ -15,5 +16,6 @@ export interface ReportResponseDto {
   title: string;
   description: string;
   category: string;
+  anonymous?: boolean;
   photos: string[];
 }

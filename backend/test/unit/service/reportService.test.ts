@@ -2,9 +2,10 @@ jest.mock("@repositories/reportRepository", () => {
   const mRepo = {
     findAll: jest.fn(),
     findById: jest.fn(),
+    findByStatus: jest.fn(),
     create: jest.fn(),
+    update: jest.fn(),
     deleteById: jest.fn(),
-    update: jest.fn(), // NEW
   };
   return { __esModule: true, default: mRepo };
 });
@@ -21,13 +22,15 @@ jest.mock("@services/imageService", () => {
 import reportService from "@services/reportService";
 import reportRepository from "@repositories/reportRepository";
 import imageService from "@services/imageService";
+import { ReportStatus } from "@models/enums";
 
 type RepoMock = {
   findAll: jest.Mock;
   findById: jest.Mock;
+  findByStatus: jest.Mock;
   create: jest.Mock;
-  deleteById: jest.Mock;
   update: jest.Mock;
+  deleteById: jest.Mock;
 };
 
 type ImageMock = {
@@ -68,36 +71,80 @@ describe("reportService", () => {
 
   // -------- findAll --------
   describe("findAll", () => {
-    it("returns all reports from repository", async () => {
-      const rows = [makeReport({ id: 2 }), makeReport({ id: 1 })];
+    it("returns reports with images resolved", async () => {
+      const rows = [makeReport({ id: 2 })];
       repo.findAll.mockResolvedValue(rows);
+      img.getMultipleImages.mockResolvedValue(["url1"]);
 
       const res = await reportService.findAll();
 
       expect(repo.findAll).toHaveBeenCalledTimes(1);
-      expect(res).toBe(rows);
+      expect(img.getMultipleImages).toHaveBeenCalledWith(rows[0].photos);
+      expect(res[0].photos).toEqual(["url1"]);
     });
   });
 
   // -------- findById --------
   describe("findById", () => {
-    it("returns the report when found", async () => {
+    it("returns report with images when found", async () => {
       const row = makeReport({ id: 42 });
       repo.findById.mockResolvedValue(row);
+      img.getMultipleImages.mockResolvedValue(["url42"]);
 
       const res = await reportService.findById(42);
 
       expect(repo.findById).toHaveBeenCalledWith(42);
-      expect(res).toBe(row);
+      expect(img.getMultipleImages).toHaveBeenCalledWith(row.photos);
+      expect(res).toEqual({ ...row, photos: ["url42"] });
     });
 
-    it("returns null when report does not exist", async () => {
+    it("returns null when not found", async () => {
       repo.findById.mockResolvedValue(null);
 
       const res = await reportService.findById(999);
 
       expect(repo.findById).toHaveBeenCalledWith(999);
       expect(res).toBeNull();
+    });
+  });
+
+  // -------- findByStatus --------
+  describe("findByStatus", () => {
+    it("maps string status to enum and returns reports with images", async () => {
+      const rows = [makeReport({ id: 5, status: ReportStatus.ASSIGNED })];
+      repo.findByStatus.mockResolvedValue(rows);
+      img.getMultipleImages.mockResolvedValue(["u"]);
+
+      const res = await reportService.findByStatus("ASSIGNED");
+
+      expect(repo.findByStatus).toHaveBeenCalledWith(ReportStatus.ASSIGNED);
+      expect(res[0].photos).toEqual(["u"]);
+    });
+
+    it("throws for invalid status string", async () => {
+      await expect(reportService.findByStatus("BADSTATUS")).rejects.toThrow();
+    });
+  });
+
+  // -------- updateReportStatus --------
+  describe("updateReportStatus", () => {
+    it("updates status and returns updated status", async () => {
+      const updated = makeReport({ id: 1, status: ReportStatus.ASSIGNED });
+      repo.update.mockResolvedValue(updated);
+
+      const res = await reportService.updateReportStatus(1, "ASSIGNED");
+
+      expect(repo.update).toHaveBeenCalledWith(1, {
+        status: ReportStatus.ASSIGNED,
+        rejectionReason: undefined,
+      });
+      expect(res).toBe(ReportStatus.ASSIGNED);
+    });
+
+    it("throws for invalid status", async () => {
+      await expect(
+        reportService.updateReportStatus(1, "BAD"),
+      ).rejects.toThrow();
     });
   });
 
@@ -108,7 +155,7 @@ describe("reportService", () => {
       const created = makeReport({ id: 10 });
       repo.create.mockResolvedValue(created);
 
-      const res = await reportService.submitReport(dto);
+      const res = await reportService.submitReport(dto, 1);
 
       expect(repo.create).toHaveBeenCalledWith(dto);
       expect(res).toBe(created);
@@ -132,7 +179,7 @@ describe("reportService", () => {
       });
       img.getMultipleImages.mockResolvedValue(["BINARY1", "BINARY2"]);
 
-      const res = await reportService.submitReport(dto as any);
+      const res = await reportService.submitReport(dto as any, 1);
 
       expect(repo.create).toHaveBeenCalledWith({
         ...dto,
@@ -158,28 +205,61 @@ describe("reportService", () => {
       );
     });
 
+    it("creates report, persists images and returns report with resolved images", async () => {
+      const dto = makeCreateDto();
+      const created = { id: 10, photos: [] };
+      const updated = { id: 10, photos: ["p1"] };
+      repo.create.mockResolvedValue(created);
+      img.persistImagesForReport.mockResolvedValue(["p1"]);
+      repo.update.mockResolvedValue(updated);
+      img.getMultipleImages.mockResolvedValue(["url_p1"]);
+
+      const res = await reportService.submitReport(dto as any, 123);
+
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          photoKeys: [],
+          user_id: 123,
+          status: ReportStatus.PENDING_APPROVAL,
+        }),
+      );
+      expect(img.persistImagesForReport).toHaveBeenCalledWith(
+        dto.photoKeys,
+        created.id,
+      );
+      expect(repo.update).toHaveBeenCalledWith(created.id, {
+        photos: ["p1"],
+      });
+      expect(res.photos).toEqual(["url_p1"]);
+    });
+
     it("throws if missing required fields", async () => {
       await expect(
-        reportService.submitReport(makeCreateDto({ title: "   " }) as any),
+        reportService.submitReport(makeCreateDto({ title: "   " }) as any, 1),
       ).rejects.toThrow("Title is required");
 
       await expect(
-        reportService.submitReport(makeCreateDto({ description: "" }) as any),
+        reportService.submitReport(
+          makeCreateDto({ description: "" }) as any,
+          1,
+        ),
       ).rejects.toThrow("Description is required");
 
       await expect(
         reportService.submitReport(
           makeCreateDto({ category: undefined }) as any,
+          1,
         ),
       ).rejects.toThrow("Category is required");
 
       await expect(
-        reportService.submitReport(makeCreateDto({ photoKeys: [] }) as any),
+        reportService.submitReport(makeCreateDto({ photoKeys: [] }) as any, 1),
       ).rejects.toThrow("At least 1 photo is required");
 
       await expect(
         reportService.submitReport(
           makeCreateDto({ photoKeys: ["a", "b", "c", "d"] }) as any,
+          1,
         ),
       ).rejects.toThrow("Maximum 3 photos are allowed");
     });
@@ -214,6 +294,29 @@ describe("reportService", () => {
 
       await expect(reportService.deleteReport(3)).rejects.toBe(err);
       expect(img.deleteImages).not.toHaveBeenCalled();
+    });
+
+    it("deletes existing report and removes images", async () => {
+      const report = makeReport({ id: 7, photos: ["p1"] });
+      const deleted = { ...report };
+      repo.findById.mockResolvedValue(report);
+      repo.deleteById.mockResolvedValue(deleted);
+      img.deleteImages.mockResolvedValue(undefined);
+
+      const res = await reportService.deleteReport(7);
+
+      expect(repo.findById).toHaveBeenCalledWith(7);
+      expect(repo.deleteById).toHaveBeenCalledWith(7);
+      expect(img.deleteImages).toHaveBeenCalledWith(report.photos);
+      expect(res.photos).toEqual(["p1"]);
+      expect(res.id).toBe(7);
+    });
+
+    it("throws when report not found", async () => {
+      repo.findById.mockResolvedValue(null);
+      await expect(reportService.deleteReport(999)).rejects.toThrow(
+        "Report not found",
+      );
     });
   });
 });

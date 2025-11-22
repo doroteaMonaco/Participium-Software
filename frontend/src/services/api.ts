@@ -51,6 +51,16 @@ export interface Report {
   category?: ReportCategory;
   photos?: string[]; // URLs
   createdAt?: string;
+  latitude?: number;
+  longitude?: number;
+  status?: string;
+  rejectionReason?: string;
+}
+
+export interface ApproveReportRequest {
+  status: "ASSIGNED" | "REJECTED" | string;
+  category?: string;
+  motivation?: string;
 }
 
 export interface ApiError {
@@ -151,7 +161,23 @@ export const createReport = async (
   formData.append("title", reportData.title);
   formData.append("description", reportData.description);
   formData.append("anonymous", String(reportData.anonymous));
-  formData.append("category", reportData.category);
+
+  // Map human-friendly category labels to canonical backend enum values
+  const mapCategoryToEnum = (label: string) => {
+    const s = (label || "").toLowerCase();
+    if (s.includes("water") && s.includes("drinking")) return "WATER_SUPPLY_DRINKING_WATER";
+    if (s.includes("architectur" ) || s.includes("barrier")) return "ARCHITECTURAL_BARRIERS";
+    if (s.includes("sewer")) return "SEWER_SYSTEM";
+    if (s.includes("light")) return "PUBLIC_LIGHTING";
+    if (s.includes("waste") || s.includes("trash")) return "WASTE";
+    if (s.includes("road") && (s.includes("sign") || s.includes("traffic"))) return "ROAD_SIGNS_TRAFFIC_LIGHTS";
+    if (s.includes("road") || s.includes("urban") || s.includes("furnish")) return "ROADS_URBAN_FURNISHINGS";
+    if (s.includes("green") || s.includes("playground")) return "PUBLIC_GREEN_AREAS_PLAYGROUNDS";
+    return "OTHER";
+  };
+
+  const categoryEnum = mapCategoryToEnum(reportData.category as string);
+  formData.append("category", categoryEnum);
 
   // Add coordinates if provided
   if (reportData.latitude !== undefined) {
@@ -168,11 +194,8 @@ export const createReport = async (
     formData.append("photos", photo);
   });
 
-  const response = await api.post("/reports", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+  // Let axios set the `Content-Type` including boundary for multipart data
+  const response = await api.post("/reports", formData);
 
   return response.data;
 };
@@ -192,6 +215,22 @@ export const getReports = async (): Promise<Report[]> => {
  */
 export const getReportById = async (id: string | number): Promise<Report> => {
   const response = await api.get(`/reports/${id}`);
+  return response.data;
+};
+
+/**
+ * Approve or reject a report
+ * @param id Report ID
+ * @param status "ASSIGNED" or "REJECTED"
+ * @param motivation Rejection reason (required if status is "REJECTED")
+ * @returns Updated report status
+ * @throws ApiError on failure
+ */
+export const approveOrRejectReport = async (
+  id: string | number,
+  request: ApproveReportRequest,
+): Promise<{ status: string }> => {
+  const response = await api.post(`/reports/${id}`, request);
   return response.data;
 };
 

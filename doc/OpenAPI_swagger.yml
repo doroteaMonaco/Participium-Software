@@ -176,6 +176,38 @@ paths:
                 $ref: '#/components/schemas/Error'
 
   /reports/{id}:
+    get:
+      tags: [Reports]
+      summary: Get report by ID
+      description: Retrieve a specific report by its ID (public)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: Report ID
+      responses:
+        '200':
+          description: OK - Report found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          description: Bad Request - Invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found - Report not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
     post:
       tags: [Reports]
       summary: Validate a report
@@ -657,6 +689,15 @@ components:
         - Roads and Urban Furnishings
         - Public Green Areas and Playgrounds
         - Other
+        - WATER_SUPPLY_DRINKING_WATER
+        - ARCHITECTURAL_BARRIERS
+        - SEWER_SYSTEM
+        - PUBLIC_LIGHTING
+        - WASTE
+        - ROAD_SIGNS_TRAFFIC_LIGHTS
+        - ROADS_URBAN_FURNISHINGS
+        - PUBLIC_GREEN_AREAS_PLAYGROUNDS
+        - OTHER
       example: "Public Lighting"
 
     ReportRequest:
@@ -684,12 +725,10 @@ components:
           type: array
           items:
             type: string
-            format: uri
+            format: binary
           minItems: 1
           maxItems: 3
-          example: 
-            - "https://example.com/photos/report1_photo1.jpg"
-            - "https://example.com/photos/report1_photo2.jpg"
+          description: Array of image files to upload (multipart/form-data)
         latitude:
           type: number
           format: float

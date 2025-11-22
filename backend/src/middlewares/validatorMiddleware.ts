@@ -8,5 +8,10 @@ const swaggerPath = isDocker
 
 export const openApiValidator = OpenApiValidator.middleware({
   apiSpec: swaggerPath,
-  validateRequests: true,
+  validateRequests: {
+    // Enable coercion so values sent as strings (eg. multipart/form-data)
+    // are converted to the types expected by the OpenAPI schema (eg.
+    // "false" -> false).
+    coerceTypes: true,
+  },
 });
