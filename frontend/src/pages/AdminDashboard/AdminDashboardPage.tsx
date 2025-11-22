@@ -306,35 +306,7 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* Quick Actions */}
-            <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-indigo-50 to-blue-50 p-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-900 mb-3">
-                Quick Actions
-              </h3>
-              <div className="space-y-2">
-                <Link
-                  to="/admin/users"
-                  className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
-                >
-                  <Users className="h-4 w-4" />
-                  Manage Users
-                </Link>
-                <Link
-                  to="/admin/reports"
-                  className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
-                >
-                  <FileText className="h-4 w-4" />
-                  View All Reports
-                </Link>
-                <Link
-                  to="/admin/map"
-                  className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
-                >
-                  <MapPin className="h-4 w-4" />
-                  Map View
-                </Link>
-              </div>
-            </div>
+         
           </div>
         </div>
       </div>
