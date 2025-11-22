@@ -115,4 +115,20 @@ export const userRepository = {
       },
     });
   },
+
+  async updateUserProfile(
+    id: number,
+    telegramUsername?: string,
+    notifications?: boolean,
+    profilePhotoPath?: string,
+  ) {
+    return prisma.user.update({
+      where: { id },
+      data: {
+        telegramUsername: telegramUsername,
+        notifications: notifications,
+        profilePhoto: profilePhotoPath,
+      },
+    });
+  },
 };

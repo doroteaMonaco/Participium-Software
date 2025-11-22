@@ -407,18 +407,10 @@ paths:
         Require role: CITIZEN.
       security:
         - cookieAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-            format: int64
-          description: User ID
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/UserConfiguration'
       responses:
@@ -733,8 +725,9 @@ components:
           pattern: '^@[a-zA-Z0-9_]{5,32}$'
           example: "@Rossi"
         notificationsEnabled:
-          type: boolean
+          type: string
           example: true
+          description: Boolean
 
     User:
       type: object 

@@ -5,6 +5,7 @@ export interface CreateReportDto {
   description: string;
   category: string;
   photoKeys: string[]; // Keys for images stored in Redis
+  userId: number;
 }
 
 export interface ReportResponseDto {

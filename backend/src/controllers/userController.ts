@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { authService } from "@services/authService";
 import { cookieOpts } from "@controllers/authController";
+import { userService } from "@services/userService";
+import imageService from "@services/imageService";
 
 export const userController = {
   async register(req: Request, res: Response) {
@@ -72,7 +74,7 @@ export const userController = {
         });
       }
 
-      const user = await authService.createMunicipalityUser(
+      const user = await userService.createMunicipalityUser(
         email,
         username,
         firstName,
@@ -100,7 +102,7 @@ export const userController = {
 
   async getAllUsers(req: Request, res: Response) {
     try {
-      const users = await authService.getAllUsers();
+      const users = await userService.getAllUsers();
       return res.status(200).json(users);
     } catch (error: any) {
       return res.status(500).json({
@@ -120,7 +122,7 @@ export const userController = {
           .json({ error: "Bad Request", message: "Invalid user ID" });
       }
 
-      const user = await authService.getUserById(userId);
+      const user = await userService.getUserById(userId);
 
       if (!user) {
         return res
@@ -147,7 +149,7 @@ export const userController = {
           .json({ error: "Bad Request", message: "Invalid user ID" });
       }
 
-      await authService.deleteUser(userId);
+      await userService.deleteUser(userId);
       return res.status(204).send();
     } catch (error: any) {
       if (error?.message === "User not found") {
@@ -164,7 +166,7 @@ export const userController = {
 
   async getAllMunicipalityRoles(req: Request, res: Response) {
     try {
-      const roles = await authService.getAllMunicipalityRoles();
+      const roles = await userService.getAllMunicipalityRoles();
       return res.status(200).json(roles);
     } catch (error: any) {
       return res.status(500).json({
@@ -176,12 +178,53 @@ export const userController = {
 
   async getMunicipalityUsers(req: Request, res: Response) {
     try {
-      const users = await authService.getMunicipalityUsers();
+      const users = await userService.getMunicipalityUsers();
       return res.status(200).json(users);
     } catch (error: any) {
       return res.status(500).json({
         error: "Internal Server Error",
         message: error?.message || "Failed to retrieve users",
+      });
+    }
+  },
+
+  async updateCitizenProfile(req: Request, res: Response) {
+    try {
+      const id = req.user?.id;
+
+      const { telegramUsername, notificationsEnabled } = req.body || {};
+
+      const file = req.file;
+      if (!file && !telegramUsername && !notificationsEnabled) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message: "Missing fields: at least one field need to be provided",
+        });
+      }
+      let tempKey;
+      if (file) {
+        const tempKeys = await imageService.storeTemporaryImages([
+          {
+            buffer: file.buffer,
+            mimetype: file.mimetype,
+            originalname: file.originalname,
+          },
+        ]);
+        tempKey = tempKeys[0];
+      }
+
+      await userService.updateCitizenProfile(
+        id!!, // non-null assertion since isCitizen middleware ensures id exists
+        tempKey,
+        telegramUsername,
+        Boolean(notificationsEnabled),
+      );
+
+      return res.status(200).send();
+    } catch (error: any) {
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: error?.message || "User profile update failed",
       });
     }
   },

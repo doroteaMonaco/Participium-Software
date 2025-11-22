@@ -24,6 +24,7 @@ const create = async (data: CreateReportDto) => {
       description: data.description,
       category: data.category as any,
       photos: data.photoKeys,
+      userId: data.userId,
     },
   });
 };

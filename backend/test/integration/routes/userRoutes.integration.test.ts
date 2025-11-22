@@ -1,6 +1,6 @@
 import request from "supertest";
 import { PrismaClient } from "@prisma/client";
-import { authService } from "@services/authService";
+import { userService } from "@services/userService";
 import app from "@app";
 
 const prisma = new PrismaClient();
@@ -122,7 +122,7 @@ describe("Admin routes integration tests", () => {
     it("500 when service fails", async () => {
       const admin = await makeAdminAgent();
       jest
-        .spyOn(authService, "getAllUsers")
+        .spyOn(userService, "getAllUsers")
         .mockRejectedValue(new Error("db fail"));
       await admin.get(`${base}`).expect(500);
     });
@@ -173,7 +173,7 @@ describe("Admin routes integration tests", () => {
     it("500 when service fails", async () => {
       const admin = await makeAdminAgent();
       jest
-        .spyOn(authService, "getUserById")
+        .spyOn(userService, "getUserById")
         .mockRejectedValue(new Error("db fail"));
       await admin.get(`${base}/1`).expect(500);
     });
@@ -225,7 +225,7 @@ describe("Admin routes integration tests", () => {
     it("500 when service fails", async () => {
       const admin = await makeAdminAgent();
       jest
-        .spyOn(authService, "deleteUser")
+        .spyOn(userService, "deleteUser")
         .mockRejectedValue(new Error("db fail"));
       await admin.delete(`${base}/1`).expect(500);
     });
@@ -301,7 +301,7 @@ describe("Admin routes integration tests", () => {
     it("500 when service fails", async () => {
       const admin = await makeAdminAgent();
       jest
-        .spyOn(authService, "getMunicipalityUsers")
+        .spyOn(userService, "getMunicipalityUsers")
         .mockRejectedValue(new Error("db fail"));
       await admin.get(`${base}/municipality-users`).expect(500);
     });
@@ -334,7 +334,7 @@ describe("Admin routes integration tests", () => {
     it("500 when service fails", async () => {
       const admin = await makeAdminAgent();
       jest
-        .spyOn(authService, "getAllMunicipalityRoles")
+        .spyOn(userService, "getAllMunicipalityRoles")
         .mockRejectedValue(new Error("db fail"));
       await admin.get(`${base}/municipality-users/roles`).expect(500);
     });

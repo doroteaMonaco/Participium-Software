@@ -1,5 +1,5 @@
-jest.mock("@services/authService", () => ({
-  authService: {
+jest.mock("@services/userService", () => ({
+  userService: {
     createMunicipalityUser: jest.fn(),
     getAllUsers: jest.fn(),
     getUserById: jest.fn(),
@@ -10,7 +10,7 @@ jest.mock("@services/authService", () => ({
 }));
 
 import { userController } from "@controllers/userController";
-import { authService } from "@services/authService";
+import { userService } from "@services/userService";
 
 type MockRes = {
   status: jest.Mock;
@@ -55,7 +55,7 @@ describe("userController", () => {
           error: "Bad Request",
         }),
       );
-      expect(authService.createMunicipalityUser).not.toHaveBeenCalled();
+      expect(userService.createMunicipalityUser).not.toHaveBeenCalled();
     });
 
     it("returns 409 when email or username is already in use", async () => {
@@ -63,13 +63,13 @@ describe("userController", () => {
       const req: any = { body: { ...payload } };
       const res = makeRes();
 
-      (authService.createMunicipalityUser as jest.Mock).mockRejectedValue(
+      (userService.createMunicipalityUser as jest.Mock).mockRejectedValue(
         new Error("Email is already in use"),
       );
 
       await userController.createMunicipalityUser(req, res);
 
-      expect(authService.createMunicipalityUser).toHaveBeenCalled();
+      expect(userService.createMunicipalityUser).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(409);
       expect(res.json).toHaveBeenCalledWith({
         error: "Conflict Error",
@@ -83,13 +83,13 @@ describe("userController", () => {
       const res = makeRes();
       const created = makeUser({ id: 10, role: "MUNICIPALITY" });
 
-      (authService.createMunicipalityUser as jest.Mock).mockResolvedValue(
+      (userService.createMunicipalityUser as jest.Mock).mockResolvedValue(
         created,
       );
 
       await userController.createMunicipalityUser(req, res);
 
-      expect(authService.createMunicipalityUser).toHaveBeenCalledWith(
+      expect(userService.createMunicipalityUser).toHaveBeenCalledWith(
         payload.email,
         payload.username,
         payload.firstName,
@@ -106,7 +106,7 @@ describe("userController", () => {
       const req: any = { body: { ...payload } };
       const res = makeRes();
 
-      (authService.createMunicipalityUser as jest.Mock).mockRejectedValue(
+      (userService.createMunicipalityUser as jest.Mock).mockRejectedValue(
         new Error("some failure"),
       );
 
@@ -126,11 +126,11 @@ describe("userController", () => {
       const res = makeRes();
       const users = [makeUser(), makeUser({ id: 2 })];
 
-      (authService.getAllUsers as jest.Mock).mockResolvedValue(users);
+      (userService.getAllUsers as jest.Mock).mockResolvedValue(users);
 
       await userController.getAllUsers(req, res);
 
-      expect(authService.getAllUsers).toHaveBeenCalled();
+      expect(userService.getAllUsers).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(users);
     });
@@ -139,7 +139,7 @@ describe("userController", () => {
       const req = {} as any;
       const res = makeRes();
 
-      (authService.getAllUsers as jest.Mock).mockRejectedValue(
+      (userService.getAllUsers as jest.Mock).mockRejectedValue(
         new Error("db fail"),
       );
 
@@ -170,11 +170,11 @@ describe("userController", () => {
       const req = { params: { id: "5" } } as any;
       const res = makeRes();
 
-      (authService.getUserById as jest.Mock).mockResolvedValue(null);
+      (userService.getUserById as jest.Mock).mockResolvedValue(null);
 
       await userController.getUserById(req, res);
 
-      expect(authService.getUserById).toHaveBeenCalledWith(5);
+      expect(userService.getUserById).toHaveBeenCalledWith(5);
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({
         error: "Not Found",
@@ -187,11 +187,11 @@ describe("userController", () => {
       const res = makeRes();
       const user = makeUser({ id: 7 });
 
-      (authService.getUserById as jest.Mock).mockResolvedValue(user);
+      (userService.getUserById as jest.Mock).mockResolvedValue(user);
 
       await userController.getUserById(req, res);
 
-      expect(authService.getUserById).toHaveBeenCalledWith(7);
+      expect(userService.getUserById).toHaveBeenCalledWith(7);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(user);
     });
@@ -200,7 +200,7 @@ describe("userController", () => {
       const req = { params: { id: "7" } } as any;
       const res = makeRes();
 
-      (authService.getUserById as jest.Mock).mockRejectedValue(
+      (userService.getUserById as jest.Mock).mockRejectedValue(
         new Error("boom"),
       );
 
@@ -231,11 +231,11 @@ describe("userController", () => {
       const req = { params: { id: "3" } } as any;
       const res = makeRes();
 
-      (authService.deleteUser as jest.Mock).mockResolvedValue(undefined);
+      (userService.deleteUser as jest.Mock).mockResolvedValue(undefined);
 
       await userController.deleteUser(req, res);
 
-      expect(authService.deleteUser).toHaveBeenCalledWith(3);
+      expect(userService.deleteUser).toHaveBeenCalledWith(3);
       expect(res.status).toHaveBeenCalledWith(204);
       expect(res.send).toHaveBeenCalled();
     });
@@ -244,7 +244,7 @@ describe("userController", () => {
       const req = { params: { id: "9" } } as any;
       const res = makeRes();
 
-      (authService.deleteUser as jest.Mock).mockRejectedValue(
+      (userService.deleteUser as jest.Mock).mockRejectedValue(
         new Error("User not found"),
       );
 
@@ -261,7 +261,7 @@ describe("userController", () => {
       const req = { params: { id: "9" } } as any;
       const res = makeRes();
 
-      (authService.deleteUser as jest.Mock).mockRejectedValue(
+      (userService.deleteUser as jest.Mock).mockRejectedValue(
         new Error("boom"),
       );
 
@@ -284,13 +284,13 @@ describe("userController", () => {
         { id: 2, name: "VALIDATOR" },
       ];
 
-      (authService.getAllMunicipalityRoles as jest.Mock).mockResolvedValue(
+      (userService.getAllMunicipalityRoles as jest.Mock).mockResolvedValue(
         roles,
       );
 
       await userController.getAllMunicipalityRoles(req, res);
 
-      expect(authService.getAllMunicipalityRoles).toHaveBeenCalled();
+      expect(userService.getAllMunicipalityRoles).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(roles);
     });
@@ -299,7 +299,7 @@ describe("userController", () => {
       const req = {} as any;
       const res = makeRes();
 
-      (authService.getAllMunicipalityRoles as jest.Mock).mockRejectedValue(
+      (userService.getAllMunicipalityRoles as jest.Mock).mockRejectedValue(
         new Error("db fail"),
       );
 
@@ -319,11 +319,11 @@ describe("userController", () => {
       const res = makeRes();
       const users = [makeUser(), makeUser({ id: 2, username: "muni2" })];
 
-      (authService.getMunicipalityUsers as jest.Mock).mockResolvedValue(users);
+      (userService.getMunicipalityUsers as jest.Mock).mockResolvedValue(users);
 
       await userController.getMunicipalityUsers(req, res);
 
-      expect(authService.getMunicipalityUsers).toHaveBeenCalled();
+      expect(userService.getMunicipalityUsers).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(users);
     });
@@ -332,7 +332,7 @@ describe("userController", () => {
       const req = {} as any;
       const res = makeRes();
 
-      (authService.getMunicipalityUsers as jest.Mock).mockRejectedValue(
+      (userService.getMunicipalityUsers as jest.Mock).mockRejectedValue(
         new Error("boom"),
       );
 

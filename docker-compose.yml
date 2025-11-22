@@ -47,6 +47,7 @@ services:
       - participium-net
     volumes:
       - ./backend/uploads:/app/uploads
+      - ./backend/user_profiles:/app/user_profiles
     environment:
       LOG_LEVEL: info 
       LOG_PATH: logs

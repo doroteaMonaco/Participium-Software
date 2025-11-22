@@ -22,7 +22,7 @@ jest.mock("bcrypt", () => ({
   compare: jest.fn(),
 }));
 
-import { authService } from "@services/authService";
+import { userService } from "@services/userService";
 import { userRepository } from "@repositories/userRepository";
 import { roleRepository } from "@repositories/roleRepository";
 import { roleType } from "@models/enums";
@@ -55,7 +55,7 @@ const makeUser = (overrides: Partial<any> = {}) => ({
   ...overrides,
 });
 
-describe("authService - Municipality Functions", () => {
+describe("userService - Municipality Functions", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -84,7 +84,7 @@ describe("authService - Municipality Functions", () => {
       (bcrypt.hash as jest.Mock).mockResolvedValue("hashed_password");
       userRepo.createUserWithRole.mockResolvedValue(mockCreatedUser);
 
-      const result = await authService.createMunicipalityUser(
+      const result = await userService.createMunicipalityUser(
         mockUserData.email,
         mockUserData.username,
         mockUserData.firstName,
@@ -119,7 +119,7 @@ describe("authService - Municipality Functions", () => {
       userRepo.findUserByEmail.mockResolvedValue(existingUser);
 
       await expect(
-        authService.createMunicipalityUser(
+        userService.createMunicipalityUser(
           mockUserData.email,
           mockUserData.username,
           mockUserData.firstName,
@@ -145,7 +145,7 @@ describe("authService - Municipality Functions", () => {
       userRepo.findUserByUsername.mockResolvedValue(existingUser);
 
       await expect(
-        authService.createMunicipalityUser(
+        userService.createMunicipalityUser(
           mockUserData.email,
           mockUserData.username,
           mockUserData.firstName,
@@ -181,7 +181,7 @@ describe("authService - Municipality Functions", () => {
     it("returns all municipality roles", async () => {
       roleRepo.getAllMunicipalityRoles.mockResolvedValue(mockRoles);
 
-      const result = await authService.getAllMunicipalityRoles();
+      const result = await userService.getAllMunicipalityRoles();
 
       expect(roleRepo.getAllMunicipalityRoles).toHaveBeenCalled();
       expect(result).toEqual(mockRoles);
@@ -190,7 +190,7 @@ describe("authService - Municipality Functions", () => {
     it("returns empty array when no roles exist", async () => {
       roleRepo.getAllMunicipalityRoles.mockResolvedValue([]);
 
-      const result = await authService.getAllMunicipalityRoles();
+      const result = await userService.getAllMunicipalityRoles();
 
       expect(roleRepo.getAllMunicipalityRoles).toHaveBeenCalled();
       expect(result).toEqual([]);
@@ -222,7 +222,7 @@ describe("authService - Municipality Functions", () => {
     it("returns all municipality users", async () => {
       userRepo.getUsersByRole.mockResolvedValue(mockMunicipalityUsers);
 
-      const result = await authService.getMunicipalityUsers();
+      const result = await userService.getMunicipalityUsers();
 
       expect(userRepo.getUsersByRole).toHaveBeenCalledWith(
         roleType.MUNICIPALITY,
@@ -233,7 +233,7 @@ describe("authService - Municipality Functions", () => {
     it("returns empty array when no municipality users exist", async () => {
       userRepo.getUsersByRole.mockResolvedValue([]);
 
-      const result = await authService.getMunicipalityUsers();
+      const result = await userService.getMunicipalityUsers();
 
       expect(userRepo.getUsersByRole).toHaveBeenCalledWith(
         roleType.MUNICIPALITY,

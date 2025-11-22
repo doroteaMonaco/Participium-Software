@@ -98,6 +98,7 @@ export const submitReport = async (req: Request, res: Response) => {
       description,
       category,
       photoKeys: tempKeys, // Pass temporary keys
+      userId: req.user?.id!, // Pass user ID from authenticated request
     });
 
     res.status(201).json(report);

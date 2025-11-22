@@ -1,6 +1,6 @@
 import type { Config } from "jest";
 import { pathsToModuleNameMapper, createDefaultPreset } from "ts-jest";
-import tsconfig from "./tsconfig.json";
+import tsconfig from "./tsconfig.json" with { type: "json" };
 
 const tsJestTransformCfg = createDefaultPreset().transform;
 

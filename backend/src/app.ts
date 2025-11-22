@@ -24,13 +24,13 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 
 // Middlewares
+app.use(cookieParser());
 app.use(express.json());
 app.use(openApiValidator);
-app.use(cookieParser());
 
 // Health check endpoint
 app.get("/", (_req, res) => {
@@ -41,13 +41,13 @@ app.get("/", (_req, res) => {
 app.use(
   CONFIG.ROUTES.SWAGGER,
   swaggerUi.serve,
-  swaggerUi.setup(swaggerDocument)
+  swaggerUi.setup(swaggerDocument),
 );
 
 // Serve uploaded files statically
 app.use(
   CONFIG.ROUTES.UPLOADS,
-  express.static(path.join(process.cwd(), "uploads"))
+  express.static(path.join(process.cwd(), "uploads")),
 );
 
 // Mount routers
