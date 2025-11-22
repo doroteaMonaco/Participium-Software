@@ -61,12 +61,19 @@ export const authService = {
       throw new Error("Invalid password");
     }
 
+    // Re-fetch the user with relations (municipality_role) to return full user
+    const fullUser = await userRepository.findUserById(user.id);
+
+    if (!fullUser) {
+      throw new Error("User not found after authentication");
+    }
+
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: fullUser.id, email: fullUser.email, role: fullUser.role },
       SECRET_KEY,
       { expiresIn: "1h" },
     );
-    return { user, token };
+    return { user: fullUser, token };
   },
 
   async verifyAuth(req: any) {

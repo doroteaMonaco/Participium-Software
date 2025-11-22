@@ -26,6 +26,19 @@ const findByStatus = async (status: ReportStatus) => {
   });
 };
 
+const findByStatusesAndCategories = async (
+  statuses: ReportStatus[],
+  categories: string[],
+) => {
+  return prisma.report.findMany({
+    where: {
+      status: { in: statuses as any },
+      category: { in: categories as any },
+    } as any,
+    orderBy: { createdAt: "desc" },
+  });
+};
+
 const create = async (data: Report) => {
   const createData: any = {
     latitude: data.latitude,
@@ -35,6 +48,7 @@ const create = async (data: Report) => {
     category: data.category as any,
     photos: data.photoKeys,
     status: data.status,
+    assignedOffice: (data as any).assignedOffice,
   };
 
   // Add user relation if user_id is provided
@@ -61,6 +75,7 @@ const update = async (
     photos: string[];
     status: ReportStatus;
     rejectionReason: string;
+    assignedOffice: string | null;
   }>,
 ) => {
   return prisma.report.update({
@@ -76,4 +91,5 @@ export default {
   create,
   deleteById,
   update,
+  findByStatusesAndCategories,
 };

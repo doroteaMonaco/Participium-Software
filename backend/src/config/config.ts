@@ -42,6 +42,8 @@ export const CONFIG = {
     AUTH: APP_BASE_URL + "auth",
     USERS: APP_BASE_URL + "users",
     REPORTS: APP_BASE_URL + "reports",
-    UPLOADS: "/uploads",
+    // Serve uploads under the API base so frontend URLs using the API
+    // base (e.g. http://host:port/api/uploads/...) resolve correctly.
+    UPLOADS: APP_BASE_URL + "uploads",
   },
 };

@@ -14,6 +14,7 @@ import {
 import { createPortal } from "react-dom";
 import { getReports, approveOrRejectReport } from "src/services/api";
 import { Report, ReportStatus } from "src/services/models";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
 
 // Technical offices bound to each category
 const categoryOfficeMapping: Record<string, string> = {
@@ -103,9 +104,10 @@ export const AdminReportsPage: React.FC = () => {
           : undefined;
 
       try {
+        // Do not send `category` (this must be one of report categories).
+        // Backend computes `assignedOffice` from the report's category.
         await approveOrRejectReport(selectedReport.id, {
           status: reviewAction === "approve" ? "ASSIGNED" : "REJECTED",
-          category: assignedOffice,
           motivation: reviewAction === "reject" ? rejectionReason : undefined,
         });
       } catch (err) {
@@ -383,6 +385,33 @@ export const AdminReportsPage: React.FC = () => {
                   <p className="text-base text-slate-700 mb-4 leading-relaxed">
                     {report.description}
                   </p>
+
+                  {/* Photos */}
+                  {report.photos && report.photos.length > 0 && (
+                    <div className="mb-4 flex gap-3">
+                      {report.photos.map((p, idx) => (
+                        <img
+                          key={idx}
+                          src={`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`}
+                          alt={`photo-${idx}`}
+                          className="h-28 w-28 object-cover rounded-lg border border-slate-200"
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Mini Map */}
+                  <div className="mb-4 h-40 w-full rounded-lg overflow-hidden border border-slate-200">
+                    <MapContainer
+                      center={[report.lat || 45.0, report.lng || 7.0]}
+                      zoom={15}
+                      style={{ height: "100%", width: "100%" }}
+                      scrollWheelZoom={false}
+                    >
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <Marker position={[report.lat || 45.0, report.lng || 7.0]} />
+                    </MapContainer>
+                  </div>
 
                   {/* Metadata Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">

@@ -43,6 +43,7 @@ app.use((req, res, next) => {
   const isReportsRoute = req.originalUrl.startsWith(CONFIG.ROUTES.REPORTS);
   // Skip validation for swagger docs and its assets
   const isSwaggerRoute = req.originalUrl.startsWith(CONFIG.ROUTES.SWAGGER);
+  const isUploadsRoute = req.originalUrl.startsWith(CONFIG.ROUTES.UPLOADS);
   const contentType = req.headers["content-type"] || "";
   const isMultipart = typeof contentType === "string" && contentType.includes("multipart/form-data");
 
@@ -51,6 +52,10 @@ app.use((req, res, next) => {
   }
 
   if (isSwaggerRoute) {
+    return next();
+  }
+  // Skip validation for uploads (static assets)
+  if (isUploadsRoute) {
     return next();
   }
 

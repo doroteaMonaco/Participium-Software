@@ -52,18 +52,17 @@ export const getReportByStatus = async (req: Request, res: Response) => {
 export const approveOrRejectReport = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { status, rejectionReason } = req.body;
-
-    if (status !== "APPROVED" && status !== "REJECTED") {
+    // Accept either `rejectionReason` or `motivation` coming from frontend
+    const { status } = req.body;
+    const rejectionReason = req.body.rejectionReason ?? req.body.motivation;
+    // Only allow setting ASSIGNED (accepted) or REJECTED
+    if (status !== "ASSIGNED" && status !== "REJECTED") {
       return res
         .status(400)
-        .json({ error: "Invalid status. Must be APPROVED or REJECTED." });
+        .json({ error: "Invalid status. Must be ASSIGNED or REJECTED." });
     }
 
-    if (
-      status === "REJECTED" &&
-      (!rejectionReason || rejectionReason.trim() === "")
-    ) {
+    if (status === "REJECTED" && (!rejectionReason || rejectionReason.trim() === "")) {
       return res.status(400).json({
         error: "Rejection reason is required when rejecting a report.",
       });
@@ -72,7 +71,7 @@ export const approveOrRejectReport = async (req: Request, res: Response) => {
     const updatedStatus = await reportService.updateReportStatus(
       parseInt(id),
       status,
-      rejectionReason
+      rejectionReason,
     );
 
     res.json({ status: updatedStatus });

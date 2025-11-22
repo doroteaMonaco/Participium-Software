@@ -66,10 +66,65 @@ const updateReportStatus = async (
   // Map string to enum
   const statusEnum = mapStringToStatus(status);
 
+
+  // Fetch existing report to validate and to read the category
+  const existing = await reportRepository.findById(id);
+  if (!existing) throw new Error("Report not found");
+
+  // Validate allowed transitions: only PENDING_APPROVAL can be ACCEPTED/REJECTED here
+  if (existing.status !== ReportStatus.PENDING_APPROVAL) {
+    throw new Error(
+      `Invalid state transition: only reports in PENDING_APPROVAL can be updated. Current status: ${existing.status}`,
+    );
+  }
+
+  // When assigning, compute the technical office based on category using a robust matcher
+  let assignedOffice: string | undefined = undefined;
+
+  if (statusEnum === ReportStatus.ASSIGNED) {
+    const rawCategory = (existing.category || "").toString();
+
+    // Normalization helper: produce canonical key from enum or human label
+    const normalize = (c: string) =>
+      c
+        .toString()
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, "_")
+        .replace(/[–—]/g, "_")
+        .replace(/[^A-Z0-9_]/g, "");
+
+    const key = normalize(rawCategory);
+
+    // Mapping keyed by normalized category keys. Also check a small set of
+    // human-friendly variants if present.
+    const categoryToOffice: Record<string, string> = {
+      PUBLIC_LIGHTING: "Public Works - Lighting Division",
+      ROADS_URBAN_FURNISHINGS: "Public Works - Roads Department",
+      WASTE: "Environmental Services - Waste Management",
+      WATER_SUPPLY_DRINKING_WATER: "Water Supply Authority",
+      SEWER_SYSTEM: "Public Works - Sewerage Department",
+      ROAD_SIGNS_TRAFFIC_LIGHTS: "Transportation & Traffic Department",
+      PUBLIC_GREEN_AREAS_PLAYGROUNDS: "Parks & Recreation Department",
+      ARCHITECTURAL_BARRIERS: "Urban Planning - Accessibility Office",
+      OTHER: "General Services Office",
+    };
+
+    const variantToOffice: Record<string, string> = {
+      PUBLIC_LIGHTS: categoryToOffice.PUBLIC_LIGHTING,
+      ROADS_AND_URBAN_FURNISHINGS: categoryToOffice.ROADS_URBAN_FURNISHINGS,
+      ROAD_SIGNS_AND_TRAFFIC_LIGHTS: categoryToOffice.ROAD_SIGNS_TRAFFIC_LIGHTS,
+      PUBLIC_GREEN_AREAS_AND_PLAYGROUNDS: categoryToOffice.PUBLIC_GREEN_AREAS_PLAYGROUNDS,
+      WATER_SUPPLY: categoryToOffice.WATER_SUPPLY_DRINKING_WATER,
+    };
+
+    assignedOffice = categoryToOffice[key] || variantToOffice[key] || "General Services Office";
+  }
+
   const updatedReport = await reportRepository.update(id, {
     status: statusEnum,
-    rejectionReason:
-      statusEnum === ReportStatus.REJECTED ? rejectionReason : undefined,
+    rejectionReason: statusEnum === ReportStatus.REJECTED ? rejectionReason : undefined,
+    assignedOffice: assignedOffice ?? null,
   });
 
   return updatedReport.status;
