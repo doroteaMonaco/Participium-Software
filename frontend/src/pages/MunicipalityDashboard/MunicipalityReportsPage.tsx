@@ -7,9 +7,7 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  // MapPin,
   Calendar,
-  // User,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { getReports, approveOrRejectReport } from "src/services/api";
@@ -159,7 +157,7 @@ export const AdminReportsPage: React.FC = () => {
     }
 
     return matchesSearch && matchesTab;
-  });
+  }).sort((a, b) => (b.id || 0) - (a.id || 0));
 
   const pendingCount = reports.filter(
     (r) => r.status === ReportStatus.PENDING,
@@ -355,86 +353,116 @@ export const AdminReportsPage: React.FC = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="rounded-2xl border-2 border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all"
+                className="group relative rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-2xl hover:border-indigo-300 transition-all duration-300"
               >
+                {/* Decorative gradient bar */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+                
                 {/* Header Section */}
-                <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-sm font-bold text-slate-700 bg-white px-3 py-1 rounded-lg border border-slate-300">
-                          {report.id}
-                        </span>
+                <div className="relative px-4 sm:px-6 py-4 sm:py-5 bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-sm shadow-lg">
+                        #{report.id}
                       </div>
-                      <h3 className="text-xl font-bold text-slate-900">
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 sm:px-4 py-1.5 text-xs font-bold uppercase tracking-wide shadow-sm ${statusColors(
+                          report.status,
+                        )}`}
+                      >
+                        {report.status}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex flex-col items-start">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div className="w-1 h-4 bg-indigo-500 rounded-full"></div>
+                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Report Title</span>
+                      </div>
+                      <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-slate-900 leading-tight pl-3 break-words w-full text-left">
                         {report.title}
                       </h3>
                     </div>
-
-                    <span
-                      className={`inline-flex items-center rounded-xl px-4 py-2 text-sm font-bold shadow-sm ${statusColors(
-                        report.status,
-                      )}`}
-                    >
-                      {report.status}
-                    </span>
                   </div>
                 </div>
 
                 {/* Content Section */}
-                <div className="px-6 py-5">
-                  <p className="text-base text-slate-700 mb-4 leading-relaxed">
-                    {report.description}
-                  </p>
+                <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5">
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
+                      <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">Description</span>
+                    </div>
+                    <div className="pl-3 p-4 bg-gradient-to-br from-slate-50 to-purple-50/30 rounded-xl border border-slate-200">
+                      <p className="text-left text-slate-700 leading-relaxed">
+                        {report.description}
+                      </p>
+                    </div>
+                  </div>
 
                   {/* Photos */}
                   {report.photos && report.photos.length > 0 && (
-                    <div className="mb-4 flex gap-3">
-                      {report.photos.map((p, idx) => (
-                        <img
-                          key={idx}
-                          src={`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`}
-                          alt={`photo-${idx}`}
-                          className="h-28 w-28 object-cover rounded-lg border border-slate-200"
-                        />
-                      ))}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-4 bg-pink-500 rounded-full"></div>
+                        <span className="text-[10px] font-bold text-pink-600 uppercase tracking-wider">Photos</span>
+                      </div>
+                      <div className="flex gap-3 pl-3 overflow-x-auto pb-2">
+                        {report.photos.map((p, idx) => (
+                          <div key={idx} className="relative group/photo flex-shrink-0">
+                            <img
+                              src={`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`}
+                              alt={`photo-${idx}`}
+                              className="h-24 w-24 sm:h-32 sm:w-32 object-cover rounded-xl border-2 border-slate-200 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105"
+                            />
+                            <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover/photo:opacity-100 transition-opacity"></div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  {/* Mini Map */}
-                  <div className="mb-4 h-40 w-full rounded-lg overflow-hidden border border-slate-200">
-                    <MapContainer
-                      center={[report.lat || 45.0, report.lng || 7.0]}
-                      zoom={15}
-                      style={{ height: "100%", width: "100%" }}
-                      scrollWheelZoom={false}
-                    >
-                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                      <Marker position={[report.lat || 45.0, report.lng || 7.0]} />
-                    </MapContainer>
+                  {/* Map */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
+                      <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Location</span>
+                    </div>
+                    <div className="pl-3 h-40 sm:h-48 w-full rounded-xl overflow-hidden border-2 border-slate-200 shadow-md">
+                      <MapContainer
+                        center={[report.lat || 45.0, report.lng || 7.0]}
+                        zoom={15}
+                        style={{ height: "100%", width: "100%" }}
+                        scrollWheelZoom={false}
+                      >
+                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                        <Marker position={[report.lat || 45.0, report.lng || 7.0]} />
+                      </MapContainer>
+                    </div>
                   </div>
 
                   {/* Metadata Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                    {/* <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
-                      <MapPin className="h-4 w-4 text-indigo-600" />
-                      <span className="font-medium">{report.location}</span>
-                    </div> */}
-                    <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
-                      <Calendar className="h-4 w-4 text-indigo-600" />
-                      <span className="font-medium">{report.createdAt}</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-center gap-3 p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-500 text-white shadow-md flex-shrink-0">
+                        <Calendar className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Date</p>
+                        <p className="text-sm font-semibold text-slate-900 truncate">{report.createdAt}</p>
+                      </div>
                     </div>
-                    {/* <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
-                      <User className="h-4 w-4 text-indigo-600" />
-                      <span className="font-medium">
-                        {report.isAnonymous
-                          ? "Anonymous Report"
-                          : `By ${report.submittedBy}`}
-                      </span>
-                    </div> */}
-                    <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
-                      <FileText className="h-4 w-4 text-indigo-600" />
-                      <span className="font-medium">{report.category}</span>
+                    <div className="flex items-center gap-3 p-3 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-500 text-white shadow-md flex-shrink-0">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wide">Category</p>
+                        <p className="text-sm font-semibold text-slate-900 truncate">{report.category}</p>
+                      </div>
                     </div>
                   </div>
 
@@ -459,12 +487,15 @@ export const AdminReportsPage: React.FC = () => {
 
                   {report.status === ReportStatus.REJECTED &&
                     report.rejectionReason && (
-                      <div className="rounded-xl bg-red-50 border-2 border-red-200 p-4 mb-4">
-                        <div className="flex items-start gap-3">
-                          <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-sm font-bold text-red-900 mb-2">
-                              ✗ Rejected - Reason:
+                      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-red-50 to-pink-50 border-2 border-red-300 p-5 shadow-md">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-red-200 rounded-full opacity-20 -mr-16 -mt-16"></div>
+                        <div className="relative flex items-start gap-4">
+                          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-red-500 text-white shadow-lg flex-shrink-0">
+                            <XCircle className="h-6 w-6" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-bold text-red-900 mb-2 uppercase tracking-wide">
+                              Rejection Reason
                             </p>
                             <p className="text-sm text-red-800 leading-relaxed">
                               {report.rejectionReason}
@@ -476,20 +507,26 @@ export const AdminReportsPage: React.FC = () => {
 
                   {/* Action Buttons */}
                   {report.status === ReportStatus.PENDING && (
-                    <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200">
+                    <div className="flex flex-col sm:flex-row gap-4 pt-5">
                       <button
                         onClick={() => handleReviewClick(report, "approve")}
-                        className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        className="group/btn flex-1 relative overflow-hidden rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 px-6 py-4 text-base font-bold text-white shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-0.5"
                       >
-                        <CheckCircle2 className="h-5 w-5" />
-                        Approve Report
+                        <div className="absolute inset-0 bg-white opacity-0 group-hover/btn:opacity-10 transition-opacity"></div>
+                        <span className="relative flex items-center justify-center gap-2">
+                          <CheckCircle2 className="h-5 w-5" />
+                          Approve Report
+                        </span>
                       </button>
                       <button
                         onClick={() => handleReviewClick(report, "reject")}
-                        className="flex-1 rounded-xl bg-red-600 hover:bg-red-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        className="group/btn flex-1 relative overflow-hidden rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 px-6 py-4 text-base font-bold text-white shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-0.5"
                       >
-                        <XCircle className="h-5 w-5" />
-                        Reject Report
+                        <div className="absolute inset-0 bg-white opacity-0 group-hover/btn:opacity-10 transition-opacity"></div>
+                        <span className="relative flex items-center justify-center gap-2">
+                          <XCircle className="h-5 w-5" />
+                          Reject Report
+                        </span>
                       </button>
                     </div>
                   )}

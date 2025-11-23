@@ -12,6 +12,11 @@ interface User {
   lastName?: string;
   username?: string;
   role?: UserRole | string;
+  municipality_role_id?: number;
+  municipality_role?: {
+    id: number;
+    name: string;
+  };
 }
 
 interface AuthContextType {

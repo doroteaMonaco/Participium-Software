@@ -26,6 +26,11 @@ export interface User {
   lastName?: string;
   username?: string;
   role?: string;
+  municipality_role_id?: number;
+  municipality_role?: {
+    id: number;
+    name: string;
+  };
 }
 
 export interface LoginRequest {

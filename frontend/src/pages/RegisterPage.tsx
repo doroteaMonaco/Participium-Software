@@ -22,7 +22,13 @@ export const Register: React.FC = () => {
       if (user.role === "ADMIN") {
         navigate("/admin", { replace: true });
       } else if (user.role === "MUNICIPALITY") {
-        navigate("/municipality/reports", { replace: true });
+        // Redirect based on municipality role
+        const municipalityRole = user.municipality_role?.name?.toLowerCase() || "";
+        if (municipalityRole.includes("municipal public relations officer")) {
+          navigate("/municipality/reports", { replace: true });
+        } else {
+          navigate("/municipality/technical-reports", { replace: true });
+        }
       } else {
         navigate("/dashboard", { replace: true });
       }

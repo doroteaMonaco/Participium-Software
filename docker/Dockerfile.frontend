@@ -31,7 +31,7 @@ COPY ./docker/nginx.conf /etc/nginx/conf.d/default.conf.template
 # runtime templating: install envsubst and add entrypoint
 RUN apk add --no-cache gettext
 COPY ./docker/nginx_entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint.sh && sed -i 's/\r$//' /entrypoint.sh
 
 # Expose the application port
 EXPOSE 80

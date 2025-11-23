@@ -9,7 +9,7 @@ export const MunicipalityDashboardLayout: React.FC<React.PropsWithChildren> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const handleLogout = async () => {
     await logout();
@@ -23,6 +23,7 @@ export const MunicipalityDashboardLayout: React.FC<React.PropsWithChildren> = ({
         role="MUNICIPALITY"
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
+        municipalityRole={user?.municipality_role?.name}
       />
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col lg:ml-64">
