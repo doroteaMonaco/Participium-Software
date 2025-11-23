@@ -7,6 +7,7 @@ const multerConfig = multer({
     files: 3, // Maximum 3 files
   },
   fileFilter: (_req, file, cb) => {
+     console.log("a",file);
     // Accept only image files
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);

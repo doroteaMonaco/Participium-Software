@@ -43,5 +43,6 @@ export const CONFIG = {
     USERS: APP_BASE_URL + "users",
     REPORTS: APP_BASE_URL + "reports",
     UPLOADS: "/uploads",
+    USER_PROFILES: "/user-profiles",
   },
 };

@@ -34,7 +34,7 @@ router.get(
 // POST /api/users - User registration
 router.post("/", userController.register);
 
-// PATCH /api/users/:id - Update citizen profile (citizen required)
+// PATCH /api/users - Update citizen profile (citizen required)
 router.patch(
   "/",
   isAuthenticated,

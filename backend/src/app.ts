@@ -50,6 +50,8 @@ app.use(
   express.static(path.join(process.cwd(), "uploads")),
 );
 
+ app.use(CONFIG.ROUTES.USER_PROFILES, express.static(path.join(process.cwd(), "user_profiles")))
+
 // Mount routers
 app.use(CONFIG.ROUTES.AUTH, authRouter);
 app.use(CONFIG.ROUTES.USERS, userRouter);

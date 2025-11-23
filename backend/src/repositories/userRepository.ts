@@ -46,6 +46,9 @@ export const userRepository = {
         createdAt: true,
         municipality_role_id: true,
         municipality_role: true,
+        profilePhoto: true,
+        telegramUsername: true,
+        notifications: true,
       },
     });
   },

@@ -195,7 +195,8 @@ export const userController = {
       const { telegramUsername, notificationsEnabled } = req.body || {};
 
       const file = req.file;
-      if (!file && !telegramUsername && !notificationsEnabled) {
+      if (!file && !telegramUsername && notificationsEnabled === undefined) {
+        console.log("ERROR: Missing all fields");
         return res.status(400).json({
           error: "Bad Request",
           message: "Missing fields: at least one field need to be provided",
@@ -211,19 +212,21 @@ export const userController = {
           },
         ]);
         tempKey = tempKeys[0];
+        console.log("Temp key created:", tempKey);
       }
 
+      console.log("Updating user profile...");
       await userService.updateCitizenProfile(
         id!!, // non-null assertion since isCitizen middleware ensures id exists
         tempKey,
         telegramUsername,
-        Boolean(notificationsEnabled),
+        notificationsEnabled !== undefined ? Boolean(notificationsEnabled) : undefined,
       );
 
       return res.status(200).send();
     } catch (error: any) {
       return res.status(500).json({
-        error: "Internal Server Error",
+        error: "Internal Server Errore",
         message: error?.message || "User profile update failed",
       });
     }
