@@ -27,9 +27,9 @@ export const getReports = async (_req: Request, res: Response) => {
 
     if (status !== undefined) {
       if (status !== "ASSIGNED") {
-        return res.status(400).json({
-          error: "Bad Request",
-          message: "Invalid status filter",
+        return res.status(401).json({
+          error: "Validation Error",
+          message: "Invalid input data",
         });
       }
 

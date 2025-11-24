@@ -53,15 +53,22 @@ export interface Report {
   createdAt?: string;
   latitude?: number;
   longitude?: number;
-  status?: string;
+  status?: ReportStatus;
   rejectionReason?: string;
 }
 
+export type ReportStatus = 
+  | "PENDING_APPROVAL"
+  | "ASSIGNED"
+  | "REJECTED"
+
+export type ReportStatusFilter = ReportStatus;
+
 export interface ApproveReportRequest {
-  status: "ASSIGNED" | "REJECTED" | string;
+  status: Extract<ReportStatus, "ASSIGNED" | "REJECTED">;
   category?: string;
   motivation?: string;
-}
+}  
 
 export interface ApiError {
   error: string;
@@ -203,10 +210,15 @@ export const createReport = async (
 /**
  * Get all reports
  * @returns Array of reports
+ * @param statusFilter Optional status filter
  * @throws ApiError on failure
  */
-export const getReports = async (): Promise<Report[]> => {
-  const response = await api.get("/reports");
+export const getReports = async (
+  statusFilter?: ReportStatusFilter,
+): Promise<Report[]> => {
+  const response = await api.get("/reports", {
+    params: statusFilter ? { status: statusFilter } : undefined,
+  });
   return response.data;
 };
 
