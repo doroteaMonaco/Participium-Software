@@ -34,7 +34,7 @@ app.use(cookieParser());
 // Mount multer on reports route before OpenAPI validator so multipart bodies
 // are parsed by multer (populating req.files) and the validator will
 // validate req.body/req.files without re-parsing the raw stream.
-app.post(CONFIG.ROUTES.REPORTS, upload.array("photos", 3));
+app.post(CONFIG.ROUTES.REPORTS, upload.any());
 
 // Conditional application of the OpenAPI validator: skip multipart/form-data
 // requests to the reports route to avoid double-parsing the request stream

@@ -56,7 +56,8 @@ const ClusteredMarkers: React.FC<Props> = ({ reports }) => {
       });
 
       const title = r.title ?? `Report #${r.id}`;
-      const rawCreated: any = (r as any).createdAt ?? (r as any).created_at ?? "";
+      const rawCreated: any =
+        (r as any).createdAt ?? (r as any).created_at ?? "";
 
       let created = "";
       if (rawCreated) {
@@ -66,7 +67,10 @@ const ClusteredMarkers: React.FC<Props> = ({ reports }) => {
         if (rawCreated instanceof Date) d = rawCreated;
 
         // Handle numeric timestamps (seconds or milliseconds) or numeric strings
-        if (!d && (typeof rawCreated === "number" || /^\d+$/.test(String(rawCreated)))) {
+        if (
+          !d &&
+          (typeof rawCreated === "number" || /^\d+$/.test(String(rawCreated)))
+        ) {
           const n = Number(rawCreated);
           // if seconds (10 digits), convert to ms
           d = n > 1e12 ? new Date(n) : new Date(n * (n < 1e12 ? 1000 : 1));

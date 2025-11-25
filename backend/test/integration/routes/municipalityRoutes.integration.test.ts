@@ -95,8 +95,8 @@ describe("Municipality Integration Tests", () => {
         .send(invalidPayload)
         .expect(400);
 
-      expect(response.body).toHaveProperty("error", "Bad Request");
-      expect(response.body.message).toContain("Missing required fields");
+      expect(response.body).toHaveProperty("error", "Validation Error");
+      expect(response.body.message).toContain("must have required property 'municipality_role_id'");
     });
 
     it("401 when not authenticated", async () => {

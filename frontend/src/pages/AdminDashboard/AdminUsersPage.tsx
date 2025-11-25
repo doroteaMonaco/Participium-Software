@@ -116,10 +116,10 @@ export const AdminUsersPage: React.FC = () => {
       setShowAddModal(false);
     } catch (err: any) {
       console.error("Failed to create user:", err);
-      
+
       // Extract specific error message from API response
       let errorMessage = "Failed to create user";
-      
+
       if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
       } else if (err.response?.data?.error) {
@@ -127,14 +127,16 @@ export const AdminUsersPage: React.FC = () => {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
+
       // Make specific errors more user-friendly
       if (errorMessage.toLowerCase().includes("username")) {
-        errorMessage = "Username already exists. Please choose a different username.";
+        errorMessage =
+          "Username already exists. Please choose a different username.";
       } else if (errorMessage.toLowerCase().includes("email")) {
-        errorMessage = "Email is already in use. Please use a different email address.";
+        errorMessage =
+          "Email is already in use. Please use a different email address.";
       }
-      
+
       setError(errorMessage);
     } finally {
       setSubmitting(false);
@@ -345,7 +347,9 @@ export const AdminUsersPage: React.FC = () => {
                 <div className="mb-4 rounded-xl bg-red-50 border border-red-200 p-4 flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-red-900">Error</h4>
+                    <h4 className="text-sm font-semibold text-red-900">
+                      Error
+                    </h4>
                     <p className="text-sm text-red-700 mt-1">{error}</p>
                   </div>
                 </div>

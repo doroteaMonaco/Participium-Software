@@ -156,7 +156,15 @@ export const NavBar: React.FC = () => {
                   return (
                     <div className="flex items-center gap-3">
                       <Link
-                        to={user.role === "CITIZEN" ? "/dashboard" : user.role === "ADMIN" ? "/admin" : user.role === "MUNICIPALITY" ? "/municipality/reports" : "/dashboard"}
+                        to={
+                          user.role === "CITIZEN"
+                            ? "/dashboard"
+                            : user.role === "ADMIN"
+                              ? "/admin"
+                              : user.role === "MUNICIPALITY"
+                                ? "/municipality/reports"
+                                : "/dashboard"
+                        }
                         className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
                       >
                         {displayName}
@@ -178,7 +186,11 @@ export const NavBar: React.FC = () => {
               return (
                 <>
                   {AUTH_BUTTONS.map((button) => (
-                    <Link key={button.to} to={button.to} className={button.className}>
+                    <Link
+                      key={button.to}
+                      to={button.to}
+                      className={button.className}
+                    >
                       {button.label}
                     </Link>
                   ))}

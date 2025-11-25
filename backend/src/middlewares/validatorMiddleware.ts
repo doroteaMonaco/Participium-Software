@@ -14,4 +14,5 @@ export const openApiValidator = OpenApiValidator.middleware({
     // "false" -> false).
     coerceTypes: true,
   },
+  validateSecurity: false,
 });

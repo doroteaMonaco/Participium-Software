@@ -184,6 +184,7 @@ export const submitReport = async (req: Request, res: Response) => {
     res.status(201).json(report);
   } catch (error) {
     // Do not leak internal error messages in responses for submit
+    console.error("Error in submitReport:", error);
     res.status(500).json({ error: "Failed to submit report" });
   }
 };

@@ -304,8 +304,6 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
               </div>
             </motion.div>
-
-         
           </div>
         </div>
       </div>

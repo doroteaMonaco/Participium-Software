@@ -65,17 +65,17 @@ export const AdminReportsPage: React.FC = () => {
         const reportsData = data.map(
           (r) =>
             new Report(
-                  r.latitude ?? 0,
-                  r.longitude ?? 0,
-                  r.title ?? "",
-                  r.status ?? "",
-                  r.anonymous ?? true,
-                  r.id,
-                  r.description ?? "",
-                  r.category ?? "",
-                  r.photos ?? [],
-                  r.createdAt ?? "",
-                  r.rejectionReason,
+              r.latitude ?? 0,
+              r.longitude ?? 0,
+              r.title ?? "",
+              r.status ?? "",
+              r.anonymous ?? true,
+              r.id,
+              r.description ?? "",
+              r.category ?? "",
+              r.photos ?? [],
+              r.createdAt ?? "",
+              r.rejectionReason,
             ),
         );
         setReports(reportsData);
@@ -142,8 +142,14 @@ export const AdminReportsPage: React.FC = () => {
   // Filter reports
   const filteredReports = reports.filter((report) => {
     const matchesSearch =
-      (report.title ?? "").toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (report.id ?? "").toString().toLowerCase().includes(searchQuery.toLowerCase());
+      (report.title ?? "")
+        .toString()
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      (report.id ?? "")
+        .toString()
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
     // Tab-based filtering
     let matchesTab = true;
@@ -164,10 +170,11 @@ export const AdminReportsPage: React.FC = () => {
   const pendingCount = reports.filter(
     (r) => r.status === ReportStatus.PENDING,
   ).length;
-  const approvedCount = reports.filter((r) =>
-    r.status === ReportStatus.ASSIGNED ||
-    r.status === ReportStatus.IN_PROGRESS ||
-    r.status === ReportStatus.RESOLVED,
+  const approvedCount = reports.filter(
+    (r) =>
+      r.status === ReportStatus.ASSIGNED ||
+      r.status === ReportStatus.IN_PROGRESS ||
+      r.status === ReportStatus.RESOLVED,
   ).length;
   const rejectedCount = reports.filter(
     (r) => r.status === ReportStatus.REJECTED,
@@ -410,7 +417,9 @@ export const AdminReportsPage: React.FC = () => {
                       scrollWheelZoom={false}
                     >
                       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                      <Marker position={[report.lat || 45.0, report.lng || 7.0]} />
+                      <Marker
+                        position={[report.lat || 45.0, report.lng || 7.0]}
+                      />
                     </MapContainer>
                   </div>
 

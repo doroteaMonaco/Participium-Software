@@ -173,6 +173,7 @@ describe("authService", () => {
     it("returns { user, token } when credentials are valid", async () => {
       const user = makeUser();
       repo.findUserByEmail.mockResolvedValue(user);
+      repo.findUserById.mockResolvedValue(user);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       (jwt.sign as jest.Mock).mockReturnValue("token-123");
 
@@ -415,6 +416,25 @@ describe("authService", () => {
       );
       expect(userRepository.getUsersByRole).toHaveBeenCalledWith(
         roleType.MUNICIPALITY,
+      );
+    });
+
+    it("should throw error if user not found after authentication", async () => {
+      const loginData = {
+        identifier: "test@example.com",
+        password: "password123",
+      };
+
+      (userRepository.findUserByEmail as jest.Mock).mockResolvedValue({
+        id: 1,
+        email: "test@example.com",
+        password: "$2b$10$hashedpassword",
+        role: "CITIZEN",
+      });
+      (userRepository.findUserById as jest.Mock).mockResolvedValue(null);
+
+      await expect(authService.login(loginData.identifier, loginData.password)).rejects.toThrow(
+        "User not found after authentication",
       );
     });
   });
