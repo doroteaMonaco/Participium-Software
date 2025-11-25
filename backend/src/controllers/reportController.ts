@@ -62,7 +62,10 @@ export const approveOrRejectReport = async (req: Request, res: Response) => {
         .json({ error: "Invalid status. Must be ASSIGNED or REJECTED." });
     }
 
-    if (status === "REJECTED" && (!rejectionReason || rejectionReason.trim() === "")) {
+    if (
+      status === "REJECTED" &&
+      (!rejectionReason || rejectionReason.trim() === "")
+    ) {
       return res.status(400).json({
         error: "Rejection reason is required when rejecting a report.",
       });
@@ -137,7 +140,7 @@ export const submitReport = async (req: Request, res: Response) => {
         buffer: file.buffer,
         mimetype: file.mimetype,
         originalname: file.originalname,
-      }))
+      })),
     );
 
     const report = await reportService.submitReport(
@@ -150,7 +153,7 @@ export const submitReport = async (req: Request, res: Response) => {
         category,
         photoKeys: tempKeys, // Pass temporary keys
       },
-      req.user!.id
+      req.user!.id,
     );
 
     res.status(201).json(report);
