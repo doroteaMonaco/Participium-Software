@@ -437,18 +437,10 @@ paths:
         Require role: CITIZEN.
       security:
         - cookieAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-            format: int64
-          description: User ID
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/UserConfiguration'
       responses:
@@ -763,8 +755,9 @@ components:
           pattern: '^@[a-zA-Z0-9_]{5,32}$'
           example: "@Rossi"
         notificationsEnabled:
-          type: boolean
+          type: string
           example: true
+          description: Boolean
 
     User:
       type: object 
@@ -778,6 +771,19 @@ components:
         username:
           type: string
           example: "mrossi"
+        role:
+          type: string
+          example: "CITIZEN"
+        telegramUsername:
+          type: string
+          example: "@Rossi"
+        notificationsEnabled:
+          type: boolean
+          example: true
+        profilePhoto:
+          type: string
+          format: uri
+          example: "https://example.com/photos/mrossi_profile.jpg"
 
     LoginRequest:
       type: object

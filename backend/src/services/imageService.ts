@@ -9,12 +9,17 @@ interface ImageData {
   originalname: string;
 }
 
-const UPLOADS_DIR = path.join(process.cwd(), "uploads");
+const REPORTS_IMAGES_DIR = path.join(process.cwd(), "uploads");
+const USER_IMAGES_DIR = path.join(process.cwd(), "user_profiles");
 const CACHE_EXPIRY = 60 * 60 * 24; // 24 hours in seconds
 
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-  console.log("Created uploads directory:", UPLOADS_DIR);
+if (!fs.existsSync(REPORTS_IMAGES_DIR)) {
+  fs.mkdirSync(REPORTS_IMAGES_DIR, { recursive: true });
+  console.log("Created uploads directory:", REPORTS_IMAGES_DIR);
+}
+if (!fs.existsSync(USER_IMAGES_DIR)) {
+  fs.mkdirSync(USER_IMAGES_DIR, { recursive: true });
+  console.log("Created user profiles directory:", USER_IMAGES_DIR);
 }
 
 /* Immagini salvate temporaneamente in Redis prima della creazione del report */
@@ -46,7 +51,7 @@ const persistImagesForReport = async (
   tempKeys: string[],
   reportId: number,
 ): Promise<string[]> => {
-  const reportDir = path.join(UPLOADS_DIR, reportId.toString());
+  const reportDir = path.join(REPORTS_IMAGES_DIR, reportId.toString());
 
   if (!fs.existsSync(reportDir)) {
     fs.mkdirSync(reportDir, { recursive: true });
@@ -118,8 +123,66 @@ const persistImagesForReport = async (
   return filePaths;
 };
 
+/* Sposta immagine temporanea in storage permanente per profilo utente */
+const persistUserImage = async (
+  tempKey: string,
+  userId: number,
+): Promise<string> => {
+  // Prendi immagine da Redis
+  const imageDataString = await redisClient.get(tempKey);
+  if (!imageDataString) {
+    throw new Error(`Temporary image not found: ${tempKey}`);
+  }
+
+  const imageObject = JSON.parse(imageDataString);
+  const buffer = Buffer.from(imageObject.buffer, "base64");
+  const extension = imageObject.mimetype.split("/")[1] || "jpg";
+
+  // Genera nome del file: user_userId.extension
+  const filename = `user_${userId}.${extension}`;
+  const filepath = path.join(USER_IMAGES_DIR, filename);
+
+  // Se esiste già un'immagine profilo precedente, eliminala
+  const existingFiles = await fs.promises
+    .readdir(USER_IMAGES_DIR)
+    .catch(() => []);
+  const oldProfileImage = existingFiles.find((file) =>
+    file.startsWith(`user_${userId}.`),
+  );
+  if (oldProfileImage) {
+    const oldFilepath = path.join(USER_IMAGES_DIR, oldProfileImage);
+    await fs.promises.unlink(oldFilepath);
+    console.log(`Deleted old profile image: ${oldProfileImage}`);
+  }
+
+  await fs.promises.writeFile(filepath, buffer);
+
+  // Path relativo da salvare nel DB
+  const relativePath = filename;
+
+  // Cache in Redis per ottenere velocemente l'immagine
+  const cacheKey = `image:${relativePath}`;
+  await redisClient.set(
+    cacheKey,
+    JSON.stringify({
+      buffer: imageObject.buffer,
+      mimetype: imageObject.mimetype,
+    }),
+  );
+
+  // Elimina chiave temporanea
+  await redisClient.del(tempKey);
+
+  console.log(`Persisted user profile image: ${relativePath}`);
+
+  return relativePath;
+};
+
 /* Prende immagine o da cache o da filesystem*/
-const getImage = async (relativePath: string): Promise<string | null> => {
+const getImage = async (
+  relativePath: string,
+  isUserImage: boolean = false,
+): Promise<string | null> => {
   const cacheKey = `image:${relativePath}`;
 
   const cachedData = await redisClient.get(cacheKey);
@@ -128,7 +191,12 @@ const getImage = async (relativePath: string): Promise<string | null> => {
     return `data:${mimetype};base64,${buffer}`;
   }
 
-  const filepath = path.join(UPLOADS_DIR, relativePath);
+  let filepath;
+  if (isUserImage) {
+    filepath = path.join(USER_IMAGES_DIR, relativePath);
+  } else {
+    filepath = path.join(REPORTS_IMAGES_DIR, relativePath);
+  }
 
   if (!fs.existsSync(filepath)) {
     console.warn(`Image not found: ${relativePath}`);
@@ -167,9 +235,25 @@ const getMultipleImages = async (
   return images;
 };
 
-const deleteImages = async (relativePaths: string[]): Promise<void> => {
+const deleteImages = async (
+  relativePaths: string[],
+  isUserImage: boolean = false,
+): Promise<void> => {
+  if (!relativePaths || relativePaths.length === 0) {
+    return;
+  }
+  let upperDir = isUserImage ? USER_IMAGES_DIR : REPORTS_IMAGES_DIR;
+  // Track unique directories to clean up
+  const directoriesToCheck = new Set<string>();
+
   for (const relativePath of relativePaths) {
-    const filepath = path.join(UPLOADS_DIR, relativePath);
+    const filepath = path.join(upperDir, relativePath);
+
+    // Extract directory from path (e.g., "123/123_1.jpg" -> "123")
+    const dirName = relativePath.split("/")[0];
+    if (dirName) {
+      directoriesToCheck.add(dirName);
+    }
 
     // Elimina da filesystem
     if (fs.existsSync(filepath)) {
@@ -182,15 +266,14 @@ const deleteImages = async (relativePaths: string[]): Promise<void> => {
     await redisClient.del(cacheKey);
   }
 
-  if (relativePaths.length > 0) {
-    const reportId = relativePaths[0].split("/")[0];
-    const reportDir = path.join(UPLOADS_DIR, reportId);
-
+  // Check and clean up empty directories
+  for (const dirName of directoriesToCheck) {
+    const dir = path.join(upperDir, dirName);
     try {
-      const files = await fs.promises.readdir(reportDir);
+      const files = await fs.promises.readdir(dir);
       if (files.length === 0) {
-        await fs.promises.rmdir(reportDir);
-        console.log(`Deleted empty directory: ${reportId}`);
+        await fs.promises.rmdir(dir);
+        console.log(`Deleted empty directory: ${dirName}`);
       }
     } catch (err) {
       // La directory potrebbe non esistere o non essere vuota, ignora
@@ -215,6 +298,7 @@ const preloadCache = async (relativePaths: string[]): Promise<void> => {
 export default {
   storeTemporaryImages,
   persistImagesForReport,
+  persistUserImage,
   getImage,
   getMultipleImages,
   deleteImages,

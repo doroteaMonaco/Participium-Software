@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "src/components/dashboard/DashboardLayout";
 import { motion } from "framer-motion";
 import {
@@ -13,9 +13,11 @@ import {
   Check,
   X,
 } from "lucide-react";
+import { updateCitizenProfile, verifyAuth } from "src/services/api";
 
 export const UserSettingsPage: React.FC = () => {
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
   const [telegramUsername, setTelegramUsername] = useState("");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [virtualPresence, setVirtualPresence] = useState(true);
@@ -23,6 +25,30 @@ export const UserSettingsPage: React.FC = () => {
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Load user preferences on mount
+  useEffect(() => {
+    const loadUserPreferences = async () => {
+      try {
+        const user = await verifyAuth();
+        if (user.telegramUsername) {
+          setTelegramUsername(user.telegramUsername);
+        }
+        if (typeof user.notificationsEnabled === "boolean") {
+          setEmailNotifications(user.notificationsEnabled);
+        }
+        if (user.profilePhoto) {
+          // profilePhoto comes as a URL from the backend
+          setProfilePhoto(`http://${user.profilePhoto}`);
+        }
+      } catch (error) {
+        console.error("Failed to load user preferences:", error);
+      }
+    };
+
+    loadUserPreferences();
+  }, []);
 
   const showNotification = (type: "success" | "error", message: string) => {
     setNotification({ type, message });
@@ -40,15 +66,42 @@ export const UserSettingsPage: React.FC = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfilePhoto(reader.result as string);
+        setProfilePhotoFile(file);
         showNotification("success", "Profile photo updated!");
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSaveSettings = () => {
-    // TODO: Connect to API
-    showNotification("success", "Settings saved successfully!");
+  const handleSaveSettings = async () => {
+    try {
+      setIsSaving(true);
+      const formData = new FormData();
+
+      // Add photo if changed
+      if (profilePhotoFile) {
+        formData.append("photo", profilePhotoFile);
+      }
+
+      // Add telegram username if provided
+      if (telegramUsername.trim()) {
+        formData.append("telegramUsername", telegramUsername.trim());
+      }
+
+      // Add notifications preference
+      formData.append("notificationsEnabled", String(emailNotifications));
+
+      await updateCitizenProfile(formData);
+      showNotification("success", "Settings saved successfully!");
+      
+      // Clear the photo file after successful save
+      setProfilePhotoFile(null);
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to save settings";
+      showNotification("error", errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -325,10 +378,11 @@ export const UserSettingsPage: React.FC = () => {
         >
           <button
             onClick={handleSaveSettings}
-            className="inline-flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 px-8 py-4 text-base font-bold text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+            disabled={isSaving}
+            className="inline-flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 px-8 py-4 text-base font-bold text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             <Save className="h-5 w-5" />
-            Save All Changes
+            {isSaving ? "Saving..." : "Save All Changes"}
           </button>
         </motion.div>
       </div>

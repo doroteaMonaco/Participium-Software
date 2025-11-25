@@ -24,34 +24,47 @@ export const getReports = async (_req: Request, res: Response) => {
     };
 
     let statusFilter: ReportStatusFilter | undefined;
+    let userId: number | undefined;
 
-    if (status !== undefined) {
-      // If status filter is used, only CITIZEN can use it
-      if (status !== "ASSIGNED") {
-        return res.status(401).json({
-          error: "Validation Error",
-          message: "Invalid input data",
-        });
-      }
-
-      if(!_req.user || _req.user.role !== "CITIZEN") {
-        return res.status(403).json({
-          error: "Authorization Error",
-          message: "Access denied. Citizen role required to filter by status.",
-        });
-      }
-      statusFilter = "ASSIGNED";
-    } else {
-      // If no status filter, only ADMIN and MUNICIPALITY can access
-      if (!_req.user || (_req.user.role !== "ADMIN" && _req.user.role !== "MUNICIPALITY")) {
-        return res.status(403).json({
-          error: "Authorization Error",
-          message: "Access denied. Required roles: ADMIN, MUNICIPALITY",
-        });
-      }
+    if (!_req.user) {
+      return res.status(401).json({
+        error: "Authentication Error",
+        message: "User not authenticated",
+      });
     }
 
-    const reports = await reportService.findAll(statusFilter as any);
+    // CITIZEN: Can see their own reports + ASSIGNED reports
+    if (_req.user.role === "CITIZEN") {
+      if (status !== undefined && status !== "ASSIGNED") {
+        return res.status(400).json({
+          error: "Validation Error",
+          message: "request/query/status must be equal to one of the allowed values: ASSIGNED",
+        });
+      }
+      userId = _req.user.id;
+      // If status=ASSIGNED is passed, also filter by ASSIGNED (which findAll already does with userId)
+      // If no status is passed, show all their reports + ASSIGNED from others
+    }
+    // ADMIN/MUNICIPALITY: Can see all reports, optionally filtered by status
+    else if (_req.user.role === "ADMIN" || _req.user.role === "MUNICIPALITY") {
+      // Allow filtering by status if provided
+      if (status !== undefined && status !== "ASSIGNED") {
+        return res.status(400).json({
+          error: "Validation Error",
+          message: "request/query/status must be equal to one of the allowed values: ASSIGNED",
+        });
+      }
+      if (status === "ASSIGNED") {
+        statusFilter = "ASSIGNED";
+      }
+    } else {
+      return res.status(403).json({
+        error: "Authorization Error",
+        message: `Access denied. Allowed roles: CITIZEN, ADMIN, MUNICIPALITY. Your role: ${_req.user.role}`,
+      });
+    }
+
+    const reports = await reportService.findAll(statusFilter as any, userId);
     return res.json(reports);
   } catch (error) {
     console.error("getReports error:", error);
@@ -63,7 +76,13 @@ export const getReports = async (_req: Request, res: Response) => {
 export const getReportById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const report = await reportService.findById(parseInt(id));
+    const parsedId = parseInt(id);
+    
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ error: "Invalid report ID" });
+    }
+    
+    const report = await reportService.findById(parsedId);
 
     if (!report) {
       return res.status(404).json({ error: "Report not found" });
@@ -181,18 +200,16 @@ export const submitReport = async (req: Request, res: Response) => {
       })),
     );
 
-    const report = await reportService.submitReport(
-      {
-        latitude: Number(latitude),
-        longitude: Number(longitude),
-        title,
-        description,
-        anonymous: false, // Currently not used
-        category,
-        photoKeys: tempKeys, // Pass temporary keys
-      },
-      req.user!.id,
-    );
+    const report = await reportService.submitReport({
+      latitude: Number(latitude),
+      longitude: Number(longitude),
+      title,
+      description,
+      category,
+      anonymous: false,
+      photoKeys: tempKeys, // Pass temporary keys
+      userId: req.user?.id!, // Pass user ID from authenticated request
+    }, req.user?.id!);
 
     res.status(201).json(report);
   } catch (error) {

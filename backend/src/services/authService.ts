@@ -126,28 +126,4 @@ export const authService = {
 
     return user;
   },
-
-  async getAllUsers() {
-    return await userRepository.getAllUsers();
-  },
-
-  async getUserById(userId: number) {
-    return await userRepository.findUserById(userId);
-  },
-
-  async deleteUser(userId: number) {
-    const user = await userRepository.findUserById(userId);
-    if (!user) {
-      throw new Error("User not found");
-    }
-    return await userRepository.deleteUser(userId);
-  },
-
-  async getAllMunicipalityRoles() {
-    return await roleRepository.getAllMunicipalityRoles();
-  },
-
-  async getMunicipalityUsers() {
-    return await userRepository.getUsersByRole(roleType.MUNICIPALITY);
-  },
 };

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { authService } from "@services/authService";
+import { CONFIG } from "@config";
 
 export const cookieOpts = {
   httpOnly: true,
@@ -34,6 +35,9 @@ export const authController = {
         role: user.role,
         municipality_role_id: (user as any).municipality_role_id,
         municipality_role: (user as any).municipality_role ?? null,
+        telegramUsername: user.telegramUsername,
+        notificationsEnabled: user.notifications,
+        profilePhoto: `${CONFIG.BACKEND_URL}${CONFIG.ROUTES.USER_PROFILES}/${user.profilePhoto}`
       });
     } catch (error: any) {
       return res.status(401).json({
@@ -59,6 +63,9 @@ export const authController = {
         role: user.role,
         municipality_role_id: (user as any).municipality_role_id,
         municipality_role: (user as any).municipality_role ?? null,
+        telegramUsername: user.telegramUsername,
+        notificationsEnabled: user.notifications,
+        profilePhoto: `${CONFIG.BACKEND_URL}${CONFIG.ROUTES.USER_PROFILES}/${user.profilePhoto}`,
       });
     } catch {
       return res.status(401).json({

@@ -5,7 +5,23 @@ import { ReportStatus } from "@models/enums";
 
 type ReportStatusFilter = "ASSIGNED";
 
-const findAll = async (statusFilter?: ReportStatusFilter) => {
+const findAll = async (statusFilter?: ReportStatusFilter, userId?: number) => {
+  // If userId is provided, citizen wants to see their own reports + ASSIGNED reports
+  if (userId) {
+    return prisma.report.findMany({
+      where: {
+        OR: [
+          { user_id: userId }, // Own reports (all statuses)
+          { status: "ASSIGNED" }, // Assigned (approved) reports from others
+        ],
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  // Default behavior: filter by status (for admin/municipality)
   return prisma.report.findMany({
     where: statusFilter ? { status: statusFilter } : undefined,
     orderBy: {
@@ -17,28 +33,6 @@ const findAll = async (statusFilter?: ReportStatusFilter) => {
 const findById = async (id: number) => {
   return prisma.report.findUnique({
     where: { id },
-  });
-};
-
-const findByStatus = async (status: ReportStatus) => {
-  return prisma.report.findMany({
-    where: { status } as any,
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
-};
-
-const findByStatusesAndCategories = async (
-  statuses: ReportStatus[],
-  categories: string[],
-) => {
-  return prisma.report.findMany({
-    where: {
-      status: { in: statuses as any },
-      category: { in: categories as any },
-    } as any,
-    orderBy: { createdAt: "desc" },
   });
 };
 
@@ -66,6 +60,28 @@ const create = async (data: Report) => {
   });
 };
 
+const findByStatus = async (status: ReportStatus) => {
+  return prisma.report.findMany({
+    where: { status: status as any },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+const findByStatusesAndCategories = async (
+  statuses: ReportStatus[],
+  categories: string[],
+) => {
+  return prisma.report.findMany({
+    where: {
+      status: { in: statuses as any },
+      category: { in: categories as any },
+    } as any,
+    orderBy: { createdAt: "desc" },
+  });
+};
+
+
+
 const deleteById = async (id: number) => {
   return prisma.report.delete({
     where: { id },
@@ -90,7 +106,7 @@ const update = async (
 export default {
   findAll,
   findById,
-  findByStatus,
+  findByStatus, 
   create,
   deleteById,
   update,

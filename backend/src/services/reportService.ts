@@ -19,8 +19,9 @@ const mapStringToStatus = (status: string): ReportStatus => {
 
 const findAll = async (
   statusFilter?: ReportStatus,
+  userId?: number,
 ): Promise<ReportResponseDto[]> => {
-  const reports = await reportRepository.findAll(statusFilter as any);
+  const reports = await reportRepository.findAll(statusFilter as any, userId);
   // Return stored relative paths for photos. The frontend expects relative
   // paths (e.g. "<reportId>/<file>") and will build the full URL as
   // `${backendOrigin}/uploads/${path}`. Avoid returning data URLs here to

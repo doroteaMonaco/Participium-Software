@@ -37,6 +37,9 @@ jest.mock("@controllers/userController", () => ({
         { id: 3, name: "SUPERVISOR" },
       ]),
     ),
+    updateCitizenProfile: jest.fn((_req: Request, res: Response) =>
+      res.status(200).json({ route: "updateCitizenProfile" }),
+    ),
   },
 }));
 
@@ -73,6 +76,7 @@ const authMiddleware = {
 };
 const roleMiddleware = {
   isAdmin: jest.fn((req: any, res: any, next: any) => next()),
+  isCitizen: jest.fn((req: any, res: any, next: any) => next()),
 };
 
 jest.mock("@middlewares/authMiddleware", () => authMiddleware);

@@ -31,6 +31,10 @@ export interface User {
     id: number;
     name: string;
   };
+  telegramUsername?: string;
+  notificationsEnabled?: boolean;
+  notifications?: boolean;
+  profilePhoto?: string;
 }
 
 export interface LoginRequest {
@@ -317,6 +321,19 @@ export const updateMunicipalityUserRole = async (
     municipality_role_id: roleId,
   });
   return response.data;
+};
+
+// ==================== Citizen Profile APIs ====================
+
+/**
+ * Update citizen profile (photo, telegram, notifications)
+ * Requires: CITIZEN role
+ * @param formData FormData containing profile data
+ * @returns Success response
+ * @throws ApiError on failure
+ */
+export const updateCitizenProfile = async (formData: FormData): Promise<void> => {
+  await api.patch("/users", formData);
 };
 
 export default api;

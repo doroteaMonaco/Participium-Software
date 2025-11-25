@@ -225,6 +225,9 @@ describe("authController", () => {
         role: undefined,
         municipality_role_id: undefined,
         municipality_role: null,
+        notificationsEnabled: undefined,
+        profilePhoto: "localhost:4000/user-profiles/undefined",
+        telegramUsername: undefined,
       });
     });
 
@@ -283,6 +286,9 @@ describe("authController", () => {
         role: undefined,
         municipality_role_id: undefined,
         municipality_role: null,
+        notificationsEnabled: undefined,
+        profilePhoto: "localhost:4000/user-profiles/undefined",
+        telegramUsername: undefined,
       });
     });
 

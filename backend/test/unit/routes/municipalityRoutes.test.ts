@@ -7,6 +7,7 @@ jest.mock("@controllers/userController", () => ({
     getAllUsers: jest.fn(),
     getUserById: jest.fn(),
     deleteUser: jest.fn(),
+    updateCitizenProfile: jest.fn(),
   },
 }));
 
@@ -16,13 +17,14 @@ jest.mock("@middlewares/authMiddleware", () => ({
 
 jest.mock("@middlewares/roleMiddleware", () => ({
   isAdmin: jest.fn((req: any, res: any, next: any) => next()),
+  isCitizen: jest.fn((req: any, res: any, next: any) => next()),
 }));
 
 import request from "supertest";
 import express from "express";
 import { userController } from "@controllers/userController";
 import { isAuthenticated } from "@middlewares/authMiddleware";
-import { isAdmin } from "@middlewares/roleMiddleware";
+import { isAdmin, isCitizen } from "@middlewares/roleMiddleware";
 import userRouter from "@routes/userRouter";
 
 type UserControllerMock = {
@@ -34,6 +36,7 @@ type UserControllerMock = {
 const userControllerMock = userController as unknown as UserControllerMock;
 const isAuthenticatedMock = isAuthenticated as jest.Mock;
 const isAdminMock = isAdmin as jest.Mock;
+const isCitizenMock = isCitizen as jest.Mock;
 
 // Setup Express app for testing
 const app = express();
@@ -48,6 +51,7 @@ describe("Municipality Routes", () => {
       next(),
     );
     isAdminMock.mockImplementation((req: any, res: any, next: any) => next());
+    isCitizenMock.mockImplementation((req: any, res: any, next: any) => next());
   });
 
   describe("POST /api/users/municipality-users", () => {

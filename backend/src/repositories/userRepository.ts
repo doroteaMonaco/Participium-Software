@@ -24,12 +24,42 @@ export const userRepository = {
   async findUserByEmail(email: string) {
     return prisma.user.findUnique({
       where: { email },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        password: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        createdAt: true,
+        municipality_role_id: true,
+        municipality_role: true,
+        profilePhoto: true,
+        telegramUsername: true,
+        notifications: true,
+      },
     });
   },
 
   async findUserByUsername(username: string) {
     return prisma.user.findUnique({
       where: { username },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        password: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        createdAt: true,
+        municipality_role_id: true,
+        municipality_role: true,
+        profilePhoto: true,
+        telegramUsername: true,
+        notifications: true,
+      },
     });
   },
 
@@ -46,6 +76,9 @@ export const userRepository = {
         createdAt: true,
         municipality_role_id: true,
         municipality_role: true,
+        profilePhoto: true,
+        telegramUsername: true,
+        notifications: true,
       },
     });
   },
@@ -95,6 +128,9 @@ export const userRepository = {
         createdAt: true,
         municipality_role_id: true,
         municipality_role: true,
+        profilePhoto: true,
+        telegramUsername: true,
+        notifications: true,
       },
     });
   },
@@ -110,9 +146,42 @@ export const userRepository = {
     const prismaRole = role as PrismaRole;
     return prisma.user.findMany({
       where: { role: prismaRole },
-      include: {
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        createdAt: true,
+        municipality_role_id: true,
         municipality_role: true,
+        profilePhoto: true,
+        telegramUsername: true,
+        notifications: true,
       },
+    });
+  },
+
+  async updateUserProfile(
+    id: number,
+    telegramUsername?: string,
+    notifications?: boolean,
+    profilePhotoPath?: string,
+  ) {
+    const data: any = {};
+    if (telegramUsername !== undefined) {
+      data.telegramUsername = telegramUsername;
+    }
+    if (notifications !== undefined) {
+      data.notifications = notifications;
+    }
+    if (profilePhotoPath !== undefined) {
+      data.profilePhoto = profilePhotoPath;
+    }
+    return prisma.user.update({
+      where: { id },
+      data,
     });
   },
 };

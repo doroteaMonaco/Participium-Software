@@ -4,7 +4,6 @@ import path from "path";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 import cookieParser from "cookie-parser";
-import { upload } from "@middlewares/uploadMiddleware";
 
 // Import configuration, middlewares, and routers
 import { CONFIG } from "@config";
@@ -29,57 +28,8 @@ app.use(
 );
 
 // Middlewares
-app.use(express.json());
 app.use(cookieParser());
-// Mount multer on reports route before OpenAPI validator so multipart bodies
-// are parsed by multer (populating req.files) and the validator will
-// validate req.body/req.files without re-parsing the raw stream.
-app.post(CONFIG.ROUTES.REPORTS, upload.any());
-
-// Conditional application of the OpenAPI validator: skip multipart/form-data
-// requests to the reports route to avoid double-parsing the request stream
-// (multer and the validator both attempt to parse multipart bodies).
-app.use((req, res, next) => {
-  const isReportsRoute = req.originalUrl.startsWith(CONFIG.ROUTES.REPORTS);
-  // Skip validation for swagger docs and its assets
-  const isSwaggerRoute = req.originalUrl.startsWith(CONFIG.ROUTES.SWAGGER);
-  const isUploadsRoute = req.originalUrl.startsWith(CONFIG.ROUTES.UPLOADS);
-  const contentType = req.headers["content-type"] || "";
-  const isMultipart =
-    typeof contentType === "string" &&
-    contentType.includes("multipart/form-data");
-
-  if (isReportsRoute && isMultipart) {
-    return next();
-  }
-
-  if (isSwaggerRoute) {
-    return next();
-  }
-  // Skip validation for uploads (static assets)
-  if (isUploadsRoute) {
-    return next();
-  }
-
-  // `openApiValidator` may be an array of middleware functions or a single function.
-  const validator = openApiValidator as unknown as any;
-  if (Array.isArray(validator)) {
-    let i = 0;
-    const runNext = (err?: any) => {
-      if (err) return next(err);
-      if (i >= validator.length) return next();
-      try {
-        const mw = validator[i++];
-        mw(req, res, runNext);
-      } catch (e) {
-        next(e);
-      }
-    };
-    return runNext();
-  }
-
-  return (openApiValidator as any)(req, res, next);
-});
+app.use(express.json());
 
 // Health check endpoint
 app.get("/", (_req, res) => {
@@ -91,18 +41,36 @@ app.use(
   CONFIG.ROUTES.SWAGGER,
   swaggerUi.serve,
   swaggerUi.setup(swaggerDocument),
+  swaggerUi.setup(swaggerDocument),
 );
 
 // Serve uploaded files statically
 app.use(
   CONFIG.ROUTES.UPLOADS,
   express.static(path.join(process.cwd(), "uploads")),
+  express.static(path.join(process.cwd(), "uploads")),
 );
 
-// Mount routers
-app.use(CONFIG.ROUTES.AUTH, authRouter);
+app.use(
+  CONFIG.ROUTES.USER_PROFILES,
+  express.static(path.join(process.cwd(), "user_profiles")),
+);
+
+// IMPORTANT: Mount routers that use multipart/form-data BEFORE OpenAPI validator
+// because the PATCH /users endpoint and POST /reports endpoint use multipart/form-data
+// which is not well supported by express-openapi-validator
 app.use(CONFIG.ROUTES.USERS, userRouter);
 app.use(CONFIG.ROUTES.REPORTS, reportRouter);
+
+// Apply OpenAPI validator middleware array (AFTER multipart routes)
+if (Array.isArray(openApiValidator)) {
+  openApiValidator.forEach((middleware) => app.use(middleware));
+} else {
+  app.use(openApiValidator);
+}
+
+// Mount other routers (after validator)
+app.use(CONFIG.ROUTES.AUTH, authRouter);
 
 // OpenAPI validation error handler
 app.use((err: any, _req: any, res: any, next: any) => {

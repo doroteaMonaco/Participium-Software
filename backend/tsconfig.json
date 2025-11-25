@@ -17,6 +17,7 @@
       "@database": ["src/database/connection.ts"],
       "@redis": ["src/database/redis.ts"],
       "@config": ["src/config/config.ts"],
+      "@config/*": ["src/config/*"],
       "@utils": ["src/utils.ts"],
       "@app": ["src/app.ts"],
       "@test/*": ["test/*"]

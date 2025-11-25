@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { isAuthenticated } from "@middlewares/authMiddleware";
-import { isAdmin } from "@middlewares/roleMiddleware";
+import { isAdmin, isCitizen } from "@middlewares/roleMiddleware";
 import { authController } from "@controllers/authController";
 import { userController } from "@controllers/userController";
+import multerConfig from "@config/multerConfig";
 
 const router = Router();
 
@@ -32,6 +33,15 @@ router.get(
 
 // POST /api/users - User registration
 router.post("/", userController.register);
+
+// PATCH /api/users - Update citizen profile (citizen required)
+router.patch(
+  "/",
+  isAuthenticated,
+  isCitizen,
+  multerConfig.single("photo"),
+  userController.updateCitizenProfile,
+);
 
 // GET /api/users - Get all users (admin required)
 router.get("/", isAuthenticated, isAdmin, userController.getAllUsers);

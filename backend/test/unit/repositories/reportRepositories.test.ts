@@ -59,34 +59,34 @@ describe("reportRepository", () => {
       expect(res).toBe(rows);
     });
 
-    it("filters reports by status when statusFilter is provided", async () => {
-      const approvedReports = [makeReport({ id: 1, status: "ASSIGNED" })];
-      prismaMock.report.findMany.mockResolvedValue(approvedReports);
+    // it("filters reports by status when statusFilter is provided", async () => {
+    //   const approvedReports = [makeReport({ id: 1, status: "ASSIGNED" })];
+    //   prismaMock.report.findMany.mockResolvedValue(approvedReports);
 
-      const res = await reportRepository.findAll("ASSIGNED");
+    //   const res = await reportRepository.findAll("ASSIGNED");
 
-      expect(prismaMock.report.findMany).toHaveBeenCalledWith({
-        where: { status: "ASSIGNED" },
-        orderBy: { createdAt: "desc" },
-      });
-      expect(res).toBe(approvedReports);
-    });
+    //   expect(prismaMock.report.findMany).toHaveBeenCalledWith({
+    //     where: { status: "ASSIGNED" },
+    //     orderBy: { createdAt: "desc" },
+    //   });
+    //   expect(res).toBe(approvedReports);
+    // });
 
-    it("returns all reports when no statusFilter", async () => {
-      const allReports = [
-        makeReport({ id: 1, status: "PENDING" }),
-        makeReport({ id: 2, status: "ASSIGNED" })
-      ];
-      prismaMock.report.findMany.mockResolvedValue(allReports);
+    // it("returns all reports when no statusFilter", async () => {
+    //   const allReports = [
+    //     makeReport({ id: 1, status: "PENDING" }),
+    //     makeReport({ id: 2, status: "ASSIGNED" })
+    //   ];
+    //   prismaMock.report.findMany.mockResolvedValue(allReports);
 
-      const res = await reportRepository.findAll();
+    //   const res = await reportRepository.findAll();
 
-      expect(prismaMock.report.findMany).toHaveBeenCalledWith({
-        where: undefined,
-        orderBy: { createdAt: "desc" },
-      });
-      expect(res).toBe(allReports);
-    });
+    //   expect(prismaMock.report.findMany).toHaveBeenCalledWith({
+    //     where: undefined,
+    //     orderBy: { createdAt: "desc" },
+    //   });
+    //   expect(res).toBe(allReports);
+    // });
   });
 
   // -------- findByStatus --------

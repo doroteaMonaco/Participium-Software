@@ -1,5 +1,5 @@
-jest.mock("@services/authService", () => ({
-  authService: {
+jest.mock("@services/userService", () => ({
+  userService: {
     createMunicipalityUser: jest.fn(),
     getAllMunicipalityRoles: jest.fn(),
     getMunicipalityUsers: jest.fn(),
@@ -8,16 +8,16 @@ jest.mock("@services/authService", () => ({
 
 import { Request, Response } from "express";
 import { userController } from "@controllers/userController";
-import { authService } from "@services/authService";
+import { userService } from "@services/userService";
 import { roleType } from "@models/enums";
 
-type AuthServiceMock = {
+type UserServiceMock = {
   createMunicipalityUser: jest.Mock;
   getAllMunicipalityRoles: jest.Mock;
   getMunicipalityUsers: jest.Mock;
 };
 
-const authServiceMock = authService as unknown as AuthServiceMock;
+const userServiceMock = userService as unknown as UserServiceMock;
 
 const makeRes = () => ({
   status: jest.fn().mockReturnThis(),
@@ -64,7 +64,7 @@ describe("userController - Municipality Functions", () => {
         municipality_role_id: mockRequest.body.municipality_role_id,
       });
 
-      authServiceMock.createMunicipalityUser.mockResolvedValue(mockUser);
+      userServiceMock.createMunicipalityUser.mockResolvedValue(mockUser);
       const res = makeRes();
 
       await userController.createMunicipalityUser(
@@ -72,7 +72,7 @@ describe("userController - Municipality Functions", () => {
         res as unknown as Response,
       );
 
-      expect(authServiceMock.createMunicipalityUser).toHaveBeenCalledWith(
+      expect(userServiceMock.createMunicipalityUser).toHaveBeenCalledWith(
         "municipality@test.com",
         "municipality_user",
         "Municipality",
@@ -100,7 +100,7 @@ describe("userController - Municipality Functions", () => {
         res as unknown as Response,
       );
 
-      expect(authServiceMock.createMunicipalityUser).not.toHaveBeenCalled();
+      expect(userServiceMock.createMunicipalityUser).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         error: "Bad Request",
@@ -110,7 +110,7 @@ describe("userController - Municipality Functions", () => {
     });
 
     it("returns 409 when email is already in use", async () => {
-      authServiceMock.createMunicipalityUser.mockRejectedValue(
+      userServiceMock.createMunicipalityUser.mockRejectedValue(
         new Error("Email is already in use"),
       );
       const res = makeRes();
@@ -120,7 +120,7 @@ describe("userController - Municipality Functions", () => {
         res as unknown as Response,
       );
 
-      expect(authServiceMock.createMunicipalityUser).toHaveBeenCalled();
+      expect(userServiceMock.createMunicipalityUser).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(409);
       expect(res.json).toHaveBeenCalledWith({
         error: "Conflict Error",
@@ -129,7 +129,7 @@ describe("userController - Municipality Functions", () => {
     });
 
     it("returns 409 when username is already in use", async () => {
-      authServiceMock.createMunicipalityUser.mockRejectedValue(
+      userServiceMock.createMunicipalityUser.mockRejectedValue(
         new Error("Username is already in use"),
       );
       const res = makeRes();
@@ -139,7 +139,7 @@ describe("userController - Municipality Functions", () => {
         res as unknown as Response,
       );
 
-      expect(authServiceMock.createMunicipalityUser).toHaveBeenCalled();
+      expect(userServiceMock.createMunicipalityUser).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(409);
       expect(res.json).toHaveBeenCalledWith({
         error: "Conflict Error",
@@ -148,7 +148,7 @@ describe("userController - Municipality Functions", () => {
     });
 
     it("returns 500 for other service errors", async () => {
-      authServiceMock.createMunicipalityUser.mockRejectedValue(
+      userServiceMock.createMunicipalityUser.mockRejectedValue(
         new Error("Database error"),
       );
       const res = makeRes();
@@ -158,7 +158,7 @@ describe("userController - Municipality Functions", () => {
         res as unknown as Response,
       );
 
-      expect(authServiceMock.createMunicipalityUser).toHaveBeenCalled();
+      expect(userServiceMock.createMunicipalityUser).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
         error: "Internal Server Error",
@@ -176,7 +176,7 @@ describe("userController - Municipality Functions", () => {
     ];
 
     it("returns all municipality roles successfully", async () => {
-      authServiceMock.getAllMunicipalityRoles.mockResolvedValue(mockRoles);
+      userServiceMock.getAllMunicipalityRoles.mockResolvedValue(mockRoles);
       const res = makeRes();
 
       await userController.getAllMunicipalityRoles(
@@ -184,13 +184,13 @@ describe("userController - Municipality Functions", () => {
         res as unknown as Response,
       );
 
-      expect(authServiceMock.getAllMunicipalityRoles).toHaveBeenCalled();
+      expect(userServiceMock.getAllMunicipalityRoles).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(mockRoles);
     });
 
     it("returns empty array when no roles exist", async () => {
-      authServiceMock.getAllMunicipalityRoles.mockResolvedValue([]);
+      userServiceMock.getAllMunicipalityRoles.mockResolvedValue([]);
       const res = makeRes();
 
       await userController.getAllMunicipalityRoles(
@@ -198,13 +198,13 @@ describe("userController - Municipality Functions", () => {
         res as unknown as Response,
       );
 
-      expect(authServiceMock.getAllMunicipalityRoles).toHaveBeenCalled();
+      expect(userServiceMock.getAllMunicipalityRoles).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith([]);
     });
 
     it("returns 500 when service throws error", async () => {
-      authServiceMock.getAllMunicipalityRoles.mockRejectedValue(
+      userServiceMock.getAllMunicipalityRoles.mockRejectedValue(
         new Error("Database error"),
       );
       const res = makeRes();
@@ -214,7 +214,7 @@ describe("userController - Municipality Functions", () => {
         res as unknown as Response,
       );
 
-      expect(authServiceMock.getAllMunicipalityRoles).toHaveBeenCalled();
+      expect(userServiceMock.getAllMunicipalityRoles).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
         error: "Internal Server Error",
@@ -246,7 +246,7 @@ describe("userController - Municipality Functions", () => {
     ];
 
     it("returns all municipality users successfully", async () => {
-      authServiceMock.getMunicipalityUsers.mockResolvedValue(
+      userServiceMock.getMunicipalityUsers.mockResolvedValue(
         mockMunicipalityUsers,
       );
       const res = makeRes();
@@ -256,13 +256,13 @@ describe("userController - Municipality Functions", () => {
         res as unknown as Response,
       );
 
-      expect(authServiceMock.getMunicipalityUsers).toHaveBeenCalled();
+      expect(userServiceMock.getMunicipalityUsers).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(mockMunicipalityUsers);
     });
 
     it("returns empty array when no municipality users exist", async () => {
-      authServiceMock.getMunicipalityUsers.mockResolvedValue([]);
+      userServiceMock.getMunicipalityUsers.mockResolvedValue([]);
       const res = makeRes();
 
       await userController.getMunicipalityUsers(
@@ -270,13 +270,13 @@ describe("userController - Municipality Functions", () => {
         res as unknown as Response,
       );
 
-      expect(authServiceMock.getMunicipalityUsers).toHaveBeenCalled();
+      expect(userServiceMock.getMunicipalityUsers).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith([]);
     });
 
     it("returns 500 when service throws error", async () => {
-      authServiceMock.getMunicipalityUsers.mockRejectedValue(
+      userServiceMock.getMunicipalityUsers.mockRejectedValue(
         new Error("Database error"),
       );
       const res = makeRes();
@@ -286,7 +286,7 @@ describe("userController - Municipality Functions", () => {
         res as unknown as Response,
       );
 
-      expect(authServiceMock.getMunicipalityUsers).toHaveBeenCalled();
+      expect(userServiceMock.getMunicipalityUsers).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
         error: "Internal Server Error",

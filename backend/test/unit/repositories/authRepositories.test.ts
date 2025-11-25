@@ -76,6 +76,21 @@ describe("userRepository", () => {
 
       expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
         where: { email: u.email },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          password: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          createdAt: true,
+          municipality_role_id: true,
+          municipality_role: true,
+          profilePhoto: true,
+          telegramUsername: true,
+          notifications: true,
+        },
       });
       expect(res).toBe(u);
     });
@@ -97,6 +112,21 @@ describe("userRepository", () => {
 
       expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
         where: { username: u.username },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          password: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          createdAt: true,
+          municipality_role_id: true,
+          municipality_role: true,
+          profilePhoto: true,
+          telegramUsername: true,
+          notifications: true,
+        },
       });
       expect(res).toBe(u);
     });
@@ -128,6 +158,9 @@ describe("userRepository", () => {
           createdAt: true,
           municipality_role_id: true,
           municipality_role: true,
+          profilePhoto: true,
+          telegramUsername: true,
+          notifications: true,
         },
       });
       expect(res).toBe(u);
@@ -230,6 +263,9 @@ describe("userRepository", () => {
           createdAt: true,
           municipality_role_id: true,
           municipality_role: true,
+          profilePhoto: true,
+          telegramUsername: true,
+          notifications: true,
         },
       });
       expect(res).toBe(users);
@@ -252,6 +288,9 @@ describe("userRepository", () => {
           createdAt: true,
           municipality_role_id: true,
           municipality_role: true,
+          profilePhoto: true,
+          telegramUsername: true,
+          notifications: true,
         },
       });
       expect(res).toBe(users);
@@ -281,7 +320,20 @@ describe("userRepository", () => {
 
       expect(prismaMock.user.findMany).toHaveBeenCalledWith({
         where: { role: "MUNICIPALITY" },
-        include: { municipality_role: true },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          createdAt: true,
+          municipality_role_id: true,
+          municipality_role: true,
+          profilePhoto: true,
+          telegramUsername: true,
+          notifications: true,
+        },
       });
       expect(res).toBe(users);
     });
@@ -294,7 +346,20 @@ describe("userRepository", () => {
 
       expect(prismaMock.user.findMany).toHaveBeenCalledWith({
         where: { role: "ADMIN" },
-        include: { municipality_role: true },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          createdAt: true,
+          municipality_role_id: true,
+          municipality_role: true,
+          profilePhoto: true,
+          telegramUsername: true,
+          notifications: true,
+        },
       });
       expect(res).toBe(users);
     });
