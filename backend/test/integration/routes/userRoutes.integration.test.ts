@@ -110,11 +110,8 @@ describe("Admin routes integration tests", () => {
       expect(Array.isArray(res.body)).toBeTruthy();
     });
 
-    // it("401 when not authenticated", async () => {
-    //   await request(app).get(`${base}`).expect(401);
-    // });
-    it("400 when not authenticated (OpenAPI validation)", async () => {
-      await request(app).get(`${base}`).expect(400); // OpenAPI validation fails without auth
+    it("401 when not authenticated", async () => {
+      await request(app).get(`${base}`).expect(401);
     });
 
     it("403 when authenticated non-admin", async () => {
@@ -164,11 +161,8 @@ describe("Admin routes integration tests", () => {
       await admin.get(`${base}/999999`).expect(404);
     });
 
-    // it("401 when not authenticated", async () => {
-    //   await request(app).get(`${base}/1`).expect(401);
-    // });
-    it("400 when not authenticated (OpenAPI validation)", async () => {
-      await request(app).get(`${base}/1`).expect(400); // OpenAPI validation fails without auth
+    it("401 when not authenticated", async () => {
+      await request(app).get(`${base}/1`).expect(401);
     });
 
     it("403 when authenticated non-admin", async () => {
@@ -219,11 +213,8 @@ describe("Admin routes integration tests", () => {
       await admin.delete(`${base}/999999`).expect(404);
     });
 
-    // it("401 when not authenticated", async () => {
-    //   await request(app).delete(`${base}/1`).expect(401);
-    // });
-    it("400 when not authenticated (OpenAPI validation)", async () => {
-      await request(app).delete(`${base}/1`).expect(400); // OpenAPI validation fails without auth
+    it("401 when not authenticated", async () => {
+      await request(app).delete(`${base}/1`).expect(401);
     });
 
     it("403 when authenticated non-admin", async () => {
@@ -280,13 +271,11 @@ describe("Admin routes integration tests", () => {
       expect(res.body).toHaveProperty("message");
     });
 
-    // it("401 when not authenticated", async () => {
-    it("400 when not authenticated (OpenAPI validation)", async () => {
+    it("401 when not authenticated", async () => {
       await request(app)
         .post(`${base}/municipality-users`)
         .send(payload)
-        // .expect(401);
-        .expect(400); // OpenAPI validation fails without auth
+        .expect(401);
     });
 
     it("403 when authenticated but not ADMIN", async () => {
@@ -333,11 +322,8 @@ describe("Admin routes integration tests", () => {
       expect(res.body[0]).toHaveProperty("name");
     });
 
-    // it("401 when not authenticated", async () => {
-    //   await request(app).get(`${base}/municipality-users/roles`).expect(401);
-    // });
-    it("400 when not authenticated (OpenAPI validation)", async () => {
-      await request(app).get(`${base}/municipality-users/roles`).expect(400); // OpenAPI validation fails without auth
+    it("401 when not authenticated", async () => {
+      await request(app).get(`${base}/municipality-users/roles`).expect(401);
     });
 
     it("403 when authenticated non-admin", async () => {

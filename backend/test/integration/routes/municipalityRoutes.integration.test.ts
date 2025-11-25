@@ -99,13 +99,11 @@ describe("Municipality Integration Tests", () => {
       expect(response.body.message).toContain("must have required property 'municipality_role_id'");
     });
 
-    // it("401 when not authenticated", async () => {
-    it("400 when not authenticated (OpenAPI validation)", async () => {
+    it("401 when not authenticated", async () => {
       await request(app)
         .post(`${base}/municipality-users`)
         .send(validPayload)
-        // .expect(401);
-        .expect(400); // OpenAPI validation fails without auth
+        .expect(401);
     });
 
     it("409 when email already exists", async () => {
@@ -212,11 +210,8 @@ describe("Municipality Integration Tests", () => {
       expect(response.body.length).toBe(0);
     });
 
-    // it("401 when not authenticated", async () => {
-    //   await request(app).get(`${base}/municipality-users`).expect(401);
-    // });
-    it("400 when not authenticated (OpenAPI validation)", async () => {
-      await request(app).get(`${base}/municipality-users`).expect(400); // OpenAPI validation fails without auth
+    it("401 when not authenticated", async () => {
+      await request(app).get(`${base}/municipality-users`).expect(401);
     });
   });
 
@@ -235,18 +230,15 @@ describe("Municipality Integration Tests", () => {
         expect(role).toHaveProperty("name");
       });
 
-      // Check specific roles exist (using real roles from database)
+      // Check specific roles exist (using seeded roles from database)
       const roleNames = response.body.map((role: any) => role.name);
-      expect(roleNames).toContain("municipal public relations officer");
-      expect(roleNames).toContain("municipal administrator");
-      expect(roleNames).toContain("technical office staff member");
+      expect(roleNames).toContain("OPERATOR");
+      expect(roleNames).toContain("VALIDATOR");
+      expect(roleNames).toContain("SUPERVISOR");
     });
 
-    // it("401 when not authenticated", async () => {
-    //   await request(app).get(`${base}/municipality>-users/roles`).expect(401);
-    // });
-    it("400 when not authenticated (OpenAPI validation)", async () => {
-      await request(app).get(`${base}/municipality-users/roles`).expect(400); // OpenAPI validation fails without auth
+    it("401 when not authenticated", async () => {
+      await request(app).get(`${base}/municipality-users/roles`).expect(401);
     });
   });
 });

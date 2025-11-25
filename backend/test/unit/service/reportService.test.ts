@@ -166,11 +166,11 @@ describe("reportService", () => {
 
       const res = await reportService.updateReportStatus(
         1,
-        ReportStatus.PENDING_APPROVAL,
+        "ASSIGNED",
       );
 
       expect(repo.update).toHaveBeenCalledWith(1, {
-        status: ReportStatus.PENDING_APPROVAL,
+        status: ReportStatus.ASSIGNED,
         rejectionReason: undefined,
         assignedOffice: "Environmental Services - Waste Management",
       });

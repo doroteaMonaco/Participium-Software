@@ -458,9 +458,7 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
     const response = await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "ASSIGNED" })
-      .expect(200);
-
-    expect(response.body).toHaveProperty("status", "ASSIGNED");
+      .expect(204);
 
     // Verify the report status was updated
     const reportCheck = await request(app)
@@ -476,9 +474,7 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
     const response = await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "REJECTED", rejectionReason })
-      .expect(200);
-
-    expect(response.body).toHaveProperty("status", "REJECTED");
+      .expect(204);
 
     // Verify the report status and reason were updated
     const reportCheck = await request(app)
@@ -582,12 +578,8 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       })
       .expect(201);
 
-    // Get reports without authentication (public access)
-    const response = await request(app).get("/api/reports").expect(200);
-
-    expect(Array.isArray(response.body)).toBe(true);
-    expect(response.body.length).toBe(1);
-    expect(response.body[0]).toHaveProperty("title", "Public Report");
+    // Get reports with authentication (no longer public)
+    const response = await agent.get("/api/reports").expect(403);
   });
 
   it("403 citizen role required for status filter", async () => {
@@ -608,13 +600,12 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       .send({ identifier: citizen.username, password: citizen.password })
       .expect(200);
 
-    // Citizen tries to get approved reports (should get 403 since role check fails)
+    // Citizen tries to get approved reports (should succeed with status filter)
     const response = await citizenAgent
       .get("/api/reports?status=ASSIGNED")
-      .expect(403);
+      .expect(200);
 
-    expect(response.body).toHaveProperty("error", "Authorization Error");
-    expect(response.body.message).toBe("Access denied. Citizen role required to filter by status.");
+    expect(Array.isArray(response.body)).toBe(true);
   });
 
   it("400 invalid status filter", async () => {
@@ -736,13 +727,9 @@ describe("GET /api/reports (List Reports)", () => {
     expect(Array.isArray(res.body)).toBe(true);
   });
 
-  // it("401 when unauthenticated requires role ADMIN or MUNICIPALITY", async () => {
-  //   const res = await request(app).get("/api/reports");
-  //   expect(res.status).toBe(401);
-  // });
-  it("400 when unauthenticated requires role ADMIN or MUNICIPALITY (OpenAPI validation)", async () => {
+  it("401 when unauthenticated requires role ADMIN or MUNICIPALITY", async () => {
     const res = await request(app).get("/api/reports");
-    expect(res.status).toBe(400); // OpenAPI validation
+    expect(res.status).toBe(401);
   });
 
   it("403 when authenticated as CITIZEN (not allowed)", async () => {
@@ -947,8 +934,7 @@ describe("POST /api/reports/:id (Validate Report)", () => {
     await request(app)
       .post(`/api/reports/${id}`)
       .send({ status: "REJECTED", motivation: "bad" })
-      // .expect(401);
-      .expect(400); // OpenAPI validation
+      .expect(401);
   });
 
   it("403 for non-municipality user", async () => {

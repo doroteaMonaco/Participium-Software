@@ -18,7 +18,7 @@ jest.mock("@controllers/reportController", () => ({
     res.json({ route: "getReportById", id: Number(req.params.id) }),
   ),
   approveOrRejectReport: jest.fn((req: Request, res: Response) =>
-    res.json({ route: "approveOrRejectReport", id: Number(req.params.id) }),
+    res.status(204).send(),
   ),
 }));
 
@@ -28,6 +28,7 @@ jest.mock("@middlewares/authMiddleware", () => ({
 
 jest.mock("@middlewares/roleMiddleware", () => ({
   isMunicipality: jest.fn((req: Request, res: Response, next: Function) => next()),
+  hasRole: jest.fn(() => (req: Request, res: Response, next: Function) => next()),
 }));
 
 import reportRouter from "@routes/reportRouter";

@@ -26,6 +26,7 @@ export const getReports = async (_req: Request, res: Response) => {
     let statusFilter: ReportStatusFilter | undefined;
 
     if (status !== undefined) {
+      // If status filter is used, only CITIZEN can use it
       if (status !== "ASSIGNED") {
         return res.status(401).json({
           error: "Validation Error",
@@ -40,6 +41,14 @@ export const getReports = async (_req: Request, res: Response) => {
         });
       }
       statusFilter = "ASSIGNED";
+    } else {
+      // If no status filter, only ADMIN and MUNICIPALITY can access
+      if (!_req.user || (_req.user.role !== "ADMIN" && _req.user.role !== "MUNICIPALITY")) {
+        return res.status(403).json({
+          error: "Authorization Error",
+          message: "Access denied. Required roles: ADMIN, MUNICIPALITY",
+        });
+      }
     }
 
     const reports = await reportService.findAll(statusFilter as any);

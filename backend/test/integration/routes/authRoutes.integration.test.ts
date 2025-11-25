@@ -153,10 +153,8 @@ describe("AuthRoutes Integration Tests", () => {
       expect(res.body).not.toHaveProperty("password");
     });
 
-    // it("401 se non autenticato", async () => {
-    it("400 se non autenticato (OpenAPI validation)", async () => {
-      // const res = await request(app).get("/api/auth/session").expect(401);
-      const res = await request(app).get("/api/auth/session").expect(400); // OpenAPI validation fails now
+    it("401 se non autenticato", async () => {
+      const res = await request(app).get("/api/auth/session").expect(401);
       expect(res.body).toHaveProperty("error");
       expect(res.body).toHaveProperty("message");
     });
@@ -174,14 +172,11 @@ describe("AuthRoutes Integration Tests", () => {
         .expect(200);
 
       await a.delete("/api/auth/session").expect(204);
-      // await a.get("/api/auth/session").expect(401);
-      await a.get("/api/auth/session").expect(400); // OpenAPI validation fails now
+      await a.get("/api/auth/session").expect(401);
     });
 
-    // it("401 logout senza essere autenticato", async () => {
-    //   const res = await request(app).delete("/api/auth/session").expect(401);
-    it("400 logout senza essere autenticato (OpenAPI validation)", async () => {
-      const res = await request(app).delete("/api/auth/session").expect(400); // OpenAPI validation fails now
+    it("401 logout senza essere autenticato", async () => {
+      const res = await request(app).delete("/api/auth/session").expect(401);
       expect(res.body).toHaveProperty("error");
       expect(res.body).toHaveProperty("message");
     });
