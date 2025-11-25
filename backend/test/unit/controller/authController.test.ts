@@ -222,6 +222,9 @@ describe("authController", () => {
         firstName: "Mario",
         lastName: "Rossi",
         username: "mrossi",
+        municipality_role: null,
+        municipality_role_id: undefined,
+        role: undefined,
       });
     });
 
@@ -277,6 +280,9 @@ describe("authController", () => {
         firstName: "Mario",
         lastName: "Rossi",
         username: "mrossi",
+        role: undefined,
+        municipality_role_id: undefined,
+        municipality_role: null,
       });
     });
 

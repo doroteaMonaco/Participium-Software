@@ -173,6 +173,7 @@ describe("authService", () => {
     it("returns { user, token } when credentials are valid", async () => {
       const user = makeUser();
       repo.findUserByEmail.mockResolvedValue(user);
+      repo.findUserById.mockResolvedValue(user);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       (jwt.sign as jest.Mock).mockReturnValue("token-123");
 

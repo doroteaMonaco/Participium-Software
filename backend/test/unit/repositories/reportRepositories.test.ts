@@ -100,6 +100,36 @@ describe("reportRepository", () => {
     });
   });
 
+  // -------- findByStatusesAndCategories --------
+  describe("findByStatusesAndCategories", () => {
+    it("returns reports filtered by multiple statuses and categories", async () => {
+      const rows = [
+        makeReport({ id: 9, status: ReportStatus.ASSIGNED, category: "WASTE" }),
+      ];
+      prismaMock.report.findMany.mockResolvedValue(rows);
+
+      const statuses = [
+        ReportStatus.PENDING_APPROVAL as any,
+        ReportStatus.ASSIGNED as any,
+      ];
+      const categories = ["WASTE", "PUBLIC_LIGHTING"];
+
+      const res = await reportRepository.findByStatusesAndCategories(
+        statuses,
+        categories,
+      );
+
+      expect(prismaMock.report.findMany).toHaveBeenCalledWith({
+        where: {
+          status: { in: statuses as any },
+          category: { in: categories as any },
+        } as any,
+        orderBy: { createdAt: "desc" },
+      });
+      expect(res).toBe(rows);
+    });
+  });
+
   // -------- create --------
   describe("create", () => {
     it("maps DTO fields and creates report", async () => {
@@ -147,6 +177,51 @@ describe("reportRepository", () => {
         }),
       );
     });
+
+    it("connects user relation when user_id is provided", async () => {
+      const dtoWithUser = {
+        latitude: 45.12,
+        longitude: 7.66,
+        title: "Titolo con utente",
+        description: "Desc",
+        category: "WASTE",
+        photoKeys: ["a"],
+        status: ReportStatus.PENDING_APPROVAL,
+        assignedOffice: "Office A",
+        user_id: 77,
+      };
+
+      const created = makeReport({
+        id: 11,
+        latitude: dtoWithUser.latitude,
+        longitude: dtoWithUser.longitude,
+        title: dtoWithUser.title,
+        description: dtoWithUser.description,
+        category: dtoWithUser.category,
+        photos: dtoWithUser.photoKeys,
+      });
+
+      prismaMock.report.create.mockResolvedValue(created);
+
+      const res = await reportRepository.create(dtoWithUser as any);
+
+      expect(prismaMock.report.create).toHaveBeenCalledWith({
+        data: {
+          latitude: dtoWithUser.latitude,
+          longitude: dtoWithUser.longitude,
+          title: dtoWithUser.title,
+          description: dtoWithUser.description,
+          category: dtoWithUser.category,
+          photos: dtoWithUser.photoKeys,
+          status: dtoWithUser.status,
+          assignedOffice: dtoWithUser.assignedOffice,
+          user: {
+            connect: { id: dtoWithUser.user_id },
+          },
+        },
+      });
+      expect(res).toBe(created);
+    });
   });
 
   // -------- update --------
@@ -159,6 +234,30 @@ describe("reportRepository", () => {
       prismaMock.report.update.mockResolvedValue(updated);
 
       const res = await reportRepository.update(id, patch);
+
+      expect(prismaMock.report.update).toHaveBeenCalledWith({
+        where: { id },
+        data: patch,
+      });
+      expect(res).toBe(updated);
+    });
+
+    it("updates status, rejectionReason and assignedOffice by id", async () => {
+      const id = 15;
+      const patch = {
+        status: ReportStatus.ASSIGNED,
+        rejectionReason: "not needed",
+        assignedOffice: "Assigned Office",
+      };
+      const updated = makeReport({
+        id,
+        status: patch.status,
+        assignedOffice: patch.assignedOffice,
+      });
+
+      prismaMock.report.update.mockResolvedValue(updated);
+
+      const res = await reportRepository.update(id, patch as any);
 
       expect(prismaMock.report.update).toHaveBeenCalledWith({
         where: { id },

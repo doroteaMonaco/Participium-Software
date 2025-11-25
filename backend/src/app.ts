@@ -45,7 +45,9 @@ app.use((req, res, next) => {
   const isSwaggerRoute = req.originalUrl.startsWith(CONFIG.ROUTES.SWAGGER);
   const isUploadsRoute = req.originalUrl.startsWith(CONFIG.ROUTES.UPLOADS);
   const contentType = req.headers["content-type"] || "";
-  const isMultipart = typeof contentType === "string" && contentType.includes("multipart/form-data");
+  const isMultipart =
+    typeof contentType === "string" &&
+    contentType.includes("multipart/form-data");
 
   if (isReportsRoute && isMultipart) {
     return next();
