@@ -6,7 +6,12 @@ import {
   approveOrRejectReport,
 } from "@controllers/reportController";
 import { isAuthenticated } from "@middlewares/authMiddleware";
-import { isCitizen, isMunicipality } from "@middlewares/roleMiddleware";
+import {
+  hasRole,
+  isAdmin,
+  isCitizen,
+  isMunicipality,
+} from "@middlewares/roleMiddleware";
 
 const router = Router();
 
@@ -30,8 +35,8 @@ const router = Router();
 // POST /api/reports - Create a new report (authenticated users only)
 router.post("/", isAuthenticated, submitReport);
 
-// GET /api/reports - Get all reports (public)
-router.get("/", getReports);
+// GET /api/reports - Get all reports (authenticated users, role check in controller based on query params)
+router.get("/", isAuthenticated, getReports);
 
 // GET /api/reports/:id - Get report by ID (public)
 router.get("/:id", getReportById);

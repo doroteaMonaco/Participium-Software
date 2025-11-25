@@ -1,8 +1,5 @@
 import { pathsToModuleNameMapper, createDefaultPreset } from "ts-jest";
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
-const tsconfig = require("./tsconfig.json");
+import tsconfig from "./tsconfig.json";
 
 const tsJestTransformCfg = createDefaultPreset().transform;
 

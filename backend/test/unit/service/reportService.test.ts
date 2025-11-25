@@ -15,6 +15,7 @@ jest.mock("@services/imageService", () => {
     persistImagesForReport: jest.fn(),
     getMultipleImages: jest.fn(),
     deleteImages: jest.fn(),
+    preloadCache: jest.fn(),
   };
   return { __esModule: true, default: mImage };
 });
@@ -50,6 +51,7 @@ const makeReport = (overrides: Partial<any> = {}) => ({
   description: "Descrizione",
   category: "WASTE",
   photos: ["p1", "p2"],
+  status: ReportStatus.PENDING_APPROVAL,
   createdAt: new Date("2025-11-04T14:30:00Z"),
   ...overrides,
 });
@@ -162,7 +164,10 @@ describe("reportService", () => {
       const updated = makeReport({ id: 1, status: ReportStatus.ASSIGNED });
       repo.update.mockResolvedValue(updated);
 
-      const res = await reportService.updateReportStatus(1, "ASSIGNED");
+      const res = await reportService.updateReportStatus(
+        1,
+        "ASSIGNED",
+      );
 
       expect(repo.update).toHaveBeenCalledWith(1, {
         status: ReportStatus.ASSIGNED,
@@ -172,7 +177,7 @@ describe("reportService", () => {
       expect(res).toBe(ReportStatus.ASSIGNED);
     });
 
-    it("throws for invalid status", async () => {
+    it("throws for invalid status string", async () => {
       await expect(
         reportService.updateReportStatus(1, "BAD"),
       ).rejects.toThrow();
@@ -235,7 +240,7 @@ describe("reportService", () => {
         ...created,
         photos: ["/img/r/1.jpg", "/img/r/2.jpg"],
       });
-      img.getMultipleImages.mockResolvedValue(["BINARY1", "BINARY2"]);
+      // img.getMultipleImages.mockResolvedValue(["BINARY1", "BINARY2"]);
 
       const res = await reportService.submitReport(dto as any, 1);
 
@@ -256,7 +261,7 @@ describe("reportService", () => {
       expect(res).toEqual(
         expect.objectContaining({
           id: 123,
-          photos: ["/img/r/1.jpg", "/img/r/2.jpg"],
+          photos: ["/img/r/1.jpg", "/img/r/2.jpg"]
         }),
       );
     });
@@ -268,7 +273,7 @@ describe("reportService", () => {
       repo.create.mockResolvedValue(created);
       img.persistImagesForReport.mockResolvedValue(["p1"]);
       repo.update.mockResolvedValue(updated);
-      img.getMultipleImages.mockResolvedValue(["url_p1"]);
+      // img.getMultipleImages.mockResolvedValue(["url_p1"]);
 
       const res = await reportService.submitReport(dto as any, 123);
 
@@ -286,6 +291,7 @@ describe("reportService", () => {
       expect(repo.update).toHaveBeenCalledWith(created.id, {
         photos: ["p1"],
       });
+      expect(res.photos).toEqual(["p1"]);
       expect(res.photos).toEqual(["p1"]);
     });
 
@@ -327,6 +333,7 @@ describe("reportService", () => {
       const report = makeReport({ id: 7, photos: ["pA", "pB"] });
       repo.findById.mockResolvedValue(report);
       const deleted = makeReport({ id: 7, photos: ["pA", "pB"] });
+      repo.findById.mockResolvedValue(deleted);
       repo.deleteById.mockResolvedValue(deleted);
       img.deleteImages.mockResolvedValue(undefined);
 
@@ -335,12 +342,14 @@ describe("reportService", () => {
       expect(repo.deleteById).toHaveBeenCalledWith(7);
       expect(img.deleteImages).toHaveBeenCalledWith(["pA", "pB"]);
       expect(res).toEqual({ ...deleted, photos: [] });
+      expect(res).toEqual({ ...deleted, photos: [] });
     });
 
     it("calls deleteImages with [] when report has no photos", async () => {
       const report = makeReport({ id: 8, photos: undefined });
       repo.findById.mockResolvedValue(report);
       const deleted = makeReport({ id: 8, photos: undefined });
+      repo.findById.mockResolvedValue(deleted);
       repo.deleteById.mockResolvedValue(deleted);
 
       await reportService.deleteReport(8);
@@ -354,7 +363,7 @@ describe("reportService", () => {
       const err = new Error("delete fail");
       repo.deleteById.mockRejectedValue(err);
 
-      await expect(reportService.deleteReport(3)).rejects.toBe(err);
+      await expect(reportService.deleteReport(3)).rejects.toThrow(err);
       expect(img.deleteImages).not.toHaveBeenCalled();
     });
 
@@ -370,6 +379,7 @@ describe("reportService", () => {
       expect(repo.findById).toHaveBeenCalledWith(7);
       expect(repo.deleteById).toHaveBeenCalledWith(7);
       expect(img.deleteImages).toHaveBeenCalledWith(report.photos);
+      expect(res.photos).toEqual([]);
       expect(res.photos).toEqual([]);
       expect(res.id).toBe(7);
     });

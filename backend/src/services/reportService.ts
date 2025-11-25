@@ -69,7 +69,6 @@ const updateReportStatus = async (
   // Map string to enum
   const statusEnum = mapStringToStatus(status);
 
-
   // Fetch existing report to validate and to read the category
   const existing = await reportRepository.findById(id);
   if (!existing) throw new Error("Report not found");
@@ -117,16 +116,21 @@ const updateReportStatus = async (
       PUBLIC_LIGHTS: categoryToOffice.PUBLIC_LIGHTING,
       ROADS_AND_URBAN_FURNISHINGS: categoryToOffice.ROADS_URBAN_FURNISHINGS,
       ROAD_SIGNS_AND_TRAFFIC_LIGHTS: categoryToOffice.ROAD_SIGNS_TRAFFIC_LIGHTS,
-      PUBLIC_GREEN_AREAS_AND_PLAYGROUNDS: categoryToOffice.PUBLIC_GREEN_AREAS_PLAYGROUNDS,
+      PUBLIC_GREEN_AREAS_AND_PLAYGROUNDS:
+        categoryToOffice.PUBLIC_GREEN_AREAS_PLAYGROUNDS,
       WATER_SUPPLY: categoryToOffice.WATER_SUPPLY_DRINKING_WATER,
     };
 
-    assignedOffice = categoryToOffice[key] || variantToOffice[key] || "General Services Office";
+    assignedOffice =
+      categoryToOffice[key] ||
+      variantToOffice[key] ||
+      "General Services Office";
   }
 
   const updatedReport = await reportRepository.update(id, {
     status: statusEnum,
-    rejectionReason: statusEnum === ReportStatus.REJECTED ? rejectionReason : undefined,
+    rejectionReason:
+      statusEnum === ReportStatus.REJECTED ? rejectionReason : undefined,
     assignedOffice: assignedOffice ?? null,
   });
 

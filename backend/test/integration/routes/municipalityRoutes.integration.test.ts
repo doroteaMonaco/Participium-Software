@@ -230,11 +230,11 @@ describe("Municipality Integration Tests", () => {
         expect(role).toHaveProperty("name");
       });
 
-      // Check specific roles exist (using real roles from database)
+      // Check specific roles exist (using seeded roles from database)
       const roleNames = response.body.map((role: any) => role.name);
-      expect(roleNames).toContain("municipal public relations officer");
-      expect(roleNames).toContain("municipal administrator");
-      expect(roleNames).toContain("technical office staff member");
+      expect(roleNames).toContain("OPERATOR");
+      expect(roleNames).toContain("VALIDATOR");
+      expect(roleNames).toContain("SUPERVISOR");
     });
 
     it("401 when not authenticated", async () => {
