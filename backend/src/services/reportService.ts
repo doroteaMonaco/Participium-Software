@@ -1,4 +1,5 @@
 import reportRepository from "@repositories/reportRepository";
+import { userRepository } from "@repositories/userRepository";
 import { CreateReportDto, ReportResponseDto } from "@dto/reportDto";
 import imageService from "@services/imageService";
 import { ReportStatus } from "@models/enums";
@@ -62,6 +63,16 @@ const findByStatus = async (status: string): Promise<ReportResponseDto[]> => {
   }));
 };
 
+const pickOfficerForService = async (officeName: string | undefined): Promise<number | null> => {
+  if (!officeName) return null;
+
+  const officer = await userRepository.findLeastLoadedOfficerByOfficeName(officeName);
+
+  if (!officer) return null;
+
+  return officer.id
+}
+
 const updateReportStatus = async (
   id: number,
   status: string,
@@ -83,6 +94,7 @@ const updateReportStatus = async (
 
   // When assigning, compute the technical office based on category using a robust matcher
   let assignedOffice: string | undefined = undefined;
+  let assignedOfficerId: number | null = null;
 
   if (statusEnum === ReportStatus.ASSIGNED) {
     const rawCategory = (existing.category || "").toString();
@@ -126,6 +138,8 @@ const updateReportStatus = async (
       categoryToOffice[key] ||
       variantToOffice[key] ||
       "General Services Office";
+
+    assignedOfficerId = await pickOfficerForService(assignedOffice);
   }
 
   const updatedReport = await reportRepository.update(id, {
@@ -200,6 +214,20 @@ const submitReport = async (
   } as any;
 };
 
+const findAssignedReportsForOfficer = async (
+  officerId: number, 
+  status?: string
+): Promise<ReportResponseDto[]> => {
+  const statusEnum = status ? mapStringToStatus(status) : undefined;
+
+  const reports = await reportRepository.findAssignedReportsForOfficer(officerId, statusEnum);
+
+  return reports.map((report) => ({
+    ...report,
+    photos: report.photos || [],
+  }));
+}
+
 const deleteReport = async (id: number): Promise<ReportResponseDto> => {
   // Directly call repository.deleteById so repository errors propagate to caller
   const report = await reportRepository.findById(id);
@@ -223,6 +251,7 @@ export default {
   findById,
   findByStatus,
   submitReport,
+  findAssignedReportsForOfficer,
   deleteReport,
   updateReportStatus,
 };

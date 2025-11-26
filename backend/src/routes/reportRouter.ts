@@ -4,9 +4,10 @@ import {
   getReports,
   getReportById,
   approveOrRejectReport,
+  getReportsForMunicipalityUser,
 } from "@controllers/reportController";
 import { isAuthenticated } from "@middlewares/authMiddleware";
-import { isCitizen, isMunicipality} from "@middlewares/roleMiddleware";
+import { isCitizen, isMunicipality, isMunicipalityStrict} from "@middlewares/roleMiddleware";
 import { uploadArray } from "@middlewares/uploadMiddleware";
 
 const router = Router();
@@ -28,5 +29,7 @@ router.get("/:id", getReportById);
 
 // POST /api/reports/:id - Approve or reject a report (municipality role only)
 router.post("/:id", isAuthenticated, isMunicipality, approveOrRejectReport);
+
+router.get("/municipality-user/:municipalityUserId", isAuthenticated, isMunicipalityStrict, getReportsForMunicipalityUser);
 
 export default router;

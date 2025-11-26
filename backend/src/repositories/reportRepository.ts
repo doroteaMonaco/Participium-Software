@@ -80,7 +80,18 @@ const findByStatusesAndCategories = async (
   });
 };
 
-
+const findAssignedReportsForOfficer = async (
+  officerId: number,
+  status?: ReportStatus
+) => {
+  return prisma.report.findMany({
+    where: {
+      assignedOfficerId: officerId,
+      ...(status ? { status: status } : {})
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
 
 const deleteById = async (id: number) => {
   return prisma.report.delete({
@@ -108,6 +119,7 @@ export default {
   findById,
   findByStatus, 
   create,
+  findAssignedReportsForOfficer,
   deleteById,
   update,
   findByStatusesAndCategories,

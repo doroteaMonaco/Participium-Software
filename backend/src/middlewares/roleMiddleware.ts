@@ -40,6 +40,29 @@ export const isMunicipality = (
   next();
 };
 
+export const isMunicipalityStrict = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  if (!req.user) {
+    return res.status(401).json({
+      error: "Authentication Error",
+      message: "User not authenticated",
+    });
+  }
+
+  if (req.user.role !== "MUNICIPALITY") {
+    return res.status(403).json({
+      error: "Authorization Error",
+      message: "Access denied. Municipality role required.",
+    });
+  }
+
+  next();
+};
+
+
 export const isCitizen = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(401).json({

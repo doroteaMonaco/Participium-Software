@@ -40,7 +40,11 @@ model report {
   rejectionReason String?
   assignedOffice String?
   user_id     Int?
-  user        user? @relation(fields: [user_id], references: [id], onDelete: Restrict)
+  user        user? @relation("CitizenReports", fields: [user_id], references: [id], onDelete: Restrict)
+  assignedOfficerId Int?
+  assignedOfficer user? @relation("OfficerAssignments", fields: [assignedOfficerId], references: [id], onDelete: SetNull)
+
+  @@index([assignedOfficerId])
 }
 
 model message {

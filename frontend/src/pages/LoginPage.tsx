@@ -17,7 +17,8 @@ export const Login: React.FC = () => {
         navigate("/admin", { replace: true });
       } else if (user.role === "MUNICIPALITY") {
         // Redirect based on municipality role
-        const municipalityRole = user.municipality_role?.name?.toLowerCase() || "";
+        const municipalityRole =
+          user.municipality_role?.name?.toLowerCase() || "";
         if (municipalityRole.includes("municipal public relations officer")) {
           navigate("/municipality/reports", { replace: true });
         } else {
@@ -69,7 +70,8 @@ export const Login: React.FC = () => {
         navigate("/admin");
       } else if (user.role === "MUNICIPALITY") {
         // Redirect based on municipality role
-        const municipalityRole = user.municipality_role?.name?.toLowerCase() || "";
+        const municipalityRole =
+          user.municipality_role?.name?.toLowerCase() || "";
         if (municipalityRole.includes("municipal public relations officer")) {
           navigate("/municipality/reports");
         } else {

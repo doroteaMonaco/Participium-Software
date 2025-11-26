@@ -222,7 +222,8 @@ const METADATA_CONFIG: MetadataCardConfig[] = [
   {
     icon: User,
     label: "Reported By",
-    getValue: (r) => r.isAnonymous ? "Anonymous Citizen" : `By ${r.submittedBy}`,
+    getValue: (r) =>
+      r.isAnonymous ? "Anonymous Citizen" : `By ${r.submittedBy}`,
     gradient: "from-purple-50 to-pink-50",
     border: "border-purple-200",
     iconBg: "bg-purple-600",
@@ -344,7 +345,8 @@ export const TechnicalReportsPage: React.FC = () => {
             My Assigned Reports
           </h1>
           <p className="text-base text-slate-700 ml-15">
-            View and manage reports assigned to your technical office. Update status and track maintenance progress.
+            View and manage reports assigned to your technical office. Update
+            status and track maintenance progress.
           </p>
         </div>
 
@@ -362,14 +364,23 @@ export const TechnicalReportsPage: React.FC = () => {
                 className={`rounded-xl border-2 ${config.border} bg-gradient-to-br ${config.gradient} p-5 shadow-md hover:shadow-lg transition-all`}
               >
                 <div className="flex items-center gap-4">
-                  <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${config.iconBg} text-white shadow-lg`}>
+                  <div
+                    className={`flex h-14 w-14 items-center justify-center rounded-xl ${config.iconBg} text-white shadow-lg`}
+                  >
                     <Icon className="h-7 w-7" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: `var(--${config.iconBg.replace('bg-', '')})` }}>
+                    <p
+                      className="text-xs font-bold uppercase tracking-wide mb-1"
+                      style={{
+                        color: `var(--${config.iconBg.replace("bg-", "")})`,
+                      }}
+                    >
                       {config.label}
                     </p>
-                    <p className="text-3xl font-extrabold text-slate-900">{count}</p>
+                    <p className="text-3xl font-extrabold text-slate-900">
+                      {count}
+                    </p>
                   </div>
                 </div>
               </motion.div>
@@ -442,7 +453,9 @@ export const TechnicalReportsPage: React.FC = () => {
                         </span>
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">Report Title</p>
+                        <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">
+                          Report Title
+                        </p>
                         <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-tight">
                           {report.title}
                         </h3>
@@ -455,7 +468,9 @@ export const TechnicalReportsPage: React.FC = () => {
                 <div className="px-6 py-5 space-y-4">
                   {/* Description */}
                   <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                    <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Problem Description</p>
+                    <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">
+                      Problem Description
+                    </p>
                     <p className="text-base text-slate-800 leading-relaxed">
                       {report.description}
                     </p>
@@ -501,11 +516,15 @@ export const TechnicalReportsPage: React.FC = () => {
                           key={config.label}
                           className={`flex items-center gap-3 p-3 bg-gradient-to-br ${config.gradient} rounded-xl border ${config.border}`}
                         >
-                          <div className={`flex items-center justify-center w-10 h-10 rounded-lg ${config.iconBg} text-white shadow-md`}>
+                          <div
+                            className={`flex items-center justify-center w-10 h-10 rounded-lg ${config.iconBg} text-white shadow-md`}
+                          >
                             <Icon className="h-5 w-5" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-[10px] font-bold ${config.textColor} uppercase tracking-wide`}>
+                            <p
+                              className={`text-[10px] font-bold ${config.textColor} uppercase tracking-wide`}
+                            >
                               {config.label}
                             </p>
                             <p className="text-sm font-semibold text-slate-900 truncate">

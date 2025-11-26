@@ -46,22 +46,22 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check municipality role if required (for MUNICIPALITY users only)
   if (requiredMunicipalityRole && user.role === "MUNICIPALITY") {
-    const userMunicipalityRole = user.municipality_role?.name?.toLowerCase() || "";
+    const userMunicipalityRole =
+      user.municipality_role?.name?.toLowerCase() || "";
     const requiredRoleLower = requiredMunicipalityRole.toLowerCase();
-    
+
     // Check if user's municipality role matches the required role
     if (!userMunicipalityRole.includes(requiredRoleLower)) {
-      // Redirect based on user's actual role
+      // Public relations officer goes to reports page, all others to technical reports
       if (userMunicipalityRole.includes("municipal public relations officer")) {
         return <Navigate to="/municipality/reports" replace />;
-      } else if (userMunicipalityRole.includes("technical office staff member")) {
-        return <Navigate to="/municipality/technical-reports" replace />;
       } else {
+        // All other municipality roles go to technical reports
         return <Navigate to="/municipality/technical-reports" replace />;
       }
     }
   }
 
   // Authenticated and has correct role
-  return <>{children}</>
+  return <>{children}</>;
 };
