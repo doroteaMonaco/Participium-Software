@@ -22,7 +22,8 @@ model user {
   telegramUsername     String?
   notifications        Boolean            @default(true)
   municipality_role    municipality_role? @relation(fields: [municipality_role_id], references: [id], onDelete: Restrict)
-  reports              report[]
+  reports              report[]           @relation("CitizenReports")
+  assignedReports      report[]           @relation("OfficerAssignments")
   sentMessages         message[]          @relation("sentMessages")
   receivedMessages     message[]          @relation("receivedMessages")
 }

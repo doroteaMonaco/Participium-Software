@@ -63,24 +63,24 @@ services:
       - db
       - redis
 
-  # frontend:
-  #   build:
-  #     context: .
-  #     dockerfile: docker/Dockerfile.frontend
-  #     args:
-  #       VITE_API_URL: http://localhost:${BACKEND_PORT}/api
-  #   container_name: participium-frontend
-  #   ports:
-  #     # - "${FRONTEND_PORT}:4173"
-  #     - "${FRONTEND_PORT}:80"
-  #   networks:
-  #     - participium-net
-  #   environment:
-  #     APP_PORT: "${FRONTEND_PORT}"
-  #     API_UPSTREAM: "http://localhost:${BACKEND_PORT}"
-  #     CLIENT_MAX_BODY_SIZE: "50M"
-  #   depends_on:
-  #     - backend
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        VITE_API_URL: http://localhost:${BACKEND_PORT}/api
+    container_name: participium-frontend
+    ports:
+      # - "${FRONTEND_PORT}:4173"
+      - "${FRONTEND_PORT}:80"
+    networks:
+      - participium-net
+    environment:
+      APP_PORT: "${FRONTEND_PORT}"
+      API_UPSTREAM: "http://localhost:${BACKEND_PORT}"
+      CLIENT_MAX_BODY_SIZE: "50M"
+    depends_on:
+      - backend
 
 networks:
   participium-net:

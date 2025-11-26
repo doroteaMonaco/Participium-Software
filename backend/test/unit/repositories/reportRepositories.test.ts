@@ -415,4 +415,52 @@ describe("reportRepository", () => {
       expect(res).toBe(deleted);
     });
   });
+
+  describe("findAssignedReportsForOfficer", () => {
+    it("returns reports assigned to the specified officer ID", async () => {
+      const rows = [
+        makeReport({ id: 3,  assignedOfficerId: 1 }),
+        makeReport({ id: 4, assignedOfficerId: 1 }),
+      ];
+      prismaMock.report.findMany.mockResolvedValue(rows);
+
+      const res = await reportRepository.findAssignedReportsForOfficer(1);
+
+      expect(prismaMock.report.findMany).toHaveBeenCalledWith({
+        where: { assignedOfficerId: 1 },
+        orderBy: { createdAt: "desc" },
+      });
+      expect(res).toBe(rows);
+    });
+
+    it("filters by officer ID and status when provided", async () => {
+      const rows = [
+        makeReport({ id: 8, assignedOfficerId: 2, status: ReportStatus.ASSIGNED }),
+      ];
+      prismaMock.report.findMany.mockResolvedValue(rows);
+
+      const res = await reportRepository.findAssignedReportsForOfficer(
+        2,
+        ReportStatus.ASSIGNED,
+      );
+
+      expect(prismaMock.report.findMany).toHaveBeenCalledWith({
+        where: { assignedOfficerId: 2, status: ReportStatus.ASSIGNED },
+        orderBy: { createdAt: "desc" },
+      });
+      expect(res).toBe(rows);
+    });
+
+    it("returns an empty array when no reports are found", async () => {
+      prismaMock.report.findMany.mockResolvedValue([]);
+
+      const res = await reportRepository.findAssignedReportsForOfficer(3);
+
+      expect(prismaMock.report.findMany).toHaveBeenCalledWith({
+        where: { assignedOfficerId: 3 },
+        orderBy: { createdAt: "desc" },
+      });
+      expect(res).toEqual([]);
+    });
+  });
 });
