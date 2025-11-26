@@ -216,7 +216,7 @@ const submitReport = async (
 
 const findAssignedReportsForOfficer = async (
   officerId: number, 
-  status?: ReportStatus
+  status?: string
 ): Promise<ReportResponseDto[]> => {
   const statusEnum = status ? mapStringToStatus(status) : undefined;
 
