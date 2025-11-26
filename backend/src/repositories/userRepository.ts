@@ -184,4 +184,20 @@ export const userRepository = {
       data,
     });
   },
+
+  async findLeastLoadedOfficerByOfficeName(officeName: string) {
+    return prisma.user.findFirst({
+      where: {
+        role: roleType.MUNICIPALITY,
+        municipality_role: {
+          name: officeName
+        }
+      },
+      orderBy: {
+        assignedReports: {
+          _count: 'asc'
+        }
+      }
+    })
+  }
 };

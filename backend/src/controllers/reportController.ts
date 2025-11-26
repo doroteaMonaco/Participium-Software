@@ -219,6 +219,43 @@ export const submitReport = async (req: Request, res: Response) => {
   }
 };
 
+export const getReportsForMunicipalityUser = async (req: Request, res: Response) => {
+  try {
+    if(!req.user) {
+      return res.status(401).json({
+        error: "Authentication Error",
+        message: "User not authenticated",
+      });
+    }
+
+    const municipalityUserId = Number(req.params.municipalityUserId);
+    if(!Number.isInteger(municipalityUserId) || municipalityUserId < 0) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid municipality user ID",
+      })
+    }
+
+    if(req.user.id !== municipalityUserId) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You can only access reports assigned to yourself",
+      });
+    }
+
+    const statusParam = typeof req.query.status === "string" ? req.query.status : undefined;
+
+    const reports = await reportService.findAssignedReportsForOfficer(municipalityUserId, statusParam);
+
+    return res.status(200).json(reports);
+  } catch (error) {
+    return res.status(500).json({
+      error: "Internal Server Error", 
+      message: "Unable to fetch assigned reports for municipality user",
+    });
+  }
+}
+
 export const deleteReport = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
