@@ -182,16 +182,23 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
     }
 
     // For municipality users, check if they can access each page
-    const isPublicRelations = municipalityRole?.toLowerCase().includes("municipal public relations officer");
-    const isTechnicalOffice = municipalityRole?.toLowerCase().includes("technical office staff member");
-    
+    const isPublicRelations = municipalityRole
+      ?.toLowerCase()
+      .includes("municipal public relations officer");
+    const isTechnicalOffice = municipalityRole
+      ?.toLowerCase()
+      .includes("technical office staff member");
+
     return config.navItems.filter((item) => {
       // Show "Review Reports" only to public relations officers
       if (item.href === "/municipality/reports" && !isPublicRelations) {
         return false;
       }
       // Show "Technical Office" only to technical office staff
-      if (item.href === "/municipality/technical-reports" && !isTechnicalOffice) {
+      if (
+        item.href === "/municipality/technical-reports" &&
+        !isTechnicalOffice
+      ) {
         return false;
       }
       return true;

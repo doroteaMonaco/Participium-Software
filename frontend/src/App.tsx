@@ -90,7 +90,10 @@ function App() {
             <Route
               path="/municipality/reports"
               element={
-                <ProtectedRoute requiredRole="MUNICIPALITY" requiredMunicipalityRole="municipal public relations officer">
+                <ProtectedRoute
+                  requiredRole="MUNICIPALITY"
+                  requiredMunicipalityRole="municipal public relations officer"
+                >
                   <MunicipalityReportsPage />
                 </ProtectedRoute>
               }
@@ -98,7 +101,10 @@ function App() {
             <Route
               path="/municipality/technical-reports"
               element={
-                <ProtectedRoute requiredRole="MUNICIPALITY" requiredMunicipalityRole="technical office staff member">
+                <ProtectedRoute
+                  requiredRole="MUNICIPALITY"
+                  requiredMunicipalityRole="technical office staff member"
+                >
                   <MunicipalityTechnicalReportsPage />
                 </ProtectedRoute>
               }

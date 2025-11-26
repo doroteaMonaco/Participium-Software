@@ -62,7 +62,7 @@ export const UserSettingsPage: React.FC = () => {
         showNotification("error", "Photo size must be less than 5MB");
         return;
       }
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfilePhoto(reader.result as string);
@@ -93,11 +93,14 @@ export const UserSettingsPage: React.FC = () => {
 
       await updateCitizenProfile(formData);
       showNotification("success", "Settings saved successfully!");
-      
+
       // Clear the photo file after successful save
       setProfilePhotoFile(null);
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error?.message || "Failed to save settings";
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to save settings";
       showNotification("error", errorMessage);
     } finally {
       setIsSaving(false);
@@ -152,8 +155,12 @@ export const UserSettingsPage: React.FC = () => {
                 <User className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-slate-900">👤 Profile Photo</h2>
-                <p className="text-sm text-slate-600">Make your account more personal</p>
+                <h2 className="text-lg font-bold text-slate-900">
+                  👤 Profile Photo
+                </h2>
+                <p className="text-sm text-slate-600">
+                  Make your account more personal
+                </p>
               </div>
             </div>
           </div>
@@ -194,7 +201,9 @@ export const UserSettingsPage: React.FC = () => {
                 </label>
                 <div className="flex items-start gap-2 text-xs text-slate-500">
                   <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                  <span>Square image recommended. Max 5MB (JPG, PNG, or GIF)</span>
+                  <span>
+                    Square image recommended. Max 5MB (JPG, PNG, or GIF)
+                  </span>
                 </div>
               </div>
             </div>
@@ -214,8 +223,12 @@ export const UserSettingsPage: React.FC = () => {
                 <Mail className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-slate-900">🔔 Notifications</h2>
-                <p className="text-sm text-slate-600">Stay updated on your reports</p>
+                <h2 className="text-lg font-bold text-slate-900">
+                  🔔 Notifications
+                </h2>
+                <p className="text-sm text-slate-600">
+                  Stay updated on your reports
+                </p>
               </div>
             </div>
           </div>
@@ -228,8 +241,12 @@ export const UserSettingsPage: React.FC = () => {
                   <Mail className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-base font-semibold text-slate-900">Email Updates</p>
-                  <p className="text-sm text-slate-600">Get notifications in your inbox</p>
+                  <p className="text-base font-semibold text-slate-900">
+                    Email Updates
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    Get notifications in your inbox
+                  </p>
                 </div>
               </div>
               <button
@@ -261,8 +278,12 @@ export const UserSettingsPage: React.FC = () => {
                     <MessageSquare className="h-6 w-6 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-base font-semibold text-slate-900">Telegram Bot</p>
-                    <p className="text-sm text-slate-600">Instant notifications on your phone</p>
+                    <p className="text-base font-semibold text-slate-900">
+                      Telegram Bot
+                    </p>
+                    <p className="text-sm text-slate-600">
+                      Instant notifications on your phone
+                    </p>
                   </div>
                 </div>
                 {telegramUsername && (
@@ -291,8 +312,6 @@ export const UserSettingsPage: React.FC = () => {
                     />
                   </div>
                 </div>
-
-
               </div>
             </div>
           </div>
@@ -311,8 +330,12 @@ export const UserSettingsPage: React.FC = () => {
                 <CheckCircle2 className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-slate-900">🌍 Virtual Presence</h2>
-                <p className="text-sm text-slate-600">Show your community involvement</p>
+                <h2 className="text-lg font-bold text-slate-900">
+                  🌍 Virtual Presence
+                </h2>
+                <p className="text-sm text-slate-600">
+                  Show your community involvement
+                </p>
               </div>
             </div>
           </div>
@@ -324,8 +347,12 @@ export const UserSettingsPage: React.FC = () => {
                   <CheckCircle2 className="h-6 w-6 text-green-600" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-base font-semibold text-slate-900">Public Participation</p>
-                  <p className="text-sm text-slate-600">Let others see your civic engagement</p>
+                  <p className="text-base font-semibold text-slate-900">
+                    Public Participation
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    Let others see your civic engagement
+                  </p>
                 </div>
               </div>
               <button
@@ -358,9 +385,12 @@ export const UserSettingsPage: React.FC = () => {
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-bold text-green-900 mb-1">✓ Virtual Presence Active</p>
+                    <p className="text-sm font-bold text-green-900 mb-1">
+                      ✓ Virtual Presence Active
+                    </p>
                     <p className="text-sm text-green-800">
-                      Other community members can see your active participation, helping build trust and encouraging civic engagement.
+                      Other community members can see your active participation,
+                      helping build trust and encouraging civic engagement.
                     </p>
                   </div>
                 </div>

@@ -278,20 +278,23 @@ export const getMyReports = async (): Promise<Report[]> => {
 /**
  * Get reports assigned to a municipality user (technical officer)
  * Requires: MUNICIPALITY role
- * @param municipalityUserId 
- * @param statusFilter 
- * @returns 
+ * @param municipalityUserId
+ * @param statusFilter
+ * @returns
  */
 export const getAssignedReportsForOfficer = async (
   municipalityUserId: number,
   statusFilter?: ReportStatus,
 ): Promise<Report[]> => {
-  const response = await api.get(`/reports/municipality-user/${municipalityUserId}`, {
-    params: statusFilter ? { status: statusFilter } : undefined,
-  });
+  const response = await api.get(
+    `/reports/municipality-user/${municipalityUserId}`,
+    {
+      params: statusFilter ? { status: statusFilter } : undefined,
+    },
+  );
 
   return response.data;
-}
+};
 // ==================== Municipality User APIs ====================
 
 /**
@@ -357,7 +360,9 @@ export const updateMunicipalityUserRole = async (
  * @returns Success response
  * @throws ApiError on failure
  */
-export const updateCitizenProfile = async (formData: FormData): Promise<void> => {
+export const updateCitizenProfile = async (
+  formData: FormData,
+): Promise<void> => {
   await api.patch("/users", formData);
 };
 

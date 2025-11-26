@@ -138,32 +138,34 @@ export const AdminReportsPage: React.FC = () => {
   };
 
   // Filter reports
-  const filteredReports = reports.filter((report) => {
-    const matchesSearch =
-      (report.title ?? "")
-        .toString()
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      (report.id ?? "")
-        .toString()
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+  const filteredReports = reports
+    .filter((report) => {
+      const matchesSearch =
+        (report.title ?? "")
+          .toString()
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        (report.id ?? "")
+          .toString()
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
 
-    // Tab-based filtering
-    let matchesTab = true;
-    if (activeTab === "pending") {
-      matchesTab = report.status === ReportStatus.PENDING;
-    } else if (activeTab === "approved") {
-      matchesTab =
-        report.status === ReportStatus.ASSIGNED ||
-        report.status === ReportStatus.IN_PROGRESS ||
-        report.status === ReportStatus.RESOLVED;
-    } else if (activeTab === "rejected") {
-      matchesTab = report.status === ReportStatus.REJECTED;
-    }
+      // Tab-based filtering
+      let matchesTab = true;
+      if (activeTab === "pending") {
+        matchesTab = report.status === ReportStatus.PENDING;
+      } else if (activeTab === "approved") {
+        matchesTab =
+          report.status === ReportStatus.ASSIGNED ||
+          report.status === ReportStatus.IN_PROGRESS ||
+          report.status === ReportStatus.RESOLVED;
+      } else if (activeTab === "rejected") {
+        matchesTab = report.status === ReportStatus.REJECTED;
+      }
 
-    return matchesSearch && matchesTab;
-  }).sort((a, b) => (b.id || 0) - (a.id || 0));
+      return matchesSearch && matchesTab;
+    })
+    .sort((a, b) => (b.id || 0) - (a.id || 0));
 
   const pendingCount = reports.filter(
     (r) => r.status === ReportStatus.PENDING,
@@ -364,7 +366,7 @@ export const AdminReportsPage: React.FC = () => {
               >
                 {/* Decorative gradient bar */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-                
+
                 {/* Header Section */}
                 <div className="relative px-4 sm:px-6 py-4 sm:py-5 bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
                   <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
@@ -381,12 +383,14 @@ export const AdminReportsPage: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex flex-col items-start">
                       <div className="flex items-center gap-2 mb-1.5">
                         <div className="w-1 h-4 bg-indigo-500 rounded-full"></div>
-                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Report Title</span>
+                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">
+                          Report Title
+                        </span>
                       </div>
                       <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-slate-900 leading-tight pl-3 break-words w-full text-left">
                         {report.title}
@@ -401,7 +405,9 @@ export const AdminReportsPage: React.FC = () => {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
-                      <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">Description</span>
+                      <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">
+                        Description
+                      </span>
                     </div>
                     <div className="pl-3 p-4 bg-gradient-to-br from-slate-50 to-purple-50/30 rounded-xl border border-slate-200">
                       <p className="text-left text-slate-700 leading-relaxed">
@@ -415,11 +421,16 @@ export const AdminReportsPage: React.FC = () => {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <div className="w-1 h-4 bg-pink-500 rounded-full"></div>
-                        <span className="text-[10px] font-bold text-pink-600 uppercase tracking-wider">Photos</span>
+                        <span className="text-[10px] font-bold text-pink-600 uppercase tracking-wider">
+                          Photos
+                        </span>
                       </div>
                       <div className="flex gap-3 pl-3 overflow-x-auto pb-2">
                         {report.photos.map((p, idx) => (
-                          <div key={idx} className="relative group/photo flex-shrink-0">
+                          <div
+                            key={idx}
+                            className="relative group/photo flex-shrink-0"
+                          >
                             <img
                               src={`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`}
                               alt={`photo-${idx}`}
@@ -436,7 +447,9 @@ export const AdminReportsPage: React.FC = () => {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
-                      <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Location</span>
+                      <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+                        Location
+                      </span>
                     </div>
                     <div className="pl-3 h-40 sm:h-48 w-full rounded-xl overflow-hidden border-2 border-slate-200 shadow-md">
                       <MapContainer
@@ -446,7 +459,9 @@ export const AdminReportsPage: React.FC = () => {
                         scrollWheelZoom={false}
                       >
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                        <Marker position={[report.lat || 45.0, report.lng || 7.0]} />
+                        <Marker
+                          position={[report.lat || 45.0, report.lng || 7.0]}
+                        />
                       </MapContainer>
                     </div>
                   </div>
@@ -458,8 +473,12 @@ export const AdminReportsPage: React.FC = () => {
                         <Calendar className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Date</p>
-                        <p className="text-sm font-semibold text-slate-900 truncate">{report.createdAt}</p>
+                        <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">
+                          Date
+                        </p>
+                        <p className="text-sm font-semibold text-slate-900 truncate">
+                          {report.createdAt}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200">
@@ -467,8 +486,12 @@ export const AdminReportsPage: React.FC = () => {
                         <FileText className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wide">Category</p>
-                        <p className="text-sm font-semibold text-slate-900 truncate">{report.category}</p>
+                        <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wide">
+                          Category
+                        </p>
+                        <p className="text-sm font-semibold text-slate-900 truncate">
+                          {report.category}
+                        </p>
                       </div>
                     </div>
                   </div>

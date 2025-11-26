@@ -61,33 +61,43 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
             </label>
             <select
               value={newStatus}
-              onChange={(e) => onStatusChange(e.target.value as Report["status"])}
+              onChange={(e) =>
+                onStatusChange(e.target.value as Report["status"])
+              }
               required
               className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
             >
-              <option value="Assigned">Assigned - Newly assigned to office</option>
+              <option value="Assigned">
+                Assigned - Newly assigned to office
+              </option>
               <option value="In Progress">
                 In Progress - Intervention scheduled/started
               </option>
               <option value="Suspended">
                 Suspended - Awaiting resources/evaluation
               </option>
-              <option value="Resolved">Resolved - Problem fixed and closed</option>
+              <option value="Resolved">
+                Resolved - Problem fixed and closed
+              </option>
             </select>
           </div>
 
           {/* Status Information */}
           <div className="rounded-xl bg-blue-50 border border-blue-200 p-4">
-            <p className="text-sm font-semibold text-blue-900 mb-2">Status Workflow:</p>
+            <p className="text-sm font-semibold text-blue-900 mb-2">
+              Status Workflow:
+            </p>
             <ul className="text-sm text-blue-800 space-y-1">
               <li>
                 <strong>Assigned:</strong> Report received by technical office
               </li>
               <li>
-                <strong>In Progress:</strong> Intervention scheduled, work started
+                <strong>In Progress:</strong> Intervention scheduled, work
+                started
               </li>
               <li>
-                <strong>Suspended:</strong> Paused awaiting resources or evaluation
+                <strong>Suspended:</strong> Paused awaiting resources or
+                evaluation
               </li>
               <li>
                 <strong>Resolved:</strong> Problem fixed, report closed
