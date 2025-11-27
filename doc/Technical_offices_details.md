@@ -21,15 +21,15 @@ When a report is approved, the system assigns it to the correct office based on 
 
 | Technical Office | Category | Description |
 | ---------------- | -------- | ----------- |
-| Water Supply Office | WATER_SUPPLY_DRINKING_WATER | Water leaks, hydrants, public fountains |
-| Architectural Barriers Office | ARCHITECTURAL_BARRIERS | Accessibility issues, ramps, physical barriers |
-| Sewer System Office | SEWER_SYSTEM | Drainage problems, blocked or damaged sewers |
-| Public Lighting Office | PUBLIC_LIGHTING | Broken streetlights, malfunctioning electrical poles |
-| Waste Office | WASTE | Overflowing bins, street waste issues |
-| Road Signs and Traffic Lights Office | ROAD_SIGNS_TRAFFIC_LIGHTS | Missing or damaged signs, malfunctioning traffic lights |
-| Roads and Urban Furnishings Office | ROADS_URBAN_FURNISHINGS | Potholes, damaged pavements, issues with urban furniture |
-| Public Green Areas and Playgrounds Office | PUBLIC_GREEN_AREAS_PLAYGROUNDS | Park maintenance, playground equipment issues |
-| Other | OTHER | General or unspecified municipal matters |
+| environmental protection officer | WATER_SUPPLY_DRINKING_WATER | Water leaks, hydrants, public fountains |
+| urban planning specialist | ARCHITECTURAL_BARRIERS | Accessibility issues, ramps, physical barriers |
+| public works project manager | SEWER_SYSTEM | Drainage problems, blocked or damaged sewers |
+| public works project manager | PUBLIC_LIGHTING | Broken streetlights, malfunctioning electrical poles |
+| sanitation and waste management officer | WASTE | Overflowing bins, street waste issues |
+| traffic and mobility coordinator | ROAD_SIGNS_TRAFFIC_LIGHTS | Missing or damaged signs, malfunctioning traffic lights |
+| public works project manager | ROADS_URBAN_FURNISHINGS | Potholes, damaged pavements, issues with urban furniture |
+| parks and green spaces officer | PUBLIC_GREEN_AREAS_PLAYGROUNDS | Park maintenance, playground equipment issues |
+| municipal administrator | OTHER | General or unspecified municipal matters |
 
 ## User Roles
 
