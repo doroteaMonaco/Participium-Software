@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { MunicipalityDashboardLayout } from "../../components/dashboard/MunicipalityDashboardLayout";
 import { StatusUpdateModal } from "../../components/dashboard/StatusUpdateModal";
 import { CommentModal } from "../../components/dashboard/CommentModal";
 import { motion } from "framer-motion";
+import { useAuth } from "../../contexts/AuthContext";
+import { getAssignedReports } from "../../services/api";
 import {
   FileText,
   Search,
@@ -41,98 +43,6 @@ interface Report {
   assignedOffice: string;
   comments: Comment[];
 }
-
-const sampleReports: Report[] = [
-  {
-    id: "RPT-103",
-    title: "Overflowing trash bin",
-    description:
-      "Trash bin has been overflowing for days, attracting pests and creating unpleasant odors.",
-    category: "Waste",
-    status: "Assigned",
-    location: "Corso Francia 100, San Salvario",
-    coordinates: { lat: 45.06, lng: 7.68 },
-    createdAt: "2025-11-08",
-    submittedBy: "Giulia Bianchi",
-    isAnonymous: false,
-    photos: [],
-    assignedOffice: "Environmental Services - Waste Management",
-    comments: [],
-  },
-  {
-    id: "RPT-101",
-    title: "Water leak on street",
-    description:
-      "Continuous water leak from underground pipe causing street flooding.",
-    category: "Water Supply – Drinking Water",
-    status: "In Progress",
-    location: "Via Po 25, Lingotto",
-    coordinates: { lat: 45.0505, lng: 7.67 },
-    createdAt: "2025-11-06",
-    submittedBy: "Sara Ferrari",
-    isAnonymous: false,
-    photos: [],
-    assignedOffice: "Water Supply Authority",
-    comments: [
-      {
-        id: 1,
-        author: "Marco Rossi",
-        text: "Team dispatched to assess the situation. Estimated repair time: 2-3 days.",
-        timestamp: "2025-11-07 10:30",
-      },
-    ],
-  },
-  {
-    id: "RPT-098",
-    title: "Broken playground equipment",
-    description: "Swing set is damaged and unsafe for children.",
-    category: "Public Green Areas and Playgrounds",
-    status: "Suspended",
-    location: "Parco del Valentino",
-    coordinates: { lat: 45.05, lng: 7.685 },
-    createdAt: "2025-11-03",
-    submittedBy: "Laura Verdi",
-    isAnonymous: false,
-    photos: [],
-    assignedOffice: "Parks & Recreation Department",
-    comments: [
-      {
-        id: 1,
-        author: "Elena Colombo",
-        text: "Waiting for replacement parts to arrive. Expected delivery next week.",
-        timestamp: "2025-11-05 14:20",
-      },
-    ],
-  },
-  {
-    id: "RPT-095",
-    title: "Streetlight maintenance completed",
-    description: "Malfunctioning streetlight has been repaired.",
-    category: "Public Lighting",
-    status: "Resolved",
-    location: "Via Roma 45, Centro",
-    coordinates: { lat: 45.0703, lng: 7.6869 },
-    createdAt: "2025-10-28",
-    submittedBy: "Mario Rossi",
-    isAnonymous: false,
-    photos: [],
-    assignedOffice: "Public Works - Lighting Division",
-    comments: [
-      {
-        id: 1,
-        author: "Luca Ferrari",
-        text: "Bulb replaced and tested. Light is now operational.",
-        timestamp: "2025-10-30 16:45",
-      },
-      {
-        id: 2,
-        author: "Luca Ferrari",
-        text: "Closing this report as resolved.",
-        timestamp: "2025-10-30 16:50",
-      },
-    ],
-  },
-];
 
 const statusColors = {
   Assigned: "bg-blue-50 text-blue-700 border-blue-200",
@@ -241,7 +151,8 @@ const METADATA_CONFIG: MetadataCardConfig[] = [
 ];
 
 export const TechnicalReportsPage: React.FC = () => {
-  const [reports, setReports] = useState<Report[]>(sampleReports);
+  const { user } = useAuth();
+  const [reports, setReports] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
@@ -249,6 +160,64 @@ export const TechnicalReportsPage: React.FC = () => {
   const [newComment, setNewComment] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getAssignedReports(user.id);
+        
+        // Map backend data to frontend format
+        const mappedReports: Report[] = data.map((r: any) => ({
+          id: `RPT-${r.id}`,
+          title: r.title || "Untitled Report",
+          description: r.description || "No description",
+          category: r.category || "Other",
+          status: mapBackendStatus(r.status),
+          location: r.location || `${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}`,
+          coordinates: { lat: r.latitude, lng: r.longitude },
+          createdAt: new Date(r.createdAt).toLocaleDateString(),
+          submittedBy: r.user ? `${r.user.firstName} ${r.user.lastName}` : "Unknown",
+          isAnonymous: r.anonymous || false,
+          photos: (r.photos || []).map((p: string) => 
+            `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`
+          ),
+          assignedOffice: r.assignedOffice || "Not assigned",
+          comments: [],
+        }));
+        
+        setReports(mappedReports);
+      } catch (err) {
+        console.error("Error fetching assigned reports:", err);
+        setError("Failed to load assigned reports. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
+  }, [user?.id]);
+
+  // Helper to map backend status to frontend status
+  const mapBackendStatus = (status: string): Report["status"] => {
+    switch (status) {
+      case "ASSIGNED":
+        return "Assigned";
+      case "IN_PROGRESS":
+        return "In Progress";
+      case "SUSPENDED":
+        return "Suspended";
+      case "RESOLVED":
+        return "Resolved";
+      default:
+        return "Assigned";
+    }
+  };
 
   const handleStatusChange = (report: Report) => {
     setSelectedReport(report);
@@ -388,8 +357,24 @@ export const TechnicalReportsPage: React.FC = () => {
           })}
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
+            <div className="animate-spin h-12 w-12 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-slate-600 font-medium">Loading your assigned reports...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="rounded-xl border-2 border-red-200 bg-red-50 p-6">
+            <p className="text-red-700 font-medium">{error}</p>
+          </div>
+        )}
+
         {/* Filters */}
-        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+        {!loading && !error && (
+          <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -417,9 +402,11 @@ export const TechnicalReportsPage: React.FC = () => {
             </div>
           </div>
         </div>
+        )}
 
         {/* Reports List */}
-        <div className="space-y-4">
+        {!loading && !error && (
+          <div className="space-y-4">
           {filteredReports.length === 0 ? (
             <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
               <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
@@ -598,6 +585,7 @@ export const TechnicalReportsPage: React.FC = () => {
             ))
           )}
         </div>
+        )}
       </div>
 
       {/* Modals */}

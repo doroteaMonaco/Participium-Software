@@ -64,6 +64,31 @@ const ReportDetailsPage: React.FC = () => {
         Created: {new Date(report.createdAt).toLocaleString()}
       </p>
       
+      {/* Status Badge */}
+      <div className="mb-4">
+        <strong>Status:</strong>{" "}
+        <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+          report.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+          report.status === 'PENDING' || report.status === 'PENDING_APPROVAL' ? 'bg-indigo-100 text-indigo-800' :
+          report.status === 'ASSIGNED' ? 'bg-blue-100 text-blue-800' :
+          report.status === 'IN_PROGRESS' ? 'bg-amber-100 text-amber-800' :
+          report.status === 'RESOLVED' ? 'bg-green-100 text-green-800' :
+          'bg-slate-100 text-slate-800'
+        }`}>
+          {report.status === 'PENDING_APPROVAL' ? 'Pending' : 
+           report.status === 'IN_PROGRESS' ? 'In Progress' : 
+           report.status.charAt(0) + report.status.slice(1).toLowerCase()}
+        </span>
+      </div>
+
+      {/* Rejection Reason - Only show if rejected */}
+      {report.status === 'REJECTED' && report.rejectionReason && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <strong className="text-red-800">Rejection Reason:</strong>
+          <p className="mt-2 text-red-700">{report.rejectionReason}</p>
+        </div>
+      )}
+
       {/* User Information */}
       <div className="mb-4">
         <strong>Submitted by:</strong>{" "}

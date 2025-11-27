@@ -11,24 +11,14 @@ const DEFAULT_ADMIN = {
   passwordPlain: "$2b$10$mlXLWqLjuxpavH71sQlHK.jmxQazcdGxWF8z.jyKbuz5vOQKVrVIC",
 };
 const DEFAULT_MUNICIPALITY_ROLES = [
-  "municipal public relations officer",
-  "municipal administrator",
-  "technical office staff member",
-  "finance and budget officer",
-  "urban planning specialist",
-  "public works project manager",
-  "social services caseworker",
-  "environmental protection officer",
-  "cultural affairs coordinator",
-  "education and youth services officer",
-  "procurement and contracts specialist",
-  "legal affairs counsel",
-  "it systems administrator",
-  "traffic and mobility coordinator",
-  "civil protection and emergency planner",
-  "sanitation and waste management officer",
-  "parks and green spaces officer",
-  "civil registry clerk",
+  "municipal public relations officer", // For reviewing and approving/rejecting reports
+  "municipal administrator", // General administrator and fallback for OTHER category
+  "public works project manager", // For PUBLIC_LIGHTING, ROADS_URBAN_FURNISHINGS, SEWER_SYSTEM
+  "sanitation and waste management officer", // For WASTE
+  "environmental protection officer", // For WATER_SUPPLY_DRINKING_WATER
+  "traffic and mobility coordinator", // For ROAD_SIGNS_TRAFFIC_LIGHTS
+  "parks and green spaces officer", // For PUBLIC_GREEN_AREAS_PLAYGROUNDS
+  "urban planning specialist", // For ARCHITECTURAL_BARRIERS
 ];
 
 async function waitForDatabaseConnection(

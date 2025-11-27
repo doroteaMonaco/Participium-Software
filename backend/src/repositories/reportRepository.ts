@@ -157,6 +157,7 @@ const update = async (
     status: ReportStatus;
     rejectionReason: string;
     assignedOffice: string | null;
+    assignedOfficerId: number | null;
   }>,
 ) => {
   return prisma.report.update({

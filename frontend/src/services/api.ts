@@ -257,6 +257,19 @@ export const getReportById = async (id: string | number): Promise<Report> => {
 };
 
 /**
+ * Get reports assigned to a municipality officer
+ */
+export const getAssignedReports = async (
+  userId: number,
+  statusFilter?: string,
+): Promise<Report[]> => {
+  const response = await api.get(`/reports/municipality-user/${userId}`, {
+    params: statusFilter ? { status: statusFilter } : undefined,
+  });
+  return response.data;
+};
+
+/**
  * Approve or reject a report
  * @param id Report ID
  * @param status "ASSIGNED" or "REJECTED"

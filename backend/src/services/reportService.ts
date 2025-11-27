@@ -119,18 +119,18 @@ const updateReportStatus = async (
 
     const key = normalize(rawCategory);
 
-    // Mapping keyed by normalized category keys. Also check a small set of
-    // human-friendly variants if present.
+    // Mapping keyed by normalized category keys to actual municipality role names
+    // These role names must match the ones in the database (see init-db.ts)
     const categoryToOffice: Record<string, string> = {
-      PUBLIC_LIGHTING: "Public Works - Lighting Division",
-      ROADS_URBAN_FURNISHINGS: "Public Works - Roads Department",
-      WASTE: "Environmental Services - Waste Management",
-      WATER_SUPPLY_DRINKING_WATER: "Water Supply Authority",
-      SEWER_SYSTEM: "Public Works - Sewerage Department",
-      ROAD_SIGNS_TRAFFIC_LIGHTS: "Transportation & Traffic Department",
-      PUBLIC_GREEN_AREAS_PLAYGROUNDS: "Parks & Recreation Department",
-      ARCHITECTURAL_BARRIERS: "Urban Planning - Accessibility Office",
-      OTHER: "General Services Office",
+      PUBLIC_LIGHTING: "public works project manager",
+      ROADS_URBAN_FURNISHINGS: "public works project manager",
+      WASTE: "sanitation and waste management officer",
+      WATER_SUPPLY_DRINKING_WATER: "environmental protection officer",
+      SEWER_SYSTEM: "public works project manager",
+      ROAD_SIGNS_TRAFFIC_LIGHTS: "traffic and mobility coordinator",
+      PUBLIC_GREEN_AREAS_PLAYGROUNDS: "parks and green spaces officer",
+      ARCHITECTURAL_BARRIERS: "urban planning specialist",
+      OTHER: "municipal administrator",
     };
 
     const variantToOffice: Record<string, string> = {
@@ -145,9 +145,17 @@ const updateReportStatus = async (
     assignedOffice =
       categoryToOffice[key] ||
       variantToOffice[key] ||
-      "General Services Office";
+      "municipal administrator"; // Fallback to general municipal administrator
 
     assignedOfficerId = await pickOfficerForService(assignedOffice);
+    
+    // Check if an officer was found
+    if (!assignedOfficerId) {
+      throw new Error(
+        `Cannot approve report: No officer available with role "${assignedOffice}". ` +
+        `Please create a municipality user with this role before approving reports in category "${existing.category}".`
+      );
+    }
   }
 
   const updatedReport = await reportRepository.update(id, {
@@ -155,6 +163,7 @@ const updateReportStatus = async (
     rejectionReason:
       statusEnum === ReportStatus.REJECTED ? rejectionReason : undefined,
     assignedOffice: assignedOffice ?? null,
+    assignedOfficerId: assignedOfficerId,
   });
 
   return updatedReport.status;
