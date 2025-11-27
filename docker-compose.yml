@@ -1,20 +1,36 @@
+x-constants:
+  backend_host: &backend_host localhost # backend
+  backend_port: &backend_port ${BACKEND_PORT}
+  db_host: &db_host db
+  db_port: &db_port ${DB_PORT}
+  db_user: &db_user postgres
+  db_password: &db_password ${DB_PASSWORD}
+  db_name: &db_name ${DB_NAME}
+  redis_host: &redis_host redis
+  redis_port: &redis_port ${REDIS_PORT}
+
 services:
   db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: participium
+    image: postgres:18
+    container_name: participium-db
     ports:
-      - "5432:5432"
-      - "54320:5432"
+      - "${DB_PORT}:5432"
+    networks:
+      - participium-net
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
+    environment:
+      POSTGRES_USER: *db_user
+      POSTGRES_PASSWORD: *db_password
+      POSTGRES_DB: *db_name
 
   redis:
-    image: redis:7-alpine
+    image: redis:8.2-alpine
+    container_name: participium-redis
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:6379"
+    networks:
+      - participium-net
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -22,31 +38,52 @@ services:
   backend:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: docker/Dockerfile.backend
+    container_name: participium-backend
     ports:
-      - "4000:4000"
-      - "5555:5555"
+      - "${BACKEND_PORT}:4000"
+      - "${PRISMA_PORT}:5555"
+    networks:
+      - participium-net
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/user_profiles:/app/user_profiles
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:password@db:5432/participium?schema=public
-      - REDIS_URL=redis://redis:6379
-      - IS_DOCKER=true
-      - FRONTEND_URL=http://localhost:4173
+      LOG_LEVEL: info 
+      LOG_PATH: logs
+      ERROR_LOG_FILE: error.log
+      COMBINED_LOG_FILE: combined.log
+      HOST: *backend_host
+      PORT: *backend_port
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:${DB_PORT}/${DB_NAME}?schema=public
+      REDIS_HOST: *redis_host
+      REDIS_PORT: *redis_port
+      FRONTEND_URL: http://localhost:${FRONTEND_PORT}
     depends_on:
       - db
       - redis
-    volumes:
-      - ./backend/uploads:/app/uploads
 
   frontend:
     build:
-      context: ./frontend
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        VITE_API_URL: http://localhost:${BACKEND_PORT}/api
+    container_name: participium-frontend
     ports:
-      - "4173:4173"
+      # - "${FRONTEND_PORT}:4173"
+      - "${FRONTEND_PORT}:80"
+    networks:
+      - participium-net
     environment:
-      - VITE_API_URL=http://localhost:4000/api
+      APP_PORT: "${FRONTEND_PORT}"
+      API_UPSTREAM: "http://localhost:${BACKEND_PORT}"
+      CLIENT_MAX_BODY_SIZE: "50M"
     depends_on:
       - backend
+
+networks:
+  participium-net:
 
 volumes:
   postgres_data:

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { getReportById } from "src/services/api";
 
 // Reverse map backend enum -> human-friendly labels (keep in sync with form)
@@ -15,13 +15,9 @@ const ENUM_TO_LABEL: Record<string, string> = {
   OTHER: "Other",
 };
 
-const backendOrigin = (
-  import.meta.env.VITE_API_URL || "http://localhost:4000/api"
-).replace(/\/api\/?$/, "");
-
 const ReportDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const location = useLocation();
+  const navigate = useNavigate();
   const [report, setReport] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,18 +35,16 @@ const ReportDetailsPage: React.FC = () => {
     fetch();
   }, [id]);
 
-  // Check if we came from the dashboard, otherwise go back to /map
-  const fromDashboard = (location.state as any)?.fromDashboard;
-  const backLink = fromDashboard ? "/dashboard/new-report" : "/map";
-  const backText = fromDashboard ? "Back to Dashboard" : "Back to map";
-
   if (error) {
     return (
       <main className="p-6">
         <p className="text-red-600">{error}</p>
-        <Link to={backLink} className="text-indigo-600 underline">
-          {backText}
-        </Link>
+        <button
+          onClick={() => navigate(-1)}
+          className="text-indigo-600 hover:underline"
+        >
+          ← Go Back
+        </button>
       </main>
     );
   }
@@ -69,6 +63,52 @@ const ReportDetailsPage: React.FC = () => {
       <p className="text-sm text-slate-500 mb-4">
         Created: {new Date(report.createdAt).toLocaleString()}
       </p>
+
+      {/* Status Badge */}
+      <div className="mb-4">
+        <strong>Status:</strong>{" "}
+        <span
+          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+            report.status === "REJECTED"
+              ? "bg-red-100 text-red-800"
+              : report.status === "PENDING" ||
+                  report.status === "PENDING_APPROVAL"
+                ? "bg-indigo-100 text-indigo-800"
+                : report.status === "ASSIGNED"
+                  ? "bg-blue-100 text-blue-800"
+                  : report.status === "IN_PROGRESS"
+                    ? "bg-amber-100 text-amber-800"
+                    : report.status === "RESOLVED"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-slate-100 text-slate-800"
+          }`}
+        >
+          {report.status === "PENDING_APPROVAL"
+            ? "Pending"
+            : report.status === "IN_PROGRESS"
+              ? "In Progress"
+              : report.status.charAt(0) + report.status.slice(1).toLowerCase()}
+        </span>
+      </div>
+
+      {/* Rejection Reason - Only show if rejected */}
+      {report.status === "REJECTED" && report.rejectionReason && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <strong className="text-red-800">Rejection Reason:</strong>
+          <p className="mt-2 text-red-700">{report.rejectionReason}</p>
+        </div>
+      )}
+
+      {/* User Information */}
+      <div className="mb-4">
+        <strong>Submitted by:</strong>{" "}
+        <span>
+          {report.anonymous || !report.user
+            ? "Anonymous"
+            : `${report.user.firstName} ${report.user.lastName}`}
+        </span>
+      </div>
+
       <div className="mb-4">
         <strong>Category:</strong>{" "}
         <span>{ENUM_TO_LABEL[report.category] ?? report.category}</span>
@@ -85,7 +125,7 @@ const ReportDetailsPage: React.FC = () => {
             {report.photos.map((p: string, i: number) => (
               <img
                 key={i}
-                src={`${backendOrigin}/uploads/${p}`}
+                src={`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`}
                 alt={`photo-${i}`}
                 className="w-full h-40 object-cover rounded"
               />
@@ -95,9 +135,12 @@ const ReportDetailsPage: React.FC = () => {
       )}
 
       <div className="mt-6">
-        <Link to={backLink} className="text-indigo-600 hover:underline">
-          ← {backText}
-        </Link>
+        <button
+          onClick={() => navigate(-1)}
+          className="text-indigo-600 hover:underline"
+        >
+          ← Go Back
+        </button>
       </div>
     </main>
   );

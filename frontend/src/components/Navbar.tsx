@@ -1,7 +1,40 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Menu, X, ShieldCheck, ChevronDown } from "lucide-react";
+import { Menu, X, ShieldCheck, ChevronDown, LogOut } from "lucide-react";
+import { useAuth } from "src/contexts/AuthContext";
 import { Container } from "src/components/shared/Container";
+
+const HOME_LINKS = [
+  { href: "#features", label: "Features" },
+  { href: "#categories", label: "Categories" },
+  { href: "#status", label: "Status" },
+  { href: "#stats", label: "Statistics" },
+  { href: "#telegram", label: "Telegram" },
+];
+
+const NAV_LINKS = [
+  { to: "/users", label: "Users" },
+  //   { to: "/map", label: "Map" },
+];
+
+const AUTH_BUTTONS = [
+  {
+    to: "/login",
+    label: "Login",
+    className:
+      "rounded-xl border border-indigo-600 px-4 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors",
+    mobileClassName:
+      "mt-4 inline-flex w-full items-center justify-center rounded-xl border border-indigo-600 px-4 py-3 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors",
+  },
+  {
+    to: "/register",
+    label: "Sign up",
+    className:
+      "rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm",
+    mobileClassName:
+      "inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors",
+  },
+];
 
 export const NavBar: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -10,19 +43,6 @@ export const NavBar: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
-
-  const homeLinks = [
-    { href: "#features", label: "Features" },
-    { href: "#categories", label: "Categories" },
-    { href: "#status", label: "Status" },
-    { href: "#stats", label: "Statistics" },
-    { href: "#telegram", label: "Telegram" },
-  ];
-
-  const navLinks = [
-    { to: "/users", label: "Users" },
-    { to: "/map", label: "Map" },
-  ];
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -46,15 +66,15 @@ export const NavBar: React.FC = () => {
 
     setTimeout(() => {
       const element = document.querySelector(href);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
+      element?.scrollIntoView({ behavior: "smooth" });
     }, 100);
 
     setDropdownOpen(false);
     setMobileDropdownOpen(false);
     setMobileOpen(false);
   };
+
+  const closeMobileMenu = () => setMobileOpen(false);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/70 backdrop-blur">
@@ -93,7 +113,7 @@ export const NavBar: React.FC = () => {
                   className="absolute left-0 top-full mt-2 w-48 rounded-xl border border-slate-200 bg-white shadow-lg py-2"
                   onMouseLeave={() => setDropdownOpen(false)}
                 >
-                  {homeLinks.map((link) => (
+                  {HOME_LINKS.map((link) => (
                     <a
                       key={link.href}
                       href={link.href}
@@ -111,7 +131,7 @@ export const NavBar: React.FC = () => {
             </div>
 
             {/* Regular Navigation Links */}
-            {navLinks.map((link) => (
+            {NAV_LINKS.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
@@ -121,13 +141,62 @@ export const NavBar: React.FC = () => {
               </Link>
             ))}
 
-            {/* Sign Up Button */}
-            <Link
-              to="/register"
-              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm"
-            >
-              Sign up
-            </Link>
+            {/* Auth Buttons / User */}
+            {(() => {
+              try {
+                const { isAuthenticated, user, logout } = useAuth();
+
+                if (isAuthenticated && user) {
+                  const displayName = user.firstName || user.username || "User";
+                  const handleLogout = async () => {
+                    await logout();
+                    navigate("/");
+                  };
+
+                  return (
+                    <div className="flex items-center gap-3">
+                      <Link
+                        to={
+                          user.role === "CITIZEN"
+                            ? "/dashboard"
+                            : user.role === "ADMIN"
+                              ? "/admin"
+                              : user.role === "MUNICIPALITY"
+                                ? "/municipality/reports"
+                                : "/dashboard"
+                        }
+                        className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                      >
+                        {displayName}
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="inline-flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Logout
+                      </button>
+                    </div>
+                  );
+                }
+              } catch (e) {
+                // If useAuth can't be used here (e.g., outside provider), fall back to default buttons
+              }
+
+              return (
+                <>
+                  {AUTH_BUTTONS.map((button) => (
+                    <Link
+                      key={button.to}
+                      to={button.to}
+                      className={button.className}
+                    >
+                      {button.label}
+                    </Link>
+                  ))}
+                </>
+              );
+            })()}
           </nav>
 
           {/* Mobile Menu Button */}
@@ -147,7 +216,7 @@ export const NavBar: React.FC = () => {
           {/* Overlay */}
           <div
             className="fixed inset-0 z-[9998] bg-black/50"
-            onClick={() => setMobileOpen(false)}
+            onClick={closeMobileMenu}
           />
 
           {/* Menu Panel */}
@@ -159,7 +228,7 @@ export const NavBar: React.FC = () => {
               </span>
               <button
                 className="h-9 w-9 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
-                onClick={() => setMobileOpen(false)}
+                onClick={closeMobileMenu}
                 aria-label="Close menu"
               >
                 <X className="h-5 w-5" />
@@ -182,7 +251,7 @@ export const NavBar: React.FC = () => {
 
                 {mobileDropdownOpen && (
                   <div className="mt-2 ml-4 space-y-2">
-                    {homeLinks.map((link) => (
+                    {HOME_LINKS.map((link) => (
                       <a
                         key={link.href}
                         href={link.href}
@@ -200,25 +269,28 @@ export const NavBar: React.FC = () => {
               </div>
 
               {/* Regular Links */}
-              {navLinks.map((link) => (
+              {NAV_LINKS.map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
                   className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-all"
-                  onClick={() => setMobileOpen(false)}
+                  onClick={closeMobileMenu}
                 >
                   {link.label}
                 </Link>
               ))}
 
-              {/* Sign Up Button */}
-              <Link
-                to="/register"
-                className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors"
-                onClick={() => setMobileOpen(false)}
-              >
-                Sign up
-              </Link>
+              {/* Auth Buttons */}
+              {AUTH_BUTTONS.map((button) => (
+                <Link
+                  key={button.to}
+                  to={button.to}
+                  className={button.mobileClassName}
+                  onClick={closeMobileMenu}
+                >
+                  {button.label}
+                </Link>
+              ))}
             </nav>
           </div>
         </div>

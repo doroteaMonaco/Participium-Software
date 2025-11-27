@@ -5,5 +5,4 @@ dist/
 uploads/
 *.log
 package-lock.json
-
-uploads/
+user_profiles/

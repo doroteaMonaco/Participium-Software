@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { userRepository } from "../repositories/userRepository";
+import { userRepository } from "@repositories/userRepository";
 
-const SECRET_KEY = process.env.JWT_SECRET || "default_secret_key";
+import { SECRET_KEY } from "@config";
 
 declare global {
   namespace Express {

@@ -15,21 +15,24 @@ const MapPage: React.FC = () => {
       try {
         const data = await getReports();
         console.debug("GET /api/reports ->", data);
-        const mapped = (data ?? []).map((r: any) => {
-          console.debug("map report", r.id, r.latitude, r.longitude);
-          return new Report(
-            Number(r.latitude ?? r.lat ?? 0),
-            Number(r.longitude ?? r.lng ?? 0),
-            r.title ?? "",
-            (r.status as any) ?? ReportStatus.PENDING,
-            r.id,
-            r.description,
-            r.anonymous,
-            r.category,
-            r.photos,
-            r.createdAt
-          );
-        });
+        const mapped = (data ?? [])
+          .filter((r: any) => r.status !== "REJECTED") // Don't show rejected reports on map
+          .map((r: any) => {
+            return new Report(
+              Number(r.latitude ?? r.lat ?? 0),
+              Number(r.longitude ?? r.lng ?? 0),
+              r.title ?? "",
+              (r.status as any) ?? ReportStatus.PENDING,
+              r.anonymous ?? false,
+              r.id,
+              r.description,
+              r.category,
+              r.photos,
+              r.createdAt,
+              r.rejectionReason,
+              r.user || null,
+            );
+          });
         setReports(mapped);
       } catch (err) {
         console.error("Error fetching reports:", err);
@@ -50,12 +53,14 @@ const MapPage: React.FC = () => {
             Number(r.longitude ?? r.lng ?? 0),
             r.title ?? "",
             (r.status as any) ?? ReportStatus.PENDING,
+            r.anonymous ?? false,
             r.id,
             r.description,
-            r.anonymous,
             r.category,
             r.photos,
-            r.createdAt
+            r.createdAt,
+            r.rejectionReason,
+            r.user || null,
           );
           setReports((prev) => [rep, ...prev]);
           return;
@@ -69,13 +74,13 @@ const MapPage: React.FC = () => {
 
     window.addEventListener(
       "reports:changed",
-      onReportsChanged as EventListener
+      onReportsChanged as EventListener,
     );
 
     return () => {
       window.removeEventListener(
         "reports:changed",
-        onReportsChanged as EventListener
+        onReportsChanged as EventListener,
       );
     };
   }, []);

@@ -1,12 +1,40 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ShieldCheck, User, Mail, Lock } from "lucide-react";
 import registrationIll from "src/assets/registration-ill.png";
 import { register, type UserRegistration } from "../services/api";
+import { useAuth } from "src/contexts/AuthContext";
 
 export const Register: React.FC = () => {
   const navigate = useNavigate();
+  const {
+    login: setAuthUser,
+    checkAuth,
+    isAuthenticated,
+    user,
+    isLoading,
+  } = useAuth();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user) {
+      if (user.role === "ADMIN") {
+        navigate("/admin", { replace: true });
+      } else if (user.role === "MUNICIPALITY") {
+        // Redirect based on municipality role
+        const municipalityRole =
+          user.municipality_role?.name?.toLowerCase() || "";
+        if (municipalityRole.includes("municipal public relations officer")) {
+          navigate("/municipality/reports", { replace: true });
+        } else {
+          navigate("/municipality/technical-reports", { replace: true });
+        }
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, isLoading, navigate]);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -63,7 +91,11 @@ export const Register: React.FC = () => {
         password: formData.password,
       };
 
-      await register(userData);
+      const user = await register(userData);
+      // Save user to context (registration auto-logs in)
+      setAuthUser({ ...user, role: "CITIZEN" });
+      // Refresh auth state
+      await checkAuth();
 
       navigate("/dashboard");
     } catch (err) {

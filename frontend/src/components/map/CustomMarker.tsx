@@ -1,51 +1,136 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Marker, Popup, useMap, useMapEvents } from "react-leaflet";
-import type { Marker as LeafMarker } from "leaflet";
-import ReportForm from "src/components/report/ReportFrom";
+import { LatLng, type Marker as LeafMarker } from "leaflet";
+import * as turf from "@turf/turf";
 
-function CustomMarker({
-  draggable = false,
-  location = false,
-}: {
+import ReportForm from "src/components/report/ReportForm";
+
+type Props = {
+  geoJsonData: GeoJSON.GeoJsonObject;
   draggable?: boolean;
   location?: boolean;
-}) {
+  onOutOfBounds?: () => void;
+};
+
+function CustomMarker({
+  geoJsonData,
+  draggable = false,
+  location = false,
+  onOutOfBounds,
+}: Props) {
   const map = useMap();
   const [showMarker, setShowMarker] = useState(false);
-  const [position, setPosition] = useState(() =>
-    showMarker ? map.getCenter() : null,
-  );
+  const [position, setPosition] = useState<LatLng | null>(null);
   const [showReport, setShowReport] = useState(false);
 
-  const handleLocate = () => {
-    map.locate();
+  // Keep previous valid position to revert if drag moves outside
+  const prevPositionRef = useRef<LatLng | null>(null);
+  // avoid calling onOutOfBounds repeatedly
+  const outOfBoundsCalledRef = useRef(false);
+
+  const isPointInsideBoundary = (pos: LatLng): boolean => {
+    const point = turf.point([pos.lng, pos.lat]);
+
+    if ((geoJsonData as any).type === "FeatureCollection") {
+      return (geoJsonData as GeoJSON.FeatureCollection).features.some(
+        (feature) => {
+          try {
+            return turf.booleanPointInPolygon(point, feature as any);
+          } catch (error) {
+            console.error("Error checking feature:", error);
+            return false;
+          }
+        },
+      );
+    }
+
+    try {
+      return turf.booleanPointInPolygon(point, geoJsonData as any);
+    } catch (error) {
+      console.error("Error checking point in polygon:", error);
+      return false;
+    }
   };
+
+  // returns true when the position is OUTSIDE the boundary
+  const boundaryExceeded = (pos: LatLng) => {
+    const inside = isPointInsideBoundary(pos);
+    if (!inside) {
+      // call onOutOfBounds at most once until a valid position is encountered
+      if (onOutOfBounds && !outOfBoundsCalledRef.current) {
+        onOutOfBounds();
+        outOfBoundsCalledRef.current = true;
+      }
+      return true;
+    }
+    outOfBoundsCalledRef.current = false;
+    return false;
+  };
+
+  // When position changes, update prevPositionRef (only when inside)
+  useEffect(() => {
+    if (!position) return;
+
+    if (boundaryExceeded(position)) {
+      // outside: revert to previous valid pos or hide marker
+      if (prevPositionRef.current) {
+        setPosition(prevPositionRef.current);
+      } else {
+        setShowMarker(false);
+        setPosition(null);
+      }
+    } else {
+      // inside: update previous valid position
+      prevPositionRef.current = position;
+    }
+  }, [position]);
+
+  const handleLocate = () => map.locate();
 
   const mapEvents = useMapEvents({
     locationfound(e) {
-      setPosition(e.latlng);
+      const pos = e.latlng;
+      if (!pos) return;
+      if (boundaryExceeded(pos)) return;
+      setShowMarker(true);
+      setPosition(pos);
       const zoomLevel = 16;
       mapEvents.setView(e.latlng, zoomLevel, { animate: true });
     },
     move() {
       if (!showMarker) return;
-      setPosition(mapEvents.getCenter());
+      const pos = mapEvents.getCenter();
+      setPosition(pos);
     },
     click(e) {
+      const pos = e.latlng;
+      setPosition(pos);
       setShowMarker(true);
-      setPosition(e.latlng);
     },
   });
 
-  const markerRef = useRef<LeafMarker>(null);
+  const markerRef = useRef<LeafMarker | null>(null);
   const eventHandlers = useMemo(
     () => ({
       dragend() {
         if (!draggable) return;
         const marker = markerRef.current;
-        if (marker != null) {
-          setPosition(marker.getLatLng());
+        if (!marker) return;
+
+        const pos = marker.getLatLng();
+        if (boundaryExceeded(pos)) {
+          if (prevPositionRef.current) {
+            // revert to previous valid position
+            marker.setLatLng(prevPositionRef.current);
+            setPosition(prevPositionRef.current);
+          } else {
+            // no previous valid position: hide marker
+            setShowMarker(false);
+            setPosition(null);
+          }
+          return;
         }
+        setPosition(pos);
       },
     }),
     [draggable],
@@ -55,14 +140,10 @@ function CustomMarker({
     setShowReport(false);
     setShowMarker(false);
     setPosition(null);
-    // Optionally reload reports here
-    // Notify listeners (MapPage) that reports changed so it can refetch or append
     try {
       const ev = new CustomEvent("reports:changed", { detail: createdReport });
       window.dispatchEvent(ev);
-    } catch (err) {
-      // ignore in non-browser environments
-    }
+    } catch {}
   };
 
   return (
@@ -81,7 +162,7 @@ function CustomMarker({
         </div>
       )}
 
-      {position && (
+      {position && showMarker && (
         <Marker
           draggable={draggable}
           eventHandlers={draggable ? eventHandlers : undefined}

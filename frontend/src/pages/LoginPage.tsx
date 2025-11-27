@@ -1,12 +1,34 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ShieldCheck, Lock, User } from "lucide-react";
 import registrationIll from "src/assets/registration-ill.png";
 import { login, type LoginRequest } from "../services/api";
+import { useAuth } from "src/contexts/AuthContext";
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { login: setAuthUser, isAuthenticated, user, isLoading } = useAuth();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user) {
+      if (user.role === "ADMIN") {
+        navigate("/admin", { replace: true });
+      } else if (user.role === "MUNICIPALITY") {
+        // Redirect based on municipality role
+        const municipalityRole =
+          user.municipality_role?.name?.toLowerCase() || "";
+        if (municipalityRole.includes("municipal public relations officer")) {
+          navigate("/municipality/reports", { replace: true });
+        } else {
+          navigate("/municipality/technical-reports", { replace: true });
+        }
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, isLoading, navigate]);
   const [formData, setFormData] = useState({
     identifier: "",
     password: "",
@@ -40,11 +62,21 @@ export const Login: React.FC = () => {
       };
 
       const user = await login(credentials);
+      // Save user to context
+      setAuthUser(user);
+
       // Role-based routing
       if (user.role === "ADMIN") {
         navigate("/admin");
       } else if (user.role === "MUNICIPALITY") {
-        navigate("/municipality/reports");
+        // Redirect based on municipality role
+        const municipalityRole =
+          user.municipality_role?.name?.toLowerCase() || "";
+        if (municipalityRole.includes("municipal public relations officer")) {
+          navigate("/municipality/reports");
+        } else {
+          navigate("/municipality/technical-reports");
+        }
       } else {
         // CITIZEN role or default
         navigate("/dashboard");

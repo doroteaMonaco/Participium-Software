@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
-import { authService } from "../services/authService";
+import { authService } from "@services/authService";
+import { CONFIG } from "@config";
 
 export const cookieOpts = {
   httpOnly: true,
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
+  secure: process.env.NODE_ENV !== "test",
   path: "/",
 };
 
@@ -21,14 +22,23 @@ export const authController = {
 
       const { user, token } = await authService.login(identifier, password);
 
+      if (!user) {
+        throw new Error("Authenticated user data missing");
+      }
+
       res.cookie("authToken", token, cookieOpts);
       res.setHeader("Location", "/reports");
-
       return res.status(200).json({
+        id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
         username: user.username,
         role: user.role,
+        municipality_role_id: (user as any).municipality_role_id,
+        municipality_role: (user as any).municipality_role ?? null,
+        telegramUsername: user.telegramUsername,
+        notificationsEnabled: user.notifications,
+        profilePhoto: `${CONFIG.BACKEND_URL}${CONFIG.ROUTES.USER_PROFILES}/${user.profilePhoto}`
       });
     } catch (error: any) {
       return res.status(401).json({
@@ -41,11 +51,23 @@ export const authController = {
   async verifyAuth(req: Request, res: Response) {
     try {
       const user = await authService.verifyAuth(req);
+      if (!user) {
+        return res.status(401).json({
+          error: "Authentication Error",
+          message: "Session is invalid or has expired",
+        });
+      }
       return res.status(200).json({
+        id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
         username: user.username,
         role: user.role,
+        municipality_role_id: (user as any).municipality_role_id,
+        municipality_role: (user as any).municipality_role ?? null,
+        telegramUsername: user.telegramUsername,
+        notificationsEnabled: user.notifications,
+        profilePhoto: `${CONFIG.BACKEND_URL}${CONFIG.ROUTES.USER_PROFILES}/${user.profilePhoto}`,
       });
     } catch {
       return res.status(401).json({

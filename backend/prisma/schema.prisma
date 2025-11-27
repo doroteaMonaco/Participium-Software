@@ -18,7 +18,14 @@ model user {
   createdAt            DateTime           @default(now())
   municipality_role_id Int?
   role                 roleType           @default(CITIZEN)
+  profilePhoto         String?
+  telegramUsername     String?
+  notifications        Boolean            @default(true)
   municipality_role    municipality_role? @relation(fields: [municipality_role_id], references: [id], onDelete: Restrict)
+  reports              report[]           @relation("CitizenReports")
+  assignedReports      report[]           @relation("OfficerAssignments")
+  sentMessages         message[]          @relation("sentMessages")
+  receivedMessages     message[]          @relation("receivedMessages")
 }
 
 model report {
@@ -26,10 +33,32 @@ model report {
   createdAt   DateTime @default(now())
   latitude    Float
   longitude   Float
+  title       String
   category    Category
   description String
   photos      String[]
-  title       String
+  status      reportStatus @default(PENDING_APPROVAL)
+  rejectionReason String?
+  assignedOffice String?
+  anonymous   Boolean  @default(false)
+  user_id     Int?
+  user        user? @relation("CitizenReports", fields: [user_id], references: [id], onDelete: Restrict)
+  assignedOfficerId Int?
+  assignedOfficer user? @relation("OfficerAssignments", fields: [assignedOfficerId], references: [id], onDelete: SetNull)
+
+  @@index([assignedOfficerId])
+}
+
+model message {
+  id            Int      @id @default(autoincrement())
+  title         String
+  content       String
+  sentAt        DateTime @default(now())
+  readAt        DateTime?
+  sender_id     Int
+  recipient_id  Int
+  sender        user     @relation("sentMessages", fields: [sender_id], references: [id], onDelete: Restrict)
+  recipient     user     @relation("receivedMessages", fields: [recipient_id], references: [id], onDelete: Restrict)
 }
 
 model municipality_role {
@@ -54,4 +83,13 @@ enum Category {
   ROADS_URBAN_FURNISHINGS
   PUBLIC_GREEN_AREAS_PLAYGROUNDS
   OTHER
+}
+
+enum reportStatus {
+  PENDING_APPROVAL
+  ASSIGNED
+  IN_PROGRESS
+  SUSPENDED
+  REJECTED
+  RESOLVED
 }

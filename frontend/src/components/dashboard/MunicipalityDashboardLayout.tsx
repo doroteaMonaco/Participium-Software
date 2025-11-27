@@ -1,30 +1,34 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MunicipalitySidebar } from "./MunicipalitySidebar";
+import { UnifiedSidebar } from "./UnifiedSidebar";
 import { Topbar } from "./Topbar";
+import { useAuth } from "src/contexts/AuthContext";
 
 export const MunicipalityDashboardLayout: React.FC<React.PropsWithChildren> = ({
   children,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const { logout, user } = useAuth();
 
-  const handleLogout = () => {
-    // Clear any authentication tokens or session data here
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
   return (
     <div className="flex min-h-svh w-full bg-slate-50">
       {/* Municipality Sidebar */}
-      <MunicipalitySidebar
+      <UnifiedSidebar
+        role="MUNICIPALITY"
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
+        municipalityRole={user?.municipality_role?.name}
       />
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col lg:ml-64">
-        <Topbar 
-          onMenuClick={() => setMobileMenuOpen(true)} 
+        <Topbar
+          onMenuClick={() => setMobileMenuOpen(true)}
           onLogout={handleLogout}
           title="Municipality Dashboard"
         />

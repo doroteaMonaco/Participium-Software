@@ -1,56 +1,127 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { DashboardLayout } from "src/components/dashboard/DashboardLayout";
 import { StatCard } from "src/components/dashboard/StatCard";
 import {
   ReportsTable,
-  type Report,
+  type Report as TableReport,
 } from "src/components/dashboard/ReportsTable";
 import { StatusBadge } from "src/components/dashboard/StatusBadge";
+import { getReports } from "src/services/api";
+import { Report, ReportStatus } from "src/services/models";
+import { useAuth } from "src/contexts/AuthContext";
 
 import { MapPin } from "lucide-react";
 
-const sampleReports: Report[] = [
-  {
-    id: "RPT-001",
-    title: "Broken streetlight near Via Garibaldi",
-    category: "Public Lighting",
-    createdAt: "2025-11-02",
-    status: "In Progress",
-    location: "Turin - Centro",
-  },
-  {
-    id: "RPT-002",
-    title: "Overflowing trash bin",
-    category: "Waste",
-    createdAt: "2025-11-03",
-    status: "Assigned",
-    location: "San Salvario",
-  },
-  {
-    id: "RPT-003",
-    title: "Pothole next to bus stop",
-    category: "Roads & Urban Furnishings",
-    createdAt: "2025-11-03",
-    status: "Pending",
-    location: "Aurora",
-  },
-  {
-    id: "RPT-004",
-    title: "Damaged playground slide",
-    category: "Public Green Areas & Playgrounds",
-    createdAt: "2025-10-29",
-    status: "Resolved",
-    location: "Vanchiglia",
-  },
-];
+// Map backend status to UI status
+const mapStatus = (status: ReportStatus): string => {
+  switch (status) {
+    case ReportStatus.PENDING:
+      return "Pending";
+    case ReportStatus.ASSIGNED:
+      return "Assigned";
+    case ReportStatus.IN_PROGRESS:
+      return "In Progress";
+    case ReportStatus.SUSPENDED:
+      return "Suspended";
+    case ReportStatus.REJECTED:
+      return "Rejected";
+    case ReportStatus.RESOLVED:
+      return "Resolved";
+    default:
+      return "Pending";
+  }
+};
 
 export const UserDashboard: React.FC = () => {
+  const { user } = useAuth();
+  const [reports, setReports] = useState<Report[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const data = await getReports();
+        const reportsData = data
+          .filter((r) => r.user_id === user?.id)
+          .map(
+            (r) =>
+              new Report(
+                r.latitude ?? 0,
+                r.longitude ?? 0,
+                r.title ?? "",
+                r.status ?? "",
+                r.anonymous ?? false,
+                r.id,
+                r.description ?? "",
+                r.category ?? "",
+                r.photos ?? [],
+                r.createdAt ?? "",
+                r.rejectionReason,
+                r.user || null,
+              ),
+          );
+        setReports(reportsData);
+      } catch (err) {
+        console.error("Error fetching reports:", err);
+      }
+    };
+
+    if (user?.id) {
+      fetchReports();
+    }
+  }, [user?.id]);
+
+  // Filter reports based on search and filters
+  const filteredReports = reports.filter((report) => {
+    const matchesSearch =
+      (report.title ?? "")
+        .toString()
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      (report.id ?? "")
+        .toString()
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+
+    const matchesCategory = categoryFilter
+      ? report.category === categoryFilter
+      : true;
+
+    const matchesStatus = statusFilter ? report.status === statusFilter : true;
+
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  // Calculate KPIs
+  const totalReports = reports.length;
+  const resolvedCount = reports.filter(
+    (r) => r.status === ReportStatus.RESOLVED,
+  ).length;
+  const inProgressCount = reports.filter(
+    (r) => r.status === ReportStatus.IN_PROGRESS,
+  ).length;
+  const pendingCount = reports.filter(
+    (r) => r.status === ReportStatus.PENDING,
+  ).length;
+
   const kpis = [
-    { label: "Total Reports", value: 24 },
-    { label: "Resolved", value: 9 },
-    { label: "In Progress", value: 6 },
-    { label: "Pending Approval", value: 3 },
+    { label: "Total Reports", value: totalReports },
+    { label: "Resolved", value: resolvedCount },
+    { label: "In Progress", value: inProgressCount },
+    { label: "Pending Approval", value: pendingCount },
   ];
+
+  // Convert to table format
+  const tableReports: TableReport[] = filteredReports.map((r) => ({
+    id: `RPT-${r.id}`,
+    title: r.title,
+    category: r.category,
+    createdAt: new Date(r.createdAt).toLocaleDateString(),
+    status: mapStatus(r.status) as any,
+    location: `${r.lat.toFixed(4)}, ${r.lng.toFixed(4)}`,
+  }));
 
   return (
     <DashboardLayout>
@@ -75,30 +146,40 @@ export const UserDashboard: React.FC = () => {
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <input
               placeholder="Search by title or ID…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full sm:w-auto sm:min-w-[200px] rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
             />
 
-            <select className="w-full sm:w-auto rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full sm:w-auto rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
+            >
               <option value="">All categories</option>
               <option>Public Lighting</option>
               <option>Waste</option>
-              <option>Roads & Urban Furnishings</option>
-              <option>Public Green Areas & Playgrounds</option>
+              <option>Roads and Urban Furnishings</option>
+              <option>Public Green Areas and Playgrounds</option>
               <option>Water Supply – Drinking Water</option>
               <option>Sewer System</option>
-              <option>Road Signs & Traffic Lights</option>
+              <option>Road Signs and Traffic Lights</option>
               <option>Architectural Barriers</option>
               <option>Other</option>
             </select>
 
-            <select className="w-full sm:w-auto rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full sm:w-auto rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
+            >
               <option value="">All statuses</option>
-              <option>Pending Approval</option>
-              <option>Assigned</option>
-              <option>In Progress</option>
-              <option>Suspended</option>
-              <option>Rejected</option>
-              <option>Resolved</option>
+              <option value={ReportStatus.PENDING}>Pending</option>
+              <option value={ReportStatus.ASSIGNED}>Assigned</option>
+              <option value={ReportStatus.IN_PROGRESS}>In Progress</option>
+              <option value={ReportStatus.SUSPENDED}>Suspended</option>
+              <option value={ReportStatus.REJECTED}>Rejected</option>
+              <option value={ReportStatus.RESOLVED}>Resolved</option>
             </select>
           </div>
 
@@ -114,7 +195,7 @@ export const UserDashboard: React.FC = () => {
         <div className="grid gap-6 grid-cols-1 xl:grid-cols-3">
           {/* Table */}
           <div className="xl:col-span-2 min-w-0">
-            <ReportsTable data={sampleReports} />
+            <ReportsTable data={tableReports} />
           </div>
 
           {/* Map / preview card */}
@@ -125,36 +206,37 @@ export const UserDashboard: React.FC = () => {
               </span>
               <div>
                 <p className="text-sm font-semibold text-slate-900">
-                  Map preview
+                  Recent Reports
                 </p>
                 <p className="text-xs text-slate-600">
-                  Your recent report locations
+                  Your latest submissions
                 </p>
               </div>
             </div>
-            <div className="mt-4 aspect-[4/3] w-full rounded-xl bg-gradient-to-br from-indigo-50 to-emerald-50 ring-1 ring-inset ring-slate-200" />
-            <p className="mt-3 text-xs text-slate-500">
-              Replace this with your actual map component (Leaflet, Mapbox,
-              Google Maps).
-            </p>
 
             <div className="mt-4 space-y-2">
-              {sampleReports.slice(0, 3).map((r) => (
-                <div
-                  key={r.id}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2"
-                >
-                  <div className="min-w-0 flex-1 mr-2">
-                    <p className="truncate text-sm font-medium text-slate-900">
-                      {r.title}
-                    </p>
-                    <p className="truncate text-xs text-slate-500">
-                      {r.location}
-                    </p>
+              {filteredReports.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-8">
+                  No reports found
+                </p>
+              ) : (
+                filteredReports.slice(0, 5).map((r) => (
+                  <div
+                    key={r.id}
+                    className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2"
+                  >
+                    <div className="min-w-0 flex-1 mr-2">
+                      <p className="truncate text-sm font-medium text-slate-900">
+                        {r.title}
+                      </p>
+                      <p className="truncate text-xs text-slate-500">
+                        {r.category}
+                      </p>
+                    </div>
+                    <StatusBadge status={mapStatus(r.status) as any} compact />
                   </div>
-                  <StatusBadge status={r.status} compact />
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

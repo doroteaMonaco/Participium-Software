@@ -1,1 +1,19 @@
-node_modules
+# ignore installed deps anywhere
+**/node_modules
+**/package-lock.json
+
+# build/artifact folders
+**/dist
+**/build
+**/coverage
+**/test
+
+# logs / editor / git
+**/*.log
+**/*.tsbuildinfo
+.vscode
+.git
+
+# env / secrets
+**/.env
+**/.env.*

@@ -5,7 +5,6 @@ import MapView from "src/components/map/MapView";
 import { ArrowLeft, Info } from "lucide-react";
 import { getReports } from "src/services/api";
 import { Report, ReportStatus } from "src/services/models";
-import CustomMarker from "src/components/map/CustomMarker";
 
 const NewReportPage: React.FC = () => {
   const navigate = useNavigate();
@@ -15,20 +14,23 @@ const NewReportPage: React.FC = () => {
     const fetchReports = async () => {
       try {
         const data = await getReports();
-        const mapped = (data ?? []).map((r: any) => {
-          return new Report(
-            Number(r.latitude ?? r.lat ?? 0),
-            Number(r.longitude ?? r.lng ?? 0),
-            r.title ?? "",
-            (r.status as any) ?? ReportStatus.PENDING,
-            r.id,
-            r.description,
-            r.anonymous,
-            r.category,
-            r.photos,
-            r.createdAt
-          );
-        });
+        const mapped = (data ?? [])
+          .filter((r: any) => r.status !== "REJECTED") // Don't show rejected reports on map
+          .map((r: any) => {
+            return new Report(
+              Number(r.latitude ?? r.lat ?? 0),
+              Number(r.longitude ?? r.lng ?? 0),
+              r.title ?? "",
+              (r.status as any) ?? ReportStatus.PENDING,
+              r.anonymous,
+              r.id,
+              r.description,
+              r.category,
+              r.photos,
+              r.createdAt,
+              r.rejectionReason,
+            );
+          });
         setReports(mapped);
       } catch (err) {
         console.error("Error fetching reports:", err);
@@ -36,6 +38,35 @@ const NewReportPage: React.FC = () => {
     };
 
     fetchReports();
+
+    // Listen for new reports being created
+    const handleReportCreated = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const newReport = customEvent.detail;
+      if (newReport) {
+        // Add the new report to the map
+        const mappedReport = new Report(
+          Number(newReport.latitude ?? newReport.lat ?? 0),
+          Number(newReport.longitude ?? newReport.lng ?? 0),
+          newReport.title ?? "",
+          (newReport.status as any) ?? ReportStatus.PENDING,
+          newReport.anonymous,
+          newReport.id,
+          newReport.description,
+          newReport.category,
+          newReport.photos,
+          newReport.createdAt,
+          newReport.rejectionReason,
+        );
+        setReports((prev) => [...prev, mappedReport]);
+      }
+    };
+
+    window.addEventListener("reports:changed", handleReportCreated);
+
+    return () => {
+      window.removeEventListener("reports:changed", handleReportCreated);
+    };
   }, []);
 
   return (
@@ -100,9 +131,11 @@ const NewReportPage: React.FC = () => {
           className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
           style={{ height: "calc(100vh - 380px)", minHeight: "500px" }}
         >
-          <MapView reports={reports}>
-            <CustomMarker draggable={true} location={true} />
-          </MapView>
+          <MapView
+            reports={reports}
+            markerDraggable={true}
+            markerLocation={true}
+          />
         </div>
 
         {/* Quick Tips */}
