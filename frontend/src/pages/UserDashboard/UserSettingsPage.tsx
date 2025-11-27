@@ -20,7 +20,6 @@ export const UserSettingsPage: React.FC = () => {
   const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
   const [telegramUsername, setTelegramUsername] = useState("");
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [virtualPresence, setVirtualPresence] = useState(true);
   const [notification, setNotification] = useState<{
     type: "success" | "error";
     message: string;
@@ -314,88 +313,6 @@ export const UserSettingsPage: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </motion.div>
-
-        {/* Virtual Presence Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="rounded-2xl border-2 border-green-100 bg-gradient-to-br from-white to-green-50/30 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
-        >
-          <div className="px-6 py-5 border-b-2 border-green-100 bg-green-50/50">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-green-600 text-white shadow-md">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  🌍 Virtual Presence
-                </h2>
-                <p className="text-sm text-slate-600">
-                  Show your community involvement
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6">
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white border-2 border-green-100 hover:border-green-200 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-green-50">
-                  <CheckCircle2 className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-base font-semibold text-slate-900">
-                    Public Participation
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    Let others see your civic engagement
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setVirtualPresence(!virtualPresence)}
-                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-all shadow-inner ${
-                  virtualPresence ? "bg-green-500" : "bg-slate-300"
-                }`}
-                aria-label="Toggle virtual presence"
-              >
-                <span
-                  className={`inline-flex items-center justify-center h-6 w-6 transform rounded-full bg-white shadow-md transition-transform ${
-                    virtualPresence ? "translate-x-7" : "translate-x-1"
-                  }`}
-                >
-                  {virtualPresence ? (
-                    <Check className="h-3 w-3 text-green-600" />
-                  ) : (
-                    <X className="h-3 w-3 text-slate-400" />
-                  )}
-                </span>
-              </button>
-            </div>
-
-            {virtualPresence && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="mt-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 p-4"
-              >
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-bold text-green-900 mb-1">
-                      ✓ Virtual Presence Active
-                    </p>
-                    <p className="text-sm text-green-800">
-                      Other community members can see your active participation,
-                      helping build trust and encouraging civic engagement.
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
           </div>
         </motion.div>
 
