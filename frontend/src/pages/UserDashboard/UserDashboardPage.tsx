@@ -80,7 +80,10 @@ export const UserDashboard: React.FC = () => {
         .toString()
         .toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
-      (report.id ?? "").toString().toLowerCase().includes(searchQuery.toLowerCase());
+      (report.id ?? "")
+        .toString()
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
     const matchesCategory = categoryFilter
       ? report.category === categoryFilter

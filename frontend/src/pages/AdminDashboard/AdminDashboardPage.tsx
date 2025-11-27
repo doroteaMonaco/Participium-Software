@@ -27,12 +27,15 @@ export const AdminDashboardPage: React.FC = () => {
 
   // Compute KPIs
   const totalReports = reports.length;
-  const activeReports = reports.filter(r => r.status !== "RESOLVED").length;
-  const resolvedThisMonth = reports.filter(r => {
+  const activeReports = reports.filter((r) => r.status !== "RESOLVED").length;
+  const resolvedThisMonth = reports.filter((r) => {
     if (r.status !== "RESOLVED") return false;
     const createdAt = new Date(r.createdAt || "");
     const now = new Date();
-    return createdAt.getMonth() === now.getMonth() && createdAt.getFullYear() === now.getFullYear();
+    return (
+      createdAt.getMonth() === now.getMonth() &&
+      createdAt.getFullYear() === now.getFullYear()
+    );
   }).length;
   const highPriority = 0; // No priority field, set to 0
 
@@ -114,8 +117,7 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid gap-6 grid-cols-1 xl:grid-cols-1">
-        </div>
+        <div className="grid gap-6 grid-cols-1 xl:grid-cols-1"></div>
       </div>
     </AdminDashboardLayout>
   );

@@ -29,13 +29,15 @@ const MAP_OPTIONS = {
 };
 
 // Component to expose map instance to parent
-const MapInstanceProvider: React.FC<{ setMapInstance: (map: any) => void }> = ({ setMapInstance }) => {
+const MapInstanceProvider: React.FC<{ setMapInstance: (map: any) => void }> = ({
+  setMapInstance,
+}) => {
   const map = useMap();
-  
+
   useEffect(() => {
     setMapInstance(map);
   }, [map, setMapInstance]);
-  
+
   return null;
 };
 
@@ -127,7 +129,9 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
 
       {/* Legend */}
       <div className="absolute top-4 right-4 z-[1000] bg-white rounded-lg shadow-lg p-3 border border-slate-200">
-        <div className="text-xs font-bold text-slate-700 mb-2">Report Status</div>
+        <div className="text-xs font-bold text-slate-700 mb-2">
+          Report Status
+        </div>
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-indigo-500 border border-indigo-600"></div>
@@ -213,7 +217,9 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
         )}
 
         <ClusteredMarkers reports={reports} />
-        <MapInstanceProvider setMapInstance={(map) => (mapInstanceRef.current = map)} />
+        <MapInstanceProvider
+          setMapInstance={(map) => (mapInstanceRef.current = map)}
+        />
         {children}
       </MapContainer>
     </div>

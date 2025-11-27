@@ -166,12 +166,12 @@ export const TechnicalReportsPage: React.FC = () => {
   useEffect(() => {
     const fetchReports = async () => {
       if (!user?.id) return;
-      
+
       try {
         setLoading(true);
         setError(null);
         const data = await getAssignedReports(user.id);
-        
+
         // Map backend data to frontend format
         const mappedReports: Report[] = data.map((r: any) => ({
           id: `RPT-${r.id}`,
@@ -179,18 +179,22 @@ export const TechnicalReportsPage: React.FC = () => {
           description: r.description || "No description",
           category: r.category || "Other",
           status: mapBackendStatus(r.status),
-          location: r.location || `${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}`,
+          location:
+            r.location || `${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}`,
           coordinates: { lat: r.latitude, lng: r.longitude },
           createdAt: new Date(r.createdAt).toLocaleDateString(),
-          submittedBy: r.user ? `${r.user.firstName} ${r.user.lastName}` : "Unknown",
+          submittedBy: r.user
+            ? `${r.user.firstName} ${r.user.lastName}`
+            : "Unknown",
           isAnonymous: r.anonymous || false,
-          photos: (r.photos || []).map((p: string) => 
-            `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`
+          photos: (r.photos || []).map(
+            (p: string) =>
+              `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`,
           ),
           assignedOffice: r.assignedOffice || "Not assigned",
           comments: [],
         }));
-        
+
         setReports(mappedReports);
       } catch (err) {
         console.error("Error fetching assigned reports:", err);
@@ -361,7 +365,9 @@ export const TechnicalReportsPage: React.FC = () => {
         {loading && (
           <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
             <div className="animate-spin h-12 w-12 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-slate-600 font-medium">Loading your assigned reports...</p>
+            <p className="text-slate-600 font-medium">
+              Loading your assigned reports...
+            </p>
           </div>
         )}
 
@@ -375,216 +381,216 @@ export const TechnicalReportsPage: React.FC = () => {
         {/* Filters */}
         {!loading && !error && (
           <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search by report title, ID, or location..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border-2 border-slate-300 bg-white pl-11 pr-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
-              />
-            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search by report title, ID, or location..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-xl border-2 border-slate-300 bg-white pl-11 pr-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
+                />
+              </div>
 
-            <div className="sm:w-56">
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
-              >
-                <option value="">📊 All Statuses</option>
-                <option value="Assigned">🆕 New Assignments</option>
-                <option value="In Progress">⚙️ Active Work</option>
-                <option value="Suspended">⏸️ On Hold</option>
-                <option value="Resolved">✅ Completed</option>
-              </select>
+              <div className="sm:w-56">
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
+                >
+                  <option value="">📊 All Statuses</option>
+                  <option value="Assigned">🆕 New Assignments</option>
+                  <option value="In Progress">⚙️ Active Work</option>
+                  <option value="Suspended">⏸️ On Hold</option>
+                  <option value="Resolved">✅ Completed</option>
+                </select>
+              </div>
             </div>
           </div>
-        </div>
         )}
 
         {/* Reports List */}
         {!loading && !error && (
           <div className="space-y-4">
-          {filteredReports.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-              <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-600">
-                No reports found matching your filters.
-              </p>
-            </div>
-          ) : (
-            filteredReports.map((report, index) => (
-              <motion.div
-                key={report.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="rounded-2xl border-2 border-slate-200 bg-white overflow-hidden shadow-md hover:shadow-xl hover:border-indigo-300 transition-all"
-              >
-                {/* Header Section */}
-                <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 px-6 py-5 border-b-2 border-indigo-200">
-                  <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="flex items-center justify-center px-4 py-2 rounded-lg bg-indigo-600 text-white font-bold text-sm shadow-md">
-                          ID: {report.id}
+            {filteredReports.length === 0 ? (
+              <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+                <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-600">
+                  No reports found matching your filters.
+                </p>
+              </div>
+            ) : (
+              filteredReports.map((report, index) => (
+                <motion.div
+                  key={report.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="rounded-2xl border-2 border-slate-200 bg-white overflow-hidden shadow-md hover:shadow-xl hover:border-indigo-300 transition-all"
+                >
+                  {/* Header Section */}
+                  <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 px-6 py-5 border-b-2 border-indigo-200">
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="flex items-center justify-center px-4 py-2 rounded-lg bg-indigo-600 text-white font-bold text-sm shadow-md">
+                            ID: {report.id}
+                          </div>
+                          <span
+                            className={`inline-flex items-center rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide shadow-sm ${
+                              statusColors[report.status]
+                            }`}
+                          >
+                            {report.status}
+                          </span>
                         </div>
-                        <span
-                          className={`inline-flex items-center rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide shadow-sm ${
-                            statusColors[report.status]
-                          }`}
-                        >
-                          {report.status}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">
-                          Report Title
-                        </p>
-                        <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-tight">
-                          {report.title}
-                        </h3>
+                        <div>
+                          <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">
+                            Report Title
+                          </p>
+                          <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-tight">
+                            {report.title}
+                          </h3>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Content Section */}
-                <div className="px-6 py-5 space-y-4">
-                  {/* Description */}
-                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                    <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">
-                      Problem Description
-                    </p>
-                    <p className="text-base text-slate-800 leading-relaxed">
-                      {report.description}
-                    </p>
-                  </div>
-
-                  {/* Photos Section */}
-                  {report.photos.length > 0 && (
-                    <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
-                      <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-3 flex items-center gap-2">
-                        <ImageIcon className="h-4 w-4" />
-                        Photos ({report.photos.length})
+                  {/* Content Section */}
+                  <div className="px-6 py-5 space-y-4">
+                    {/* Description */}
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                      <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">
+                        Problem Description
                       </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                        {report.photos.map((photo, idx) => (
-                          <div
-                            key={idx}
-                            className="group relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 bg-white hover:border-indigo-400 transition-all cursor-pointer"
-                          >
-                            <img
-                              src={photo}
-                              alt={`Report photo ${idx + 1}`}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                              <div className="absolute bottom-2 left-2 right-2">
-                                <p className="text-xs font-semibold text-white">
-                                  Photo {idx + 1}
-                                </p>
+                      <p className="text-base text-slate-800 leading-relaxed">
+                        {report.description}
+                      </p>
+                    </div>
+
+                    {/* Photos Section */}
+                    {report.photos.length > 0 && (
+                      <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                        <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-3 flex items-center gap-2">
+                          <ImageIcon className="h-4 w-4" />
+                          Photos ({report.photos.length})
+                        </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                          {report.photos.map((photo, idx) => (
+                            <div
+                              key={idx}
+                              className="group relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 bg-white hover:border-indigo-400 transition-all cursor-pointer"
+                            >
+                              <img
+                                src={photo}
+                                alt={`Report photo ${idx + 1}`}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute bottom-2 left-2 right-2">
+                                  <p className="text-xs font-semibold text-white">
+                                    Photo {idx + 1}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Metadata Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {METADATA_CONFIG.map((config) => {
-                      const Icon = config.icon;
-                      return (
-                        <div
-                          key={config.label}
-                          className={`flex items-center gap-3 p-3 bg-gradient-to-br ${config.gradient} rounded-xl border ${config.border}`}
-                        >
-                          <div
-                            className={`flex items-center justify-center w-10 h-10 rounded-lg ${config.iconBg} text-white shadow-md`}
-                          >
-                            <Icon className="h-5 w-5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className={`text-[10px] font-bold ${config.textColor} uppercase tracking-wide`}
-                            >
-                              {config.label}
-                            </p>
-                            <p className="text-sm font-semibold text-slate-900 truncate">
-                              {config.getValue(report)}
-                            </p>
-                          </div>
+                          ))}
                         </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Assigned Office */}
-                  <div className="rounded-xl bg-indigo-50 border-2 border-indigo-200 p-4 mb-4">
-                    <p className="text-sm font-bold text-indigo-900 mb-1">
-                      📋 Assigned To:
-                    </p>
-                    <p className="text-sm text-indigo-700 font-medium">
-                      {report.assignedOffice}
-                    </p>
-                  </div>
-
-                  {/* Comments Section */}
-                  {report.comments.length > 0 && (
-                    <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 mb-4">
-                      <p className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4" />
-                        Comments ({report.comments.length})
-                      </p>
-                      <div className="space-y-3">
-                        {report.comments.map((comment) => (
-                          <div
-                            key={comment.id}
-                            className="bg-white rounded-lg p-3 border border-slate-200"
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-semibold text-slate-900">
-                                {comment.author}
-                              </span>
-                              <span className="text-xs text-slate-500">
-                                {comment.timestamp}
-                              </span>
-                            </div>
-                            <p className="text-sm text-slate-700">
-                              {comment.text}
-                            </p>
-                          </div>
-                        ))}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200">
-                    <button
-                      onClick={() => handleStatusChange(report)}
-                      className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                    >
-                      <Edit3 className="h-5 w-5" />
-                      Update Status
-                    </button>
-                    <button
-                      onClick={() => handleAddComment(report)}
-                      className="flex-1 rounded-xl bg-slate-600 hover:bg-slate-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                    >
-                      <MessageSquare className="h-5 w-5" />
-                      Add Comment
-                    </button>
+                    {/* Metadata Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {METADATA_CONFIG.map((config) => {
+                        const Icon = config.icon;
+                        return (
+                          <div
+                            key={config.label}
+                            className={`flex items-center gap-3 p-3 bg-gradient-to-br ${config.gradient} rounded-xl border ${config.border}`}
+                          >
+                            <div
+                              className={`flex items-center justify-center w-10 h-10 rounded-lg ${config.iconBg} text-white shadow-md`}
+                            >
+                              <Icon className="h-5 w-5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className={`text-[10px] font-bold ${config.textColor} uppercase tracking-wide`}
+                              >
+                                {config.label}
+                              </p>
+                              <p className="text-sm font-semibold text-slate-900 truncate">
+                                {config.getValue(report)}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Assigned Office */}
+                    <div className="rounded-xl bg-indigo-50 border-2 border-indigo-200 p-4 mb-4">
+                      <p className="text-sm font-bold text-indigo-900 mb-1">
+                        📋 Assigned To:
+                      </p>
+                      <p className="text-sm text-indigo-700 font-medium">
+                        {report.assignedOffice}
+                      </p>
+                    </div>
+
+                    {/* Comments Section */}
+                    {report.comments.length > 0 && (
+                      <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 mb-4">
+                        <p className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4" />
+                          Comments ({report.comments.length})
+                        </p>
+                        <div className="space-y-3">
+                          {report.comments.map((comment) => (
+                            <div
+                              key={comment.id}
+                              className="bg-white rounded-lg p-3 border border-slate-200"
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-semibold text-slate-900">
+                                  {comment.author}
+                                </span>
+                                <span className="text-xs text-slate-500">
+                                  {comment.timestamp}
+                                </span>
+                              </div>
+                              <p className="text-sm text-slate-700">
+                                {comment.text}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200">
+                      <button
+                        onClick={() => handleStatusChange(report)}
+                        className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <Edit3 className="h-5 w-5" />
+                        Update Status
+                      </button>
+                      <button
+                        onClick={() => handleAddComment(report)}
+                        className="flex-1 rounded-xl bg-slate-600 hover:bg-slate-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <MessageSquare className="h-5 w-5" />
+                        Add Comment
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            ))
-          )}
-        </div>
+                </motion.div>
+              ))
+            )}
+          </div>
         )}
       </div>
 

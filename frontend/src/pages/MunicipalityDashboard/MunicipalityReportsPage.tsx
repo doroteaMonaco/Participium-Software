@@ -115,7 +115,10 @@ export const AdminReportsPage: React.FC = () => {
         });
       } catch (err: any) {
         console.error("Error approving/rejecting report:", err);
-        const errorMessage = err.response?.data?.error || err.message || "An error occurred while processing the report";
+        const errorMessage =
+          err.response?.data?.error ||
+          err.message ||
+          "An error occurred while processing the report";
         setApprovalError(errorMessage);
         return;
       }

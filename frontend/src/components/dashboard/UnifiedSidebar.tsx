@@ -192,7 +192,10 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
         return false;
       }
       // Show "Technical Reports" to all municipality users except public relations officers
-      if (item.href === "/municipality/technical-reports" && isPublicRelations) {
+      if (
+        item.href === "/municipality/technical-reports" &&
+        isPublicRelations
+      ) {
         return false;
       }
       return true;
