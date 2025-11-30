@@ -1,19 +1,12 @@
+import type { Config } from "jest";
 import { pathsToModuleNameMapper, createDefaultPreset } from "ts-jest";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const tsconfigPath = path.resolve(__dirname, "tsconfig.json");
-const tsconfigJson = JSON.parse(fs.readFileSync(tsconfigPath, "utf-8"));
+import tsconfig from "./tsconfig.json";
 
 const tsJestTransformCfg = createDefaultPreset().transform;
 
-const base_config = {
-  preset: "ts-jest" as const,
-  testEnvironment: "node" as const,
+const base_config: Config = {
+  preset: "ts-jest",
+  testEnvironment: "node",
   roots: ["<rootDir>/test"],
   collectCoverageFrom: [
     "src/**/*.{ts,tsx}",
@@ -32,26 +25,25 @@ const base_config = {
   transform: { ...tsJestTransformCfg },
   testPathIgnorePatterns: ["/node_modules/", "/dist/"],
   moduleNameMapper: pathsToModuleNameMapper(
-    tsconfigJson.compilerOptions?.paths ?? {},
+    tsconfig.compilerOptions.paths ?? {},
     { prefix: "<rootDir>/" },
   ),
 };
 
-const unit = {
+const unit: Config = {
   ...base_config,
   displayName: "unit",
   setupFilesAfterEnv: ["<rootDir>/test/unit/setup.ts"],
   testMatch: ["**/unit/**/*.test.ts"],
 };
 
-const integration = {
+const integration: Config = {
   ...base_config,
   displayName: "integration",
   testMatch: ["**/integration/**/*.integration.test.ts"],
 };
 
-const config = {
+const config: Config = {
   projects: [unit, integration],
 };
-
 export default config;

@@ -60,6 +60,7 @@ const makeReport = (overrides: Partial<any> = {}) => ({
   photos: ["p1", "p2"],
   status: ReportStatus.PENDING_APPROVAL,
   createdAt: new Date("2025-11-04T14:30:00Z"),
+  user_id: 10,
   ...overrides,
 });
 
@@ -91,29 +92,32 @@ describe("reportService", () => {
       expect(res[0].photos).toEqual(rows[0].photos);
     });
 
-    // it("filters reports by status when statusFilter is provided", async () => {
-    //   const approvedReports = [makeReport({ id: 1, status: "ASSIGNED" })];
-    //   repo.findAll.mockResolvedValue(approvedReports);
+    it("filters reports by status when statusFilter is provided", async () => {
+      const approvedReports = [makeReport({ id: 1, status: "ASSIGNED" })];
+      repo.findAll.mockResolvedValue(approvedReports);
 
-    //   const res = await reportService.findAll(ReportStatus.ASSIGNED);
+      const res = await reportService.findAll(ReportStatus.ASSIGNED);
 
-    //   expect(repo.findAll).toHaveBeenCalledWith(ReportStatus.ASSIGNED);
-    //   expect(res[0].photos).toEqual(approvedReports[0].photos);
-    // });
+      expect(repo.findAll).toHaveBeenCalledWith(
+        ReportStatus.ASSIGNED,
+        undefined,
+      );
+      expect(res[0].photos).toEqual(approvedReports[0].photos);
+    });
 
-    // it("returns all reports when no statusFilter", async () => {
-    //   const allReports = [
-    //     makeReport({ id: 1, status: "PENDING" }),
-    //     makeReport({ id: 2, status: "ASSIGNED" })
-    //   ];
-    //   repo.findAll.mockResolvedValue(allReports);
-    //   img.getMultipleImages.mockResolvedValue(["url1"]);
+    it("returns all reports when no statusFilter", async () => {
+      const allReports = [
+        makeReport({ id: 1, status: "PENDING" }),
+        makeReport({ id: 2, status: "ASSIGNED" }),
+      ];
+      repo.findAll.mockResolvedValue(allReports);
+      img.getMultipleImages.mockResolvedValue(["url1"]);
 
-    //   const res = await reportService.findAll();
+      const res = await reportService.findAll();
 
-    //   expect(repo.findAll).toHaveBeenCalledWith(undefined);
-    //   expect(res).toHaveLength(2);
-    // });
+      expect(repo.findAll).toHaveBeenCalledWith(undefined, undefined);
+      expect(res).toHaveLength(2);
+    });
   });
 
   // -------- findById --------
@@ -159,7 +163,9 @@ describe("reportService", () => {
 
       const res = await reportService.findByStatus("PENDING_APPROVAL");
 
-      expect(repo.findByStatus).toHaveBeenCalledWith(ReportStatus.PENDING_APPROVAL);
+      expect(repo.findByStatus).toHaveBeenCalledWith(
+        ReportStatus.PENDING_APPROVAL,
+      );
       expect(res).toEqual([]);
     });
   });
@@ -169,19 +175,21 @@ describe("reportService", () => {
     it("updates status and returns updated status", async () => {
       const existing = makeReport({ id: 1, status: "PENDING_APPROVAL" });
       repo.findById.mockResolvedValue(existing);
-      const updated = makeReport({ id: 1, status: ReportStatus.ASSIGNED });
+      const updated = makeReport({
+        id: 1,
+        status: ReportStatus.ASSIGNED,
+        assignedOfficerId: 50,
+      });
       repo.update.mockResolvedValue(updated);
       findLeastLoadedOfficerSpy.mockResolvedValue({ id: 50 } as any);
 
-      const res = await reportService.updateReportStatus(
-        1,
-        "ASSIGNED",
-      );
+      const res = await reportService.updateReportStatus(1, "ASSIGNED");
 
       expect(repo.update).toHaveBeenCalledWith(1, {
         status: ReportStatus.ASSIGNED,
         rejectionReason: undefined,
-        assignedOffice: "Environmental Services - Waste Management",
+        assignedOffice: "sanitation and waste management officer",
+        assignedOfficerId: 50,
       });
       expect(res).toBe(ReportStatus.ASSIGNED);
     });
@@ -193,7 +201,11 @@ describe("reportService", () => {
     });
 
     it("assigns default office when category not recognized", async () => {
-      const existing = makeReport({ id: 1, status: "PENDING_APPROVAL", category: "UNKNOWN_CATEGORY" });
+      const existing = makeReport({
+        id: 1,
+        status: "PENDING_APPROVAL",
+        category: "UNKNOWN_CATEGORY",
+      });
       repo.findById.mockResolvedValue(existing);
       const updated = makeReport({ id: 1, status: ReportStatus.ASSIGNED });
       repo.update.mockResolvedValue(updated);
@@ -204,7 +216,8 @@ describe("reportService", () => {
       expect(repo.update).toHaveBeenCalledWith(1, {
         status: ReportStatus.ASSIGNED,
         rejectionReason: undefined,
-        assignedOffice: "General Services Office",
+        assignedOffice: "municipal administrator",
+        assignedOfficerId: 77,
       });
       expect(res).toBe(ReportStatus.ASSIGNED);
     });
@@ -231,7 +244,7 @@ describe("reportService", () => {
       const res = await reportService.submitReport(dto, 1);
 
       expect(repo.create).toHaveBeenCalledWith(dto);
-      expect(res).toBe(created);
+      expect(res).toMatchObject(created);
       expect(img.persistImagesForReport).not.toHaveBeenCalled();
       expect(repo.update).not.toHaveBeenCalled();
       expect(img.getMultipleImages).not.toHaveBeenCalled();
@@ -271,7 +284,7 @@ describe("reportService", () => {
       expect(res).toEqual(
         expect.objectContaining({
           id: 123,
-          photos: ["/img/r/1.jpg", "/img/r/2.jpg"]
+          photos: ["/img/r/1.jpg", "/img/r/2.jpg"],
         }),
       );
     });
@@ -409,10 +422,11 @@ describe("reportService", () => {
 
       const res = await reportService.findAssignedReportsForOfficer(12);
 
-      expect(repo.findAssignedReportsForOfficer).toHaveBeenCalledWith(12, undefined);
-      expect(res).toEqual([
-        expect.objectContaining({ photos: [] }),
-      ]);
+      expect(repo.findAssignedReportsForOfficer).toHaveBeenCalledWith(
+        12,
+        undefined,
+      );
+      expect(res).toEqual([expect.objectContaining({ photos: [] })]);
     });
 
     it("maps provided status string before querying repository", async () => {
@@ -454,16 +468,16 @@ describe("reportService", () => {
 
       const res = await reportService.pickOfficerForService("Ghost Office");
 
-      expect(findLeastLoadedOfficerSpy).toHaveBeenCalledWith(
-        "Ghost Office",
-      );
+      expect(findLeastLoadedOfficerSpy).toHaveBeenCalledWith("Ghost Office");
       expect(res).toBeNull();
     });
 
     it("returns officer id when repository resolves an officer", async () => {
       findLeastLoadedOfficerSpy.mockResolvedValue({ id: 77 } as any);
 
-      const res = await reportService.pickOfficerForService("Environmental Services - Waste Management");
+      const res = await reportService.pickOfficerForService(
+        "Environmental Services - Waste Management",
+      );
 
       expect(findLeastLoadedOfficerSpy).toHaveBeenCalledWith(
         "Environmental Services - Waste Management",

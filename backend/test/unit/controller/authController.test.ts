@@ -219,6 +219,7 @@ describe("authController", () => {
       expect(res.setHeader).toHaveBeenCalledWith("Location", "/reports");
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
+        id: 1,
         firstName: "Mario",
         lastName: "Rossi",
         username: "mrossi",
@@ -280,6 +281,7 @@ describe("authController", () => {
       expect(authService.verifyAuth).toHaveBeenCalledWith(req);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
+        id: 7,
         firstName: "Mario",
         lastName: "Rossi",
         username: "mrossi",

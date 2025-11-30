@@ -234,7 +234,7 @@ describe("Municipality Integration Tests", () => {
       const roleNames = response.body.map((role: any) => role.name);
       expect(roleNames.length).toBeGreaterThan(0);
       // Just check that we have roles from the seeded list
-      expect(roleNames).toContain("civil registry clerk");
+      expect(roleNames).toContain("municipal public relations officer");
       expect(roleNames).toContain("municipal administrator");
     });
 

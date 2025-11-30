@@ -54,39 +54,69 @@ describe("reportRepository", () => {
       const res = await reportRepository.findAll();
 
       expect(prismaMock.report.findMany).toHaveBeenCalledWith({
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
         orderBy: { createdAt: "desc" },
       });
       expect(res).toBe(rows);
     });
 
-    // it("filters reports by status when statusFilter is provided", async () => {
-    //   const approvedReports = [makeReport({ id: 1, status: "ASSIGNED" })];
-    //   prismaMock.report.findMany.mockResolvedValue(approvedReports);
+    it("filters reports by status when statusFilter is provided", async () => {
+      const approvedReports = [makeReport({ id: 1, status: "ASSIGNED" })];
+      prismaMock.report.findMany.mockResolvedValue(approvedReports);
 
-    //   const res = await reportRepository.findAll("ASSIGNED");
+      const res = await reportRepository.findAll("ASSIGNED");
 
-    //   expect(prismaMock.report.findMany).toHaveBeenCalledWith({
-    //     where: { status: "ASSIGNED" },
-    //     orderBy: { createdAt: "desc" },
-    //   });
-    //   expect(res).toBe(approvedReports);
-    // });
+      expect(prismaMock.report.findMany).toHaveBeenCalledWith({
+        where: { status: "ASSIGNED" },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      expect(res).toBe(approvedReports);
+    });
 
-    // it("returns all reports when no statusFilter", async () => {
-    //   const allReports = [
-    //     makeReport({ id: 1, status: "PENDING" }),
-    //     makeReport({ id: 2, status: "ASSIGNED" })
-    //   ];
-    //   prismaMock.report.findMany.mockResolvedValue(allReports);
+    it("returns all reports when no statusFilter", async () => {
+      const allReports = [
+        makeReport({ id: 1, status: "PENDING" }),
+        makeReport({ id: 2, status: "ASSIGNED" }),
+      ];
+      prismaMock.report.findMany.mockResolvedValue(allReports);
 
-    //   const res = await reportRepository.findAll();
+      const res = await reportRepository.findAll();
 
-    //   expect(prismaMock.report.findMany).toHaveBeenCalledWith({
-    //     where: undefined,
-    //     orderBy: { createdAt: "desc" },
-    //   });
-    //   expect(res).toBe(allReports);
-    // });
+      expect(prismaMock.report.findMany).toHaveBeenCalledWith({
+        where: undefined,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      expect(res).toBe(allReports);
+    });
   });
 
   // -------- findByStatus --------
@@ -95,10 +125,22 @@ describe("reportRepository", () => {
       const reports = [makeReport({ id: 1, status: "PENDING_APPROVAL" })];
       prismaMock.report.findMany.mockResolvedValue(reports);
 
-      const res = await reportRepository.findByStatus(ReportStatus.PENDING_APPROVAL);
+      const res = await reportRepository.findByStatus(
+        ReportStatus.PENDING_APPROVAL,
+      );
 
       expect(prismaMock.report.findMany).toHaveBeenCalledWith({
         where: { status: ReportStatus.PENDING_APPROVAL },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
         orderBy: { createdAt: "desc" },
       });
       expect(res).toBe(reports);
@@ -115,6 +157,16 @@ describe("reportRepository", () => {
 
       expect(prismaMock.report.findUnique).toHaveBeenCalledWith({
         where: { id: 42 },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
       });
       expect(res).toBe(row);
     });
@@ -139,6 +191,16 @@ describe("reportRepository", () => {
 
       expect(prismaMock.report.findMany).toHaveBeenCalledWith({
         where: { status: ReportStatus.ASSIGNED } as any,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
         orderBy: { createdAt: "desc" },
       });
       expect(res).toBe(rows);
@@ -209,6 +271,9 @@ describe("reportRepository", () => {
           description: dto.description,
           category: dto.category,
           photos: dto.photoKeys,
+          anonymous: false,
+          assignedOffice: undefined,
+          user: undefined,
         },
       });
       expect(res).toBe(created);
@@ -260,6 +325,7 @@ describe("reportRepository", () => {
           photos: dtoWithUser.photoKeys,
           status: dtoWithUser.status,
           assignedOffice: dtoWithUser.assignedOffice,
+          anonymous: false,
           user: {
             connect: { id: dtoWithUser.user_id },
           },
@@ -315,12 +381,18 @@ describe("reportRepository", () => {
   // -------- findByStatusesAndCategories --------
   describe("findByStatusesAndCategories", () => {
     it("finds reports by statuses and categories", async () => {
-      const reports = [makeReport({ id: 1, status: "PENDING_APPROVAL", category: "ROAD_DAMAGE" })];
+      const reports = [
+        makeReport({
+          id: 1,
+          status: "PENDING_APPROVAL",
+          category: "ROAD_DAMAGE",
+        }),
+      ];
       prismaMock.report.findMany.mockResolvedValue(reports);
 
       const res = await reportRepository.findByStatusesAndCategories(
         [ReportStatus.PENDING_APPROVAL],
-        ["ROAD_DAMAGE"]
+        ["ROAD_DAMAGE"],
       );
 
       expect(prismaMock.report.findMany).toHaveBeenCalledWith({
@@ -361,6 +433,7 @@ describe("reportRepository", () => {
           photos: ["p1", "p2"],
           status: ReportStatus.PENDING_APPROVAL,
           assignedOffice: undefined,
+          anonymous: false,
         },
       });
       expect(res).toBe(createdReport);
@@ -392,6 +465,7 @@ describe("reportRepository", () => {
           photos: ["p1", "p2"],
           status: ReportStatus.PENDING_APPROVAL,
           assignedOffice: undefined,
+          anonymous: false,
           user: {
             connect: { id: 5 },
           },
@@ -419,7 +493,7 @@ describe("reportRepository", () => {
   describe("findAssignedReportsForOfficer", () => {
     it("returns reports assigned to the specified officer ID", async () => {
       const rows = [
-        makeReport({ id: 3,  assignedOfficerId: 1 }),
+        makeReport({ id: 3, assignedOfficerId: 1 }),
         makeReport({ id: 4, assignedOfficerId: 1 }),
       ];
       prismaMock.report.findMany.mockResolvedValue(rows);
@@ -428,6 +502,16 @@ describe("reportRepository", () => {
 
       expect(prismaMock.report.findMany).toHaveBeenCalledWith({
         where: { assignedOfficerId: 1 },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
         orderBy: { createdAt: "desc" },
       });
       expect(res).toBe(rows);
@@ -435,7 +519,11 @@ describe("reportRepository", () => {
 
     it("filters by officer ID and status when provided", async () => {
       const rows = [
-        makeReport({ id: 8, assignedOfficerId: 2, status: ReportStatus.ASSIGNED }),
+        makeReport({
+          id: 8,
+          assignedOfficerId: 2,
+          status: ReportStatus.ASSIGNED,
+        }),
       ];
       prismaMock.report.findMany.mockResolvedValue(rows);
 
@@ -446,6 +534,16 @@ describe("reportRepository", () => {
 
       expect(prismaMock.report.findMany).toHaveBeenCalledWith({
         where: { assignedOfficerId: 2, status: ReportStatus.ASSIGNED },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
         orderBy: { createdAt: "desc" },
       });
       expect(res).toBe(rows);
@@ -458,6 +556,16 @@ describe("reportRepository", () => {
 
       expect(prismaMock.report.findMany).toHaveBeenCalledWith({
         where: { assignedOfficerId: 3 },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
         orderBy: { createdAt: "desc" },
       });
       expect(res).toEqual([]);
