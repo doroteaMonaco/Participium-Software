@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Upload, MapPin } from "lucide-react";
 import { createReport } from "src/services/api";
@@ -51,6 +51,38 @@ const ReportForm: React.FC<ReportFormProps> = ({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [address, setAddress] = useState<string>("");
+  const [loadingAddress, setLoadingAddress] = useState(true);
+
+  // Fetch address on component mount
+  useEffect(() => {
+    const fetchAddress = async () => {
+      setLoadingAddress(true);
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+          {
+            headers: {
+              'User-Agent': 'Participium (participatory budgeting app)'
+            }
+          }
+        );
+        const data = await response.json();
+        if (data.display_name) {
+          setAddress(data.display_name);
+        } else {
+          setAddress(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+        }
+      } catch (error) {
+        console.error("Error fetching address:", error);
+        setAddress(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+      } finally {
+        setLoadingAddress(false);
+      }
+    };
+
+    fetchAddress();
+  }, [lat, lng]);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -199,11 +231,13 @@ const ReportForm: React.FC<ReportFormProps> = ({
           {/* Location Display */}
           <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
             <MapPin className="h-5 w-5 text-indigo-600" />
-            <div className="text-sm">
+            <div className="text-sm flex-1">
               <span className="font-medium text-slate-700">Location: </span>
-              <span className="text-slate-600">
-                {lat.toFixed(6)}, {lng.toFixed(6)}
-              </span>
+              {loadingAddress ? (
+                <span className="text-slate-500 italic">Loading address...</span>
+              ) : (
+                <span className="text-slate-600">{address}</span>
+              )}
             </div>
           </div>
 

@@ -22,6 +22,8 @@ function CustomMarker({
   const [showMarker, setShowMarker] = useState(false);
   const [position, setPosition] = useState<LatLng | null>(null);
   const [showReport, setShowReport] = useState(false);
+  const [address, setAddress] = useState<string>("");
+  const [loadingAddress, setLoadingAddress] = useState(false);
 
   // Keep previous valid position to revert if drag moves outside
   const prevPositionRef = useRef<LatLng | null>(null);
@@ -82,6 +84,34 @@ function CustomMarker({
     } else {
       // inside: update previous valid position
       prevPositionRef.current = position;
+      
+      // Fetch address using reverse geocoding
+      const fetchAddress = async () => {
+        setLoadingAddress(true);
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.lat}&lon=${position.lng}&zoom=18&addressdetails=1`,
+            {
+              headers: {
+                'User-Agent': 'Participium (participatory budgeting app)'
+              }
+            }
+          );
+          const data = await response.json();
+          if (data.display_name) {
+            setAddress(data.display_name);
+          } else {
+            setAddress("Address not found");
+          }
+        } catch (error) {
+          console.error("Error fetching address:", error);
+          setAddress("Unable to fetch address");
+        } finally {
+          setLoadingAddress(false);
+        }
+      };
+
+      fetchAddress();
     }
   }, [position]);
 
@@ -96,11 +126,6 @@ function CustomMarker({
       setPosition(pos);
       const zoomLevel = 16;
       mapEvents.setView(e.latlng, zoomLevel, { animate: true });
-    },
-    move() {
-      if (!showMarker) return;
-      const pos = mapEvents.getCenter();
-      setPosition(pos);
     },
     click(e) {
       const pos = e.latlng;
@@ -170,10 +195,16 @@ function CustomMarker({
           ref={markerRef}
         >
           <Popup>
-            <div className="space-y-2 py-1">
-              <p className="text-sm text-slate-600 font-medium">
-                Create a report at this location?
-              </p>
+            <div className="space-y-3 py-1 min-w-[280px]">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 mb-1">LOCATION</p>
+                {loadingAddress ? (
+                  <p className="text-sm text-slate-500 italic">Loading address...</p>
+                ) : (
+                  <p className="text-sm text-slate-700 leading-relaxed">{address}</p>
+                )}
+              </div>
+
               <button
                 type="button"
                 onClick={(e) => {
