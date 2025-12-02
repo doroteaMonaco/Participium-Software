@@ -3,7 +3,7 @@ import { CONFIG } from "@config";
 import { logError, logInfo } from "@services/loggingService";
 import { closeDatabase, initializeDatabase } from "@database";
 import { closeRedis, initializeRedis } from "@redis";
-import { Server } from "http";
+import { Server } from "node:http";
 
 let server: Server;
 
@@ -44,7 +44,7 @@ async function shutdown() {
   process.exit(0);
 }
 
-startServer();
+void startServer();
 
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);

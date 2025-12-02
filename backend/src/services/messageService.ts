@@ -35,8 +35,12 @@ const getReceivedMessages = async (
 
 const getMessageById = async (
   id: number,
-): Promise<MessageResponseDto | null> => {
-  return await messageRepository.findById(id);
+): Promise<MessageResponseDto> => {
+  const message = await messageRepository.findById(id);
+  if (!message) {
+    throw new Error("Message not found");
+  }
+  return message;
 };
 
 const markMessageAsRead = async (id: number): Promise<MessageResponseDto> => {
