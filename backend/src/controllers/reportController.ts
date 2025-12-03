@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import reportService from "@services/reportService";
 import imageService from "@services/imageService";
-import { stat } from "fs";
+import { stat } from "node:fs";
 
 const VALID_CATEGORIES = [
   "WATER_SUPPLY_DRINKING_WATER",
@@ -76,9 +76,9 @@ export const getReports = async (_req: Request, res: Response) => {
 export const getReportById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const parsedId = parseInt(id);
+    const parsedId = Number.parseInt(id);
     
-    if (isNaN(parsedId)) {
+    if (Number.isNaN(parsedId)) {
       return res.status(400).json({ error: "Invalid report ID" });
     }
     
@@ -129,7 +129,7 @@ export const approveOrRejectReport = async (req: Request, res: Response) => {
     }
 
     const updatedStatus = await reportService.updateReportStatus(
-      parseInt(id),
+      Number.parseInt(id),
       status,
       rejectionReason,
     );
@@ -148,12 +148,6 @@ export const approveOrRejectReport = async (req: Request, res: Response) => {
 
 export const submitReport = async (req: Request, res: Response) => {
   try {
-    // // Unit tests call submitReport with empty body ({}). Handle that case by delegating to service.
-    // if (req.body && Object.keys(req.body).length === 0) {
-    //   const created = await reportService.submitReport({} as any, 1);
-    //   return res.status(201).json(created);
-    // }
-
     const { latitude, longitude, anonymous, title, description, category } =
       req.body;
     const files = req.files as Express.Multer.File[];
@@ -261,7 +255,7 @@ export const getReportsForMunicipalityUser = async (req: Request, res: Response)
 export const deleteReport = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const deletedReport = await reportService.deleteReport(parseInt(id));
+    const deletedReport = await reportService.deleteReport(Number.parseInt(id));
     res.json(deletedReport);
   } catch (error) {
     // Generic error for delete failures

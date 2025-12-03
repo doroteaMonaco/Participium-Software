@@ -3,7 +3,7 @@ import { userRepository } from "@repositories/userRepository";
 import { CreateReportDto, ReportResponseDto } from "@dto/reportDto";
 import imageService from "@services/imageService";
 import { ReportStatus } from "@models/enums";
-import { stat } from "fs";
+import { stat } from "node:fs";
 
 // Helper function to hide user info for anonymous reports
 const sanitizeReport = (report: any): ReportResponseDto => {
