@@ -33,7 +33,7 @@ const base_config = {
   testPathIgnorePatterns: ["/node_modules/", "/dist/"],
   moduleNameMapper: pathsToModuleNameMapper(
     tsconfigJson.compilerOptions?.paths ?? {},
-    { prefix: "<rootDir>/" },
+    { prefix: "<rootDir>/" }
   ),
 };
 

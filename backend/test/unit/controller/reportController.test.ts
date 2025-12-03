@@ -31,6 +31,7 @@ import {
   deleteReport,
   getReportsForMunicipalityUser,
 } from "@controllers/reportController";
+import { query } from "winston";
 
 type ServiceMock = {
   findAll: jest.Mock;
@@ -145,7 +146,7 @@ describe("reportController", () => {
     it("returns 401 for invalid status filter", async () => {
       const req = {
         query: { status: "INVALID" },
-        user: { role: "CITIZEN" }
+        user: { role: "CITIZEN" },
       } as unknown as Request;
       const res = makeRes();
 
@@ -154,30 +155,31 @@ describe("reportController", () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         error: "Validation Error",
-        message: "request/query/status must be equal to one of the allowed values: ASSIGNED",
+        message:
+          "request/query/status must be equal to one of the allowed values: ASSIGNED",
       });
       expect(svc.findAll).not.toHaveBeenCalled();
     });
 
-    // it("returns all reports for admin without status filter", async () => {
-    //   const allReports = [
-    //     makeReport({ id: 1, status: "PENDING" }),
-    //     makeReport({ id: 2, status: "ASSIGNED" }),
-    //     makeReport({ id: 3, status: "REJECTED" })
-    //   ];
-    //   svc.findAll.mockResolvedValue(allReports);
+    it("returns all reports for admin without status filter", async () => {
+      const allReports = [
+        makeReport({ id: 1, status: "PENDING" }),
+        makeReport({ id: 2, status: "ASSIGNED" }),
+        makeReport({ id: 3, status: "REJECTED" }),
+      ];
+      svc.findAll.mockResolvedValue(allReports);
 
-    //   const req = {
-    //     query: {},
-    //     user: { role: "ADMIN" }
-    //   } as unknown as Request;
-    //   const res = makeRes();
+      const req = {
+        query: {},
+        user: { role: "ADMIN" },
+      } as unknown as Request;
+      const res = makeRes();
 
-    //   await getReports(req, res as unknown as Response);
+      await getReports(req, res as unknown as Response);
 
-    //   expect(svc.findAll).toHaveBeenCalledWith(undefined);
-    //   expect(res.json).toHaveBeenCalledWith(allReports);
-    // });
+      expect(svc.findAll).toHaveBeenCalledWith(undefined, undefined);
+      expect(res.json).toHaveBeenCalledWith(allReports);
+    });
 
     // it("returns 403 for citizen without status filter", async () => {
     //   const req = {
@@ -286,7 +288,7 @@ describe("reportController", () => {
       expect(svc.updateReportStatus).toHaveBeenCalledWith(
         5,
         "ASSIGNED",
-        undefined,
+        undefined
       );
       expect(res.json).toHaveBeenCalledWith({ status: "ASSIGNED" });
     });
@@ -368,15 +370,18 @@ describe("reportController", () => {
         },
       ]);
 
-      expect(svc.submitReport).toHaveBeenCalledWith({
-        latitude: 45.1,
-        longitude: 7.65,
-        title: "Lampione rotto",
-        description: "Il lampione non si accende",
-        category: "PUBLIC_LIGHTING",
-        photoKeys: ["k1", "k2"],
-        anonymous: false
-      }, 42);
+      expect(svc.submitReport).toHaveBeenCalledWith(
+        {
+          latitude: 45.1,
+          longitude: 7.65,
+          title: "Lampione rotto",
+          description: "Il lampione non si accende",
+          category: "PUBLIC_LIGHTING",
+          photoKeys: ["k1", "k2"],
+          anonymous: false,
+        },
+        42
+      );
 
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(created);
@@ -462,7 +467,7 @@ describe("reportController", () => {
       await submitReport(req as Request, res as unknown as Response);
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: "Invalid category" }),
+        expect.objectContaining({ error: "Invalid category" })
       );
     });
 
@@ -574,7 +579,9 @@ describe("reportController", () => {
       const reports = [makeReport({ id: 1, status: "PENDING_APPROVAL" })];
       svc.findByStatus.mockResolvedValue(reports);
 
-      const req = { query: { status: "PENDING_APPROVAL" } } as unknown as Request;
+      const req = {
+        query: { status: "PENDING_APPROVAL" },
+      } as unknown as Request;
       const res = makeRes();
 
       await getReportByStatus(req, res as unknown as Response);
@@ -592,7 +599,9 @@ describe("reportController", () => {
       await getReportByStatus(req, res as unknown as Response);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ error: "Failed to fetch report" });
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Failed to fetch report",
+      });
     });
   });
 
@@ -603,13 +612,17 @@ describe("reportController", () => {
 
       const req = {
         params: { id: "1" },
-        body: { status: "ASSIGNED" }
+        body: { status: "ASSIGNED" },
       } as unknown as Request;
       const res = makeRes();
 
       await approveOrRejectReport(req, res as unknown as Response);
 
-      expect(svc.updateReportStatus).toHaveBeenCalledWith(1, "ASSIGNED", undefined);
+      expect(svc.updateReportStatus).toHaveBeenCalledWith(
+        1,
+        "ASSIGNED",
+        undefined
+      );
       expect(res.json).toHaveBeenCalledWith({ status: "ASSIGNED" });
     });
 
@@ -618,41 +631,49 @@ describe("reportController", () => {
 
       const req = {
         params: { id: "2" },
-        body: { status: "REJECTED", rejectionReason: "Invalid report" }
+        body: { status: "REJECTED", rejectionReason: "Invalid report" },
       } as unknown as Request;
       const res = makeRes();
 
       await approveOrRejectReport(req, res as unknown as Response);
 
-      expect(svc.updateReportStatus).toHaveBeenCalledWith(2, "REJECTED", "Invalid report");
+      expect(svc.updateReportStatus).toHaveBeenCalledWith(
+        2,
+        "REJECTED",
+        "Invalid report"
+      );
       expect(res.json).toHaveBeenCalledWith({ status: "REJECTED" });
     });
 
     it("returns 400 for invalid status", async () => {
       const req = {
         params: { id: "1" },
-        body: { status: "INVALID" }
+        body: { status: "INVALID" },
       } as unknown as Request;
       const res = makeRes();
 
       await approveOrRejectReport(req, res as unknown as Response);
 
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ error: "Invalid status. Must be ASSIGNED or REJECTED." });
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Invalid status. Must be ASSIGNED or REJECTED.",
+      });
       expect(svc.updateReportStatus).not.toHaveBeenCalled();
     });
 
     it("returns 400 for rejected without reason", async () => {
       const req = {
         params: { id: "1" },
-        body: { status: "REJECTED" }
+        body: { status: "REJECTED" },
       } as unknown as Request;
       const res = makeRes();
 
       await approveOrRejectReport(req, res as unknown as Response);
 
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ error: "Rejection reason is required when rejecting a report." });
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Rejection reason is required when rejecting a report.",
+      });
       expect(svc.updateReportStatus).not.toHaveBeenCalled();
     });
 
@@ -661,7 +682,7 @@ describe("reportController", () => {
 
       const req = {
         params: { id: "999" },
-        body: { status: "ASSIGNED" }
+        body: { status: "ASSIGNED" },
       } as unknown as Request;
       const res = makeRes();
 
@@ -676,7 +697,7 @@ describe("reportController", () => {
 
       const req = {
         params: { id: "1" },
-        body: { status: "ASSIGNED" }
+        body: { status: "ASSIGNED" },
       } as unknown as Request;
       const res = makeRes();
 
@@ -751,7 +772,10 @@ describe("reportController", () => {
 
       await getReportsForMunicipalityUser(req, res as unknown as Response);
 
-      expect(svc.findAssignedReportsForOfficer).toHaveBeenCalledWith(3, "ASSIGNED");
+      expect(svc.findAssignedReportsForOfficer).toHaveBeenCalledWith(
+        3,
+        "ASSIGNED"
+      );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(reports);
     });

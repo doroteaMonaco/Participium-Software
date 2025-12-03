@@ -21,6 +21,10 @@ lib-cov
 # Coverage directory used by tools like istanbul
 coverage
 *.lcov
+!lcov.info
+!backend/coverage/
+backend/coverage/**
+!backend/coverage/lcov.info
 
 # nyc test coverage
 .nyc_output

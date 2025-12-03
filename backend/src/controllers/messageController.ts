@@ -20,7 +20,7 @@ export const sendMessage = async (req: Request, res: Response) => {
     const statusCode =
       error instanceof Error && error.message === "Message not found"
         ? 404
-        : 400;
+        : 500;
     res.status(statusCode).json({ error: errorMessage });
   }
 };
@@ -29,9 +29,12 @@ export const getReceivedMessages = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const messages = await messageService.getReceivedMessages(userId);
+    //if no messages found, return empty array
     res.json(messages);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch messages" });
+        const errorMessage =
+      error instanceof Error ? error.message : "Failed to fetch messages";
+    res.status(500).json({ error: errorMessage });
   }
 };
 
@@ -40,10 +43,6 @@ export const getMessageById = async (req: Request, res: Response) => {
     const { id } = req.params;
     const message = await messageService.getMessageById(Number(id));
 
-    if (!message) {
-      return res.status(404).json({ error: "Message not found" });
-    }
-
     // Check if user is the recipient
     if (message.sender.id !== req.user!.id) {
       // For now, allow access. In production, check if user is recipient
@@ -51,7 +50,13 @@ export const getMessageById = async (req: Request, res: Response) => {
 
     res.json(message);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch message" });
+        const errorMessage =
+      error instanceof Error ? error.message : "Failed to fetch message";
+    const statusCode =
+      error instanceof Error && error.message === "Message not found"
+        ? 404
+        : 500;
+    res.status(statusCode).json({ error: errorMessage });
   }
 };
 

@@ -1,5 +1,5 @@
 import "dotenv/config";
-import path from "path";
+import path from "node:path";
 
 if (!process.env.DATABASE_URL) {
   console.error(

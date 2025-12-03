@@ -1,0 +1,97 @@
+name: Participium workflow
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/participium?schema=public
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+    
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: participium
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      
+      redis:
+        image: redis:8.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm install
+
+      - name: Generate Prisma Client
+        working-directory: ./backend
+        run: npx prisma generate
+
+      - name: Run migrations
+        working-directory: ./backend
+        # Reset the database to ensure a clean state for testing
+        run: npx prisma migrate reset --force
+      
+      - name: Test and coverage
+        working-directory: ./backend
+        run: npm run test-coverage
+
+      - name: Upload coverage and test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: backend/coverage/lcov.info
+
+  sonarqube:
+    name: SonarQube
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  
+      
+      - name: Download test reports from build
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-test-reports
+          path: ./backend
+
+      - name: SonarQubeScan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

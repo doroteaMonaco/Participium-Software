@@ -59,12 +59,7 @@ const createAndLogin = async (user: any) => {
   return agent;
 };
 
-// Create an admin account and then use admin to create a municipality user.
-// Returns an agent logged in as the municipality user.
-const createAdminAndCreateMunicipality = async (
-  admin: any,
-  muniPayload: any,
-) => {
+const createAdmin = async (admin: any) => {
   // create & login admin
   const adminAgent = await createAndLogin(admin);
 
@@ -74,18 +69,25 @@ const createAdminAndCreateMunicipality = async (
     data: { role: "ADMIN" },
   });
 
+  return adminAgent;
+};
+
+const createMunicipality = async (
+  adminAgent: request.SuperAgentTest,
+  municipality: any,
+) => {
   // admin creates municipality user via /api/users/municipality-users
   const res = await adminAgent
     .post("/api/users/municipality-users")
-    .send(muniPayload);
+    .send(municipality);
 
   expect(res.status).toBe(201);
 
   // login municipality user via normal session endpoint
   const muniAgent: any = request.agent(app);
-  await loginAgent(muniAgent, muniPayload.username, muniPayload.password);
+  await loginAgent(muniAgent, municipality.username, municipality.password);
 
-  return { adminAgent, muniAgent, createdMunicipality: res.body };
+  return { muniAgent, createdMunicipality: res.body };
 };
 
 const createReportAs = async (
@@ -345,17 +347,24 @@ describe("POST /api/reports (Create Report)", () => {
 });
 
 describe("ReportRoutes Integration (Approve/Reject Report)", () => {
+  let adminAgent: any;
   let municipalityAgent: any;
   let reportId: number;
 
   beforeAll(async () => {
     // Setup municipality roles
     try {
+      await prisma.municipality_role.deleteMany();
       await prisma.municipality_role.createMany({
         data: [
-          { id: 1, name: "OPERATOR" },
-          { id: 2, name: "VALIDATOR" },
-          { id: 3, name: "SUPERVISOR" },
+          { id: 1, name: "municipal public relations officer" },
+          { id: 2, name: "municipal administrator" },
+          { id: 3, name: "public works project manager" },
+          { id: 4, name: "sanitation and waste management officer" },
+          { id: 5, name: "environmental protection officer" },
+          { id: 6, name: "traffic and mobility coordinator" },
+          { id: 7, name: "parks and green spaces officer" },
+          { id: 8, name: "urban planning specialist" },
         ],
         skipDuplicates: true,
       });
@@ -368,18 +377,6 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
 
-    // Create municipality user
-    const municipalityUser = {
-      username: "municipality_validator",
-      email: "validator@city.com",
-      firstName: "Validator",
-      lastName: "User",
-      password: "validator123",
-      municipality_role_id: 2,
-    };
-
-    municipalityAgent = request.agent(app);
-
     // Create admin user first to create municipality user
     const adminUser = {
       username: "admin_temp",
@@ -388,31 +385,22 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
       lastName: "Temp",
       password: "adminpass123",
     };
-
-    await municipalityAgent.post("/api/users").send(adminUser).expect(201);
-    await prisma.user.update({
-      where: { email: adminUser.email },
-      data: { role: "ADMIN" },
-    });
-
-    // Login admin
-    await municipalityAgent
-      .post("/api/auth/session")
-      .send({ identifier: adminUser.email, password: adminUser.password })
-      .expect(200);
+    adminAgent = await createAdmin(adminUser);
 
     // Create municipality user
-    await municipalityAgent
-      .post("/api/users/municipality-users")
-      .send(municipalityUser)
-      .expect(201);
-
-    // Login as municipality user
-    municipalityAgent = request.agent(app);
-    await municipalityAgent
-      .post("/api/auth/session")
-      .send({ identifier: municipalityUser.email, password: municipalityUser.password })
-      .expect(200);
+    const municipalityUser = {
+      username: "municipality_validator",
+      email: "validator@city.com",
+      firstName: "Validator",
+      lastName: "User",
+      password: "validator123",
+      municipality_role_id: 1, // municipal public relations officer
+    };
+    const { muniAgent } = await createMunicipality(
+      adminAgent,
+      municipalityUser,
+    );
+    municipalityAgent = muniAgent;
 
     // Create a citizen user and a report
     const citizenUser = {
@@ -422,14 +410,7 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
       lastName: "Report",
       password: "citizen123",
     };
-
-    await request(app).post("/api/users").send(citizenUser).expect(201);
-
-    const citizenAgent = request.agent(app);
-    await citizenAgent
-      .post("/api/auth/session")
-      .send({ identifier: citizenUser.email, password: citizenUser.password })
-      .expect(200);
+    const citizenAgent = await createAndLogin(citizenUser);
 
     // Create a report
     const reportResponse = await citizenAgent
@@ -455,6 +436,15 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   });
 
   it("200 approves a report with valid municipality authentication", async () => {
+    await createMunicipality(adminAgent, {
+      username: "municipality_worker",
+      email: "municipality_worker@city.com",
+      firstName: "Muni",
+      lastName: "Worker",
+      password: "muniworker123",
+      municipality_role_id: 3, // public works project manager
+    });
+
     const response = await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "ASSIGNED" })
@@ -491,7 +481,10 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
       .send({ status: "REJECTED" })
       .expect(400);
 
-    expect(response.body).toHaveProperty("error", "Rejection reason is required when rejecting a report.");
+    expect(response.body).toHaveProperty(
+      "error",
+      "Rejection reason is required when rejecting a report.",
+    );
   });
 
   it("400 invalid status", async () => {
@@ -500,14 +493,20 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
       .send({ status: "INVALID_STATUS" })
       .expect(400);
 
-    expect(response.body).toHaveProperty("error", "Invalid status. Must be ASSIGNED or REJECTED.");
+    expect(response.body).toHaveProperty(
+      "error",
+      "Invalid status. Must be ASSIGNED or REJECTED.",
+    );
   });
 
   it("403 when citizen tries to approve/reject", async () => {
     const citizenAgent = request.agent(app);
     await citizenAgent
       .post("/api/auth/session")
-      .send({ identifier: "citizen_report@example.com", password: "citizen123" })
+      .send({
+        identifier: "citizen_report@example.com",
+        password: "citizen123",
+      })
       .expect(200);
 
     await citizenAgent
@@ -546,41 +545,41 @@ describe("ReportRoutes Integration (Get Reports)", () => {
     await prisma.$disconnect();
   });
 
-  // it("200 returns all reports (public access)", async () => {
-  //   // Create a user and a report
-  //   const user = {
-  //     username: "public_user",
-  //     email: "public@example.com",
-  //     firstName: "Public",
-  //     lastName: "User",
-  //     password: "password123",
-  //   };
+  it("200 returns all reports (authenticated access)", async () => {
+    // Create a user and a report
+    const user = {
+      username: "public_user",
+      email: "public@example.com",
+      firstName: "Public",
+      lastName: "User",
+      password: "password123",
+    };
 
-  //   await request(app).post("/api/users").send(user).expect(201);
+    await request(app).post("/api/users").send(user).expect(201);
 
-  //   const agent = request.agent(app);
-  //   await agent
-  //     .post("/api/auth/session")
-  //     .send({ identifier: user.username, password: user.password })
-  //     .expect(200);
+    const agent = request.agent(app);
+    await agent
+      .post("/api/auth/session")
+      .send({ identifier: user.username, password: user.password })
+      .expect(200);
 
-  //   // Create a report
-  //   await agent
-  //     .post("/api/reports")
-  //     .field("title", "Public Report")
-  //     .field("description", "Visible to everyone")
-  //     .field("category", "PUBLIC_LIGHTING")
-  //     .field("latitude", "45.4642")
-  //     .field("longitude", "9.19")
-  //     .attach("photos", Buffer.from("fake"), {
-  //       filename: "photo.jpg",
-  //       contentType: "image/jpeg",
-  //     })
-  //     .expect(201);
+    // Create a report
+    await agent
+      .post("/api/reports")
+      .field("title", "Public Report")
+      .field("description", "Visible to everyone")
+      .field("category", "PUBLIC_LIGHTING")
+      .field("latitude", "45.4642")
+      .field("longitude", "9.19")
+      .attach("photos", Buffer.from("fake"), {
+        filename: "photo.jpg",
+        contentType: "image/jpeg",
+      })
+      .expect(201);
 
-  //   // Get reports with authentication (no longer public)
-  //   const response = await agent.get("/api/reports").expect(403);
-  // });
+    // Get reports with authentication
+    const response = await agent.get("/api/reports").expect(200);
+  });
 
   it("403 citizen role required for status filter", async () => {
     // Create a citizen user
@@ -629,38 +628,40 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       .get("/api/reports?status=INVALID")
       .expect(400);
 
-    expect(response.body).toHaveProperty("message", "request/query/status must be equal to one of the allowed values: ASSIGNED");
-  });  
-  
-  // it("403 citizen role required for status filter by non-citizens", async () => {
-  //   // Create admin user
-  //   const admin = {
-  //     username: "admin_filter",
-  //     email: "admin_filter@example.com",
-  //     firstName: "Admin",
-  //     lastName: "Filter",
-  //     password: "adminpass123",
-  //   };
+    expect(response.body).toHaveProperty(
+      "message",
+      "request/query/status must be equal to one of the allowed values: ASSIGNED",
+    );
+  });
 
-  //   await request(app).post("/api/users").send(admin).expect(201);
-  //   await prisma.user.update({
-  //     where: { email: admin.email },
-  //     data: { role: "ADMIN" },
-  //   });
+  it("200 for status filter by authenticated access", async () => {
+    // Create admin user
+    const admin = {
+      username: "admin_filter",
+      email: "admin_filter@example.com",
+      firstName: "Admin",
+      lastName: "Filter",
+      password: "adminpass123",
+    };
 
-  //   const adminAgent = request.agent(app);
-  //   await adminAgent
-  //     .post("/api/auth/session")
-  //     .send({ identifier: admin.username, password: admin.password })
-  //     .expect(200);
+    await request(app).post("/api/users").send(admin).expect(201);
+    await prisma.user.update({
+      where: { email: admin.email },
+      data: { role: "ADMIN" },
+    });
 
-  //   const response = await adminAgent
-  //     .get("/api/reports?status=ASSIGNED")
-  //     .expect(403);
+    const adminAgent = request.agent(app);
+    await adminAgent
+      .post("/api/auth/session")
+      .send({ identifier: admin.username, password: admin.password })
+      .expect(200);
 
-  //   expect(response.body).toHaveProperty("error", "Authorization Error");
-  //   expect(response.body.message).toBe("Access denied. Citizen role required to filter by status.");
-  // });
+    const response = await adminAgent
+      .get("/api/reports?status=ASSIGNED")
+      .expect(200);
+
+    expect(Array.isArray(response.body)).toBe(true);
+  });
 });
 
 describe("GET /api/reports/municipality-user/:municipalityUserId", () => {
@@ -701,14 +702,16 @@ describe("GET /api/reports/municipality-user/:municipalityUserId", () => {
   });
 
   it("401 when request is unauthenticated", async () => {
-    await request(app)
-      .get("/api/reports/municipality-user/1")
-      .expect(401);
+    await request(app).get("/api/reports/municipality-user/1").expect(401);
   });
 
   it("403 when municipality user requests reports for a different user id", async () => {
-    const { muniAgent, createdMunicipality } =
-      await createAdminAndCreateMunicipality(adminUser, municipalityPayload);
+    const adminAgent = await createAdmin(adminUser);
+
+    const { muniAgent, createdMunicipality } = await createMunicipality(
+      adminAgent,
+      municipalityPayload,
+    );
 
     await muniAgent
       .get(`/api/reports/municipality-user/${createdMunicipality.id + 1}`)
@@ -722,8 +725,11 @@ describe("GET /api/reports/municipality-user/:municipalityUserId", () => {
   });
 
   it("200 returns assigned reports for the municipality user with status", async () => {
-    const { muniAgent, createdMunicipality } =
-      await createAdminAndCreateMunicipality(adminUser, municipalityPayload);
+    const adminAgent = await createAdmin(adminUser);
+    const { muniAgent, createdMunicipality } = await createMunicipality(
+      adminAgent,
+      municipalityPayload,
+    );
     const citizenAgent = await createAndLogin(citizenUser);
 
     const createdReport = await createReportAs(citizenAgent, {
@@ -757,12 +763,18 @@ describe("GET /api/reports/municipality-user/:municipalityUserId", () => {
 
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThanOrEqual(1);
-    expect(res.body[0]).toHaveProperty("assignedOfficerId", createdMunicipality.id);
+    expect(res.body[0]).toHaveProperty(
+      "assignedOfficerId",
+      createdMunicipality.id,
+    );
   });
 
   it("200 returns assigned reports for the municipality user", async () => {
-    const { muniAgent, createdMunicipality } =
-      await createAdminAndCreateMunicipality(adminUser, municipalityPayload);
+    const adminAgent = await createAdmin(adminUser);
+    const { muniAgent, createdMunicipality } = await createMunicipality(
+      adminAgent,
+      municipalityPayload,
+    );
     const citizenAgent = await createAndLogin(citizenUser);
 
     const createdReport = await createReportAs(citizenAgent, {
@@ -789,14 +801,15 @@ describe("GET /api/reports/municipality-user/:municipalityUserId", () => {
     });
 
     const res = await muniAgent
-      .get(
-        `/api/reports/municipality-user/${createdMunicipality.id}`,
-      )
+      .get(`/api/reports/municipality-user/${createdMunicipality.id}`)
       .expect(200);
 
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThanOrEqual(1);
-    expect(res.body[0]).toHaveProperty("assignedOfficerId", createdMunicipality.id);
+    expect(res.body[0]).toHaveProperty(
+      "assignedOfficerId",
+      createdMunicipality.id,
+    );
   });
 });
 
@@ -858,10 +871,8 @@ describe("GET /api/reports (List Reports)", () => {
       municipality_role_id: 1,
     };
 
-    const { muniAgent } = await createAdminAndCreateMunicipality(
-      admin,
-      muniPayload,
-    );
+    const adminAgent = await createAdmin(admin);
+    const { muniAgent } = await createMunicipality(adminAgent, muniPayload);
     const res = await muniAgent.get("/api/reports").expect(200);
     expect(Array.isArray(res.body)).toBe(true);
   });
@@ -871,11 +882,11 @@ describe("GET /api/reports (List Reports)", () => {
     expect(res.status).toBe(401);
   });
 
-  // it("403 when authenticated as CITIZEN (not allowed)", async () => {
-  //   const agent = await createAndLogin(fakeUser);
-  //   const res = await agent.get("/api/reports");
-  //   expect(res.status).toBe(403);
-  // });
+  it("200 when authenticated as CITIZEN", async () => {
+    const agent = await createAndLogin(fakeUser);
+    const res = await agent.get("/api/reports");
+    expect(res.status).toBe(200);
+  });
 });
 
 describe("GET /api/reports/:id (Get Report by ID)", () => {
@@ -999,11 +1010,8 @@ describe("POST /api/reports/:id (Validate Report)", () => {
       municipality_role_id: 1,
     };
 
-    const { muniAgent } = await createAdminAndCreateMunicipality(
-      admin,
-      muniPayload,
-    );
-
+    const adminAgent = await createAdmin(admin);
+    const { muniAgent } = await createMunicipality(adminAgent, muniPayload);
     // perform validation (reject path)
     await muniAgent
       .post(`/api/reports/${id}`)
@@ -1033,11 +1041,8 @@ describe("POST /api/reports/:id (Validate Report)", () => {
       municipality_role_id: 1,
     };
 
-    const { muniAgent } = await createAdminAndCreateMunicipality(
-      admin,
-      muniPayload,
-    );
-
+    const adminAgent = await createAdmin(admin);
+    const { muniAgent } = await createMunicipality(adminAgent, muniPayload);
     const res = await muniAgent
       .post(`/api/reports/1`)
       .send({ status: "NOT_A_VALID_STATUS" })
@@ -1125,10 +1130,8 @@ describe("POST /api/reports/:id (Validate Report)", () => {
       municipality_role_id: 1,
     };
 
-    const { muniAgent } = await createAdminAndCreateMunicipality(
-      admin,
-      muniPayload,
-    );
+    const adminAgent = await createAdmin(admin);
+    const { muniAgent } = await createMunicipality(adminAgent, muniPayload);
 
     const res = await muniAgent
       .post("/api/reports/999999")
