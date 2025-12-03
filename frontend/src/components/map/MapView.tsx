@@ -134,23 +134,23 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
         </div>
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-indigo-500 border border-indigo-600"></div>
+            <div className="w-3 h-3 rounded-full" style={{backgroundColor: '#a855f7', borderColor: '#9333ea', borderWidth: '1px'}}></div>
             <span className="text-xs text-slate-600">Pending</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-500 border border-blue-600"></div>
+            <div className="w-3 h-3 rounded-full" style={{backgroundColor: '#3b82f6', borderColor: '#2563eb', borderWidth: '1px'}}></div>
             <span className="text-xs text-slate-600">Assigned</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-amber-500 border border-amber-600"></div>
+            <div className="w-3 h-3 rounded-full" style={{backgroundColor: '#f59e0b', borderColor: '#d97706', borderWidth: '1px'}}></div>
             <span className="text-xs text-slate-600">In Progress</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500 border border-green-600"></div>
+            <div className="w-3 h-3 rounded-full" style={{backgroundColor: '#22c55e', borderColor: '#16a34a', borderWidth: '1px'}}></div>
             <span className="text-xs text-slate-600">Resolved</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-slate-500 border border-slate-600"></div>
+            <div className="w-3 h-3 rounded-full" style={{backgroundColor: '#64748b', borderColor: '#475569', borderWidth: '1px'}}></div>
             <span className="text-xs text-slate-600">Suspended</span>
           </div>
         </div>

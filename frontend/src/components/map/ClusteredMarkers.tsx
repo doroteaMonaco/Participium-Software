@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import L from "leaflet";
+// @ts-ignore - leaflet.markercluster doesn't have type definitions
 import "leaflet.markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
@@ -9,19 +10,19 @@ import { Report, ReportStatus } from "src/services/models";
 function getColorForStatus(status?: ReportStatus): string {
   switch (status) {
     case ReportStatus.PENDING:
-      return "indigo";
+      return "#a855f7"; // Purple-500
     case ReportStatus.ASSIGNED:
-      return "blue";
+      return "#3b82f6"; // Blue-500
     case ReportStatus.IN_PROGRESS:
-      return "amber";
+      return "#f59e0b"; // Amber-500
     case ReportStatus.SUSPENDED:
-      return "slate";
+      return "#64748b"; // Slate-500
     case ReportStatus.REJECTED:
-      return "red";
+      return "#ef4444"; // Red-500
     case ReportStatus.RESOLVED:
-      return "green";
+      return "#22c55e"; // Green-500
     default:
-      return "black";
+      return "#000000";
   }
 }
 
