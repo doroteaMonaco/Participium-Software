@@ -159,7 +159,7 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
       {/* Recenter Button */}
       <button
         onClick={handleRecenter}
-        className="absolute bottom-24 right-4 z-[1000] bg-white hover:bg-slate-50 rounded-lg shadow-lg p-3 border border-slate-200 transition-colors"
+        className="absolute bottom-24 right-4 z-[1000] bg-white hover:bg-slate-50 rounded-lg shadow-lg px-3 py-2 border border-slate-200 transition-colors flex items-center gap-2"
         title="Recenter map"
         aria-label="Recenter map"
       >
@@ -182,6 +182,7 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
             d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
           />
         </svg>
+        <span className="text-sm font-medium text-slate-700">Recenter</span>
       </button>
 
       <MapContainer
