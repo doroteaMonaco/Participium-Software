@@ -1,3 +1,4 @@
+/* 
 import { Request, Response } from "express";
 import messageService from "@services/messageService";
 
@@ -79,3 +80,4 @@ export const markMessageAsRead = async (req: Request, res: Response) => {
     res.status(statusCode).json({ error: errorMessage });
   }
 };
+*/

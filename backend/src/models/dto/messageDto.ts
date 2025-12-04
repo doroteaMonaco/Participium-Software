@@ -1,5 +1,5 @@
 import { removeNullAttributes } from "@utils";
-import type { BaseUserDto } from "@dto/userDto";
+import type { AnyUserDto, BaseUserDto } from "@dto/userDto";
 
 /**
  * Create payload for a message

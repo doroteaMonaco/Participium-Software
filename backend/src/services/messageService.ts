@@ -1,3 +1,4 @@
+/*
 import messageRepository, {
   CreateMessageDto,
   MessageResponseDto,
@@ -55,3 +56,4 @@ export default {
   getMessageById,
   markMessageAsRead,
 };
+*/
