@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
 import {
   verifyAuth,
   logout as apiLogout,
@@ -68,10 +68,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const isAuthenticated = user !== null;
 
+  const contextValue = useMemo(
+    () => ({ user, isAuthenticated, isLoading, login, logout, checkAuth }),
+    [user, isAuthenticated, isLoading]
+  );
+
   return (
-    <AuthContext.Provider
-      value={{ user, isAuthenticated, isLoading, login, logout, checkAuth }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
