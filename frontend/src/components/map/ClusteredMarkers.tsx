@@ -87,7 +87,7 @@ const ClusteredMarkers: React.FC<Props> = ({ reports }) => {
           d = new Date(rawCreated.toString());
         }
 
-        if (d && !isNaN(d.getTime())) {
+        if (d && !Number.isNaN(d.getTime())) {
           created = d.toLocaleString();
         } else {
           created = String(rawCreated);
