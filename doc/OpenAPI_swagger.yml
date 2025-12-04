@@ -283,23 +283,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /reports/municipality-users/{roleId}:
+  /reports/municipality-users/{municipalityUserId}:
     get:
       tags: [Reports]
-      summary: Get reports by municipality role
+      summary: Get reports by municipality user ID
       description: >
-        Get reports by municipality role ID.
+        Get reports by municipality user ID.
         **Requires role: MUNICIPALITY**.
       security:
         - cookieAuth: []
       parameters:
         - in: path
-          name: roleId
+          name: municipalityUserId
           required: true
           schema:
             type: integer
             format: int64
-          description: Municipality role ID
+          description: Municipality user ID
       responses:
         '200':
           description: OK - Reports successfully retrieved
