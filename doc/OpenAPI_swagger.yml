@@ -800,7 +800,9 @@ components:
           type: string
           format: password
           example: "P@ssw0rd!"
-
+        role:
+          $ref: '#/components/schemas/Role' 
+          
     ReportCategory:
       type: string
       enum:
