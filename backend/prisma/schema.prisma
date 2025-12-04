@@ -47,6 +47,17 @@ model admin_user {
   createdAt DateTime @default(now())
 }
 
+model external_maintainer {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  companyName String
+  password  String
+  createdAt DateTime @default(now())
+  category  Category
+  reports   report[]
+}
+
 model report {
   id          Int      @id @default(autoincrement())
   createdAt   DateTime @default(now())
@@ -64,6 +75,9 @@ model report {
   user        user? @relation("CitizenReports", fields: [user_id], references: [id], onDelete: Restrict)
   assignedOfficerId Int?
   assignedOfficer municipality_user? @relation("OfficerAssignments", fields: [assignedOfficerId], references: [id], onDelete: SetNull)
+  externalMaintainerId Int?
+  externalMaintainer external_maintainer? @relation(fields: [externalMaintainerId], references: [id], onDelete: SetNull)
+  
 
   @@index([assignedOfficerId])
 }
