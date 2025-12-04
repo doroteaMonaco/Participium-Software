@@ -164,6 +164,12 @@ const ReportForm: React.FC<ReportFormProps> = ({
     return null;
   };
 
+  const getSubmitButtonText = (): string => {
+    if (loading) return "Submitting...";
+    if (success) return "Submitted!";
+    return "Submit Report";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -263,10 +269,11 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="report-title" className="block text-sm font-medium text-slate-700 mb-2">
               Title <span className="text-red-500">*</span>
             </label>
             <input
+              id="report-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -282,10 +289,11 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="report-description" className="block text-sm font-medium text-slate-700 mb-2">
               Description <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="report-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the issue in detail..."
@@ -301,10 +309,11 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="report-category" className="block text-sm font-medium text-slate-700 mb-2">
               Category <span className="text-red-500">*</span>
             </label>
             <select
+              id="report-category"
               value={category}
               onChange={(e) => setCategory(e.target.value as ReportCategory)}
               required
@@ -321,7 +330,7 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
           {/* Photo Upload */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="report-photos" className="block text-sm font-medium text-slate-700 mb-2">
               Photos <span className="text-red-500">*</span>
               <span className="text-slate-500 font-normal ml-1">
                 (1-3 photos, max 5MB each)
@@ -332,7 +341,7 @@ const ReportForm: React.FC<ReportFormProps> = ({
             {photoPreviews.length > 0 && (
               <div className="grid grid-cols-3 gap-3 mb-3">
                 {photoPreviews.map((preview, index) => (
-                  <div key={index} className="relative group">
+                  <div key={preview} className="relative group">
                     <img
                       src={preview}
                       alt={`Preview ${index + 1}`}
@@ -352,7 +361,7 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
             {/* Upload Button */}
             {photos.length < 3 && (
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition-colors cursor-pointer">
+              <label htmlFor="report-photos" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition-colors cursor-pointer">
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <Upload className="h-8 w-8 text-slate-400 mb-2" />
                   <p className="text-sm text-slate-600 font-medium">
@@ -363,6 +372,7 @@ const ReportForm: React.FC<ReportFormProps> = ({
                   </p>
                 </div>
                 <input
+                  id="report-photos"
                   type="file"
                   accept="image/jpeg,image/jpg,image/png,image/gif"
                   multiple
@@ -409,11 +419,7 @@ const ReportForm: React.FC<ReportFormProps> = ({
               disabled={loading || success}
               className="flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-indigo-300 hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading
-                ? "Submitting..."
-                : success
-                  ? "Submitted!"
-                  : "Submit Report"}
+              {getSubmitButtonText()}
             </button>
           </div>
         </form>
