@@ -56,7 +56,9 @@ describe("ImageService", () => {
       }
       return args.join("/");
     });
-    (require("path").extname as jest.Mock).mockImplementation((file) => `.${file.split(".").pop()}`);
+    (require("path").extname as jest.Mock).mockImplementation(
+      (file) => `.${file.split(".").pop()}`,
+    );
     (require("crypto").randomUUID as jest.Mock).mockReturnValue("test-uuid");
   });
 
@@ -67,7 +69,9 @@ describe("ImageService", () => {
       // Mock fs.existsSync to return true so getImage doesn't warn
       (require("fs").existsSync as jest.Mock).mockReturnValue(true);
       // Mock fs.promises.readFile to return buffer
-      (require("fs").promises.readFile as jest.Mock).mockResolvedValue(Buffer.from("test"));
+      (require("fs").promises.readFile as jest.Mock).mockResolvedValue(
+        Buffer.from("test"),
+      );
       // Mock redis get to return null (not cached)
       (require("@redis").redisClient.get as jest.Mock).mockResolvedValue(null);
       // Mock redis set
@@ -77,8 +81,12 @@ describe("ImageService", () => {
 
       // Verify that readFile was called for each image
       expect(require("fs").promises.readFile).toHaveBeenCalledTimes(2);
-      expect(require("fs").promises.readFile).toHaveBeenCalledWith("uploads/report1/image1.jpg");
-      expect(require("fs").promises.readFile).toHaveBeenCalledWith("uploads/report1/image2.jpg");
+      expect(require("fs").promises.readFile).toHaveBeenCalledWith(
+        "uploads/report1/image1.jpg",
+      );
+      expect(require("fs").promises.readFile).toHaveBeenCalledWith(
+        "uploads/report1/image2.jpg",
+      );
     });
 
     it("should handle empty array", async () => {

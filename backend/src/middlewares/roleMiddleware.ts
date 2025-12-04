@@ -1,3 +1,4 @@
+import { roleType } from "@models/enums";
 import { Request, Response, NextFunction } from "express";
 
 export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
@@ -8,7 +9,7 @@ export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
     });
   }
 
-  if (req.user.role !== "ADMIN") {
+  if (req.role !== roleType.ADMIN) {
     return res.status(403).json({
       error: "Authorization Error",
       message: "Access denied. Admin role required.",
@@ -30,7 +31,7 @@ export const isMunicipality = (
     });
   }
 
-  if (req.user.role !== "MUNICIPALITY" && req.user.role !== "ADMIN") {
+  if (req.role !== roleType.MUNICIPALITY && req.role !== roleType.ADMIN) {
     return res.status(403).json({
       error: "Authorization Error",
       message: "Access denied. Municipality role required.",
@@ -52,7 +53,7 @@ export const isMunicipalityStrict = (
     });
   }
 
-  if (req.user.role !== "MUNICIPALITY") {
+  if (req.role !== roleType.MUNICIPALITY) {
     return res.status(403).json({
       error: "Authorization Error",
       message: "Access denied. Municipality role required.",
@@ -62,7 +63,6 @@ export const isMunicipalityStrict = (
   next();
 };
 
-
 export const isCitizen = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(401).json({
@@ -71,7 +71,7 @@ export const isCitizen = (req: Request, res: Response, next: NextFunction) => {
     });
   }
 
-  if (req.user.role !== "CITIZEN" && req.user.role !== "ADMIN") {
+  if (req.role !== roleType.CITIZEN && req.role !== roleType.ADMIN) {
     return res.status(403).json({
       error: "Authorization Error",
       message: "Access denied. Citizen role required.",
@@ -90,7 +90,14 @@ export const hasRole = (allowedRoles: string[]) => {
       });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (req.role === undefined) {
+      return res.status(401).json({
+        error: "Authentication Error",
+        message: "User role not found",
+      });
+    }
+
+    if (!allowedRoles.includes(req.role)) {
       return res.status(403).json({
         error: "Authorization Error",
         message: `Access denied. Required roles: ${allowedRoles.join(", ")}`,

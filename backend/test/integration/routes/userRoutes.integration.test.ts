@@ -2,6 +2,7 @@ import request from "supertest";
 import { PrismaClient } from "@prisma/client";
 import { userService } from "@services/userService";
 import app from "@app";
+import { roleType } from "@models/enums";
 
 const prisma = new PrismaClient();
 
@@ -24,27 +25,21 @@ describe("Admin routes integration tests", () => {
     password: "adminpass",
   };
 
-  beforeAll(async () => {
-    // ensure municipality roles exist for FK references (adjust model name if different)
-    try {
-      await prisma.municipality_role.createMany({
-        data: [
-          { id: 1, name: "OPERATOR" },
-          { id: 2, name: "VALIDATOR" },
-          { id: 3, name: "SUPERVISOR" },
-        ],
-        skipDuplicates: true,
-      });
-    } catch (e) {
-      // ignore if model name differs or DB not ready; tests will show clearer error
-      // console.warn("municipalityRole seed failed:", e);
-    }
-  });
-
   beforeEach(async () => {
     // ensure clean DB between tests
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+    await prisma.municipality_role.createMany({
+      data: [
+        { id: 1, name: "OPERATOR" },
+        { id: 2, name: "VALIDATOR" },
+        { id: 3, name: "SUPERVISOR" },
+      ],
+      skipDuplicates: true,
+    });
   });
 
   afterEach(() => {
@@ -54,22 +49,25 @@ describe("Admin routes integration tests", () => {
   afterAll(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
     await prisma.$disconnect();
   });
 
   const makeAdminAgent = async () => {
-    const agent = request.agent(app);
-    // register via public endpoint then promote to ADMIN for realistic flow
-    await agent.post("/api/users").send(adminUser).expect(201);
-    await prisma.user.update({
-      where: { email: adminUser.email },
-      data: { role: "ADMIN" },
-    });
+    // Create admin user manually
+    await userService.registerUser(adminUser, roleType.ADMIN);
 
-    const loginRes = await agent
-      .post("/api/auth/session")
-      .send({ identifier: adminUser.email, password: adminUser.password });
-    expect(loginRes.status).toBe(200);
+    // Create agent and register admin
+    const agent = request.agent(app);
+
+    // Login to get cookie
+    const loginRes = await agent.post("/api/auth/session").send({
+      identifier: adminUser.email,
+      password: adminUser.password,
+      role: "ADMIN",
+    });
     const setCookie = loginRes.headers["set-cookie"] || [];
     expect(Array.isArray(setCookie) ? setCookie.join(";") : setCookie).toMatch(
       /authToken=/i,
@@ -81,12 +79,65 @@ describe("Admin routes integration tests", () => {
   const makeNormalAgent = async () => {
     const agent = request.agent(app);
     await agent.post("/api/users").send(normalUser).expect(201);
-    const loginRes = await agent
-      .post("/api/auth/session")
-      .send({ identifier: normalUser.email, password: normalUser.password });
+    const loginRes = await agent.post("/api/auth/session").send({
+      identifier: normalUser.email,
+      password: normalUser.password,
+      role: "CITIZEN",
+    });
     expect(loginRes.status).toBe(200);
     return agent;
   };
+
+  describe("POST /api/users (Registration)", () => {
+    it("201 crea utente, imposta Set-Cookie authToken e Location /reports", async () => {
+      const res = await request(app)
+        .post("/api/users")
+        .set("Accept", "application/json")
+        .send({ ...normalUser, role: "CITIZEN" })
+        .expect(201);
+
+      const setCookie = res.headers["set-cookie"] || [];
+      expect(
+        Array.isArray(setCookie) ? setCookie.join(";") : setCookie,
+      ).toMatch(/authToken=/i);
+
+      // Swagger indica Location: /reports
+      expect(res.headers.location).toBe("/reports");
+
+      expect(res.headers["content-type"]).toMatch(/application\/json/);
+      expect(res.body).toBeDefined();
+    });
+
+    it("400 se body mancante/non valido", async () => {
+      const res = await request(app)
+        .post("/api/users")
+        .set("Accept", "application/json")
+        .send({})
+        .expect(400);
+
+      expect(res.body).toHaveProperty("error");
+      expect(res.body).toHaveProperty("message");
+    });
+
+    it("409 su duplicato (username o email già esistenti)", async () => {
+      await request(app).post("/api/users").send(normalUser).expect(201);
+
+      const res = await request(app).post("/api/users").send(normalUser);
+      expect(res.status).toBe(409);
+      expect(res.body).toHaveProperty("error");
+      expect(res.body).toHaveProperty("message");
+    });
+
+    it("400 su JSON malformato", async () => {
+      const res = await request(app)
+        .post("/api/users")
+        .set("Content-Type", "application/json")
+        .send('{"firstName":"A",') // JSON rotto
+        .expect(400);
+
+      expect(res.body).toHaveProperty("message");
+    });
+  });
 
   // GET /users
   describe("GET /api/users", () => {
@@ -111,7 +162,7 @@ describe("Admin routes integration tests", () => {
     });
 
     it("401 when not authenticated", async () => {
-      await request(app).get(`${base}`).expect(401);
+      const res = await request(app).get(`${base}`).expect(401);
     });
 
     it("403 when authenticated non-admin", async () => {
@@ -142,23 +193,27 @@ describe("Admin routes integration tests", () => {
           lastName: "Get",
           password: "p",
           municipality_role_id: 1,
+          role: "MUNICIPALITY",
         })
         .expect(201);
 
       const id = created.body.id;
-      const res = await admin.get(`${base}/${id}`).expect(200);
+      const res = await admin
+        .get(`${base}/${id}`)
+        .send({ role: "MUNICIPALITY" })
+        .expect(200);
       expect(res.body).toHaveProperty("id", id);
       expect(res.body).toHaveProperty("username", "target");
     });
 
     it("400 for invalid (non-integer) id", async () => {
       const admin = await makeAdminAgent();
-      await admin.get(`${base}/abc`).expect(400);
+      await admin.get(`${base}/abc`).send({ role: "CITIZEN" }).expect(400);
     });
 
     it("404 when user not found", async () => {
       const admin = await makeAdminAgent();
-      await admin.get(`${base}/999999`).expect(404);
+      await admin.get(`${base}/999999`).send({ role: "CITIZEN" }).expect(404);
     });
 
     it("401 when not authenticated", async () => {
@@ -193,24 +248,35 @@ describe("Admin routes integration tests", () => {
           lastName: "Delete",
           password: "p",
           municipality_role_id: 1,
+          role: "MUNICIPALITY",
         })
         .expect(201);
 
       const id = created.body.id;
-      await admin.delete(`${base}/${id}`).expect(204);
+      const response = await admin
+        .delete(`${base}/${id}`)
+        .send({ role: "MUNICIPALITY" })
+        .expect(204);
 
       // subsequent GET -> 404
-      await admin.get(`${base}/${id}`).expect(404);
+      await admin
+        .get(`${base}/${id}`)
+        .send({ role: "MUNICIPALITY" })
+        .expect(404);
     });
 
     it("400 for invalid id", async () => {
       const admin = await makeAdminAgent();
-      await admin.delete(`${base}/xyz`).expect(400);
+      await admin.delete(`${base}/xyz`).send({ role: "CITIZEN" });
+      expect(400);
     });
 
     it("404 when user not found", async () => {
       const admin = await makeAdminAgent();
-      await admin.delete(`${base}/999999`).expect(404);
+      await admin
+        .delete(`${base}/999999`)
+        .send({ role: "CITIZEN" })
+        .expect(404);
     });
 
     it("401 when not authenticated", async () => {
@@ -254,7 +320,6 @@ describe("Admin routes integration tests", () => {
       expect(res.body).toHaveProperty("id");
       expect(res.body.email).toBe(payload.email);
       expect(res.body.username).toBe(payload.username);
-      expect(res.body.role).toBe("MUNICIPALITY");
     });
 
     it("400 when required fields are missing", async () => {

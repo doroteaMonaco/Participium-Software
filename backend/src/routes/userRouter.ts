@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { isAuthenticated } from "@middlewares/authMiddleware";
 import { isAdmin, isCitizen } from "@middlewares/roleMiddleware";
-import { authController } from "@controllers/authController";
 import { userController } from "@controllers/userController";
 import multerConfig from "@config/multerConfig";
 

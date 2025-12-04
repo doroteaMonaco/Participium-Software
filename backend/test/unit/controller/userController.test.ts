@@ -1,16 +1,37 @@
 jest.mock("@services/userService", () => ({
   userService: {
+    registerUser: jest.fn(),
     createMunicipalityUser: jest.fn(),
     getAllUsers: jest.fn(),
     getUserById: jest.fn(),
     deleteUser: jest.fn(),
     getAllMunicipalityRoles: jest.fn(),
     getMunicipalityUsers: jest.fn(),
+    updateCitizenProfile: jest.fn(),
   },
 }));
 
+jest.mock("@services/authService", () => ({
+  authService: {
+    login: jest.fn(),
+  },
+}));
+
+jest.mock("@services/imageService", () => ({
+  __esModule: true,
+  // default export
+  default: {
+    storeTemporaryImages: jest.fn(),
+  },
+}));
+
+import { Request } from "express";
 import { userController } from "@controllers/userController";
+import { roleType } from "@models/enums";
+import { NotFoundError } from "@errors/NotFoundError";
 import { userService } from "@services/userService";
+import { authService } from "@services/authService";
+import imageService from "@services/imageService";
 
 type MockRes = {
   status: jest.Mock;
@@ -22,7 +43,10 @@ const makeRes = (): MockRes & any => {
   const status = jest.fn().mockReturnThis();
   const json = jest.fn().mockReturnThis();
   const send = jest.fn().mockReturnThis();
-  return { status, json, send };
+  const setHeader = jest.fn().mockReturnThis();
+  const cookie = jest.fn().mockReturnThis();
+  const clearCookie = jest.fn().mockReturnThis();
+  return { status, json, send, setHeader, cookie, clearCookie };
 };
 
 const makeUser = (overrides: Partial<any> = {}) => ({
@@ -32,7 +56,6 @@ const makeUser = (overrides: Partial<any> = {}) => ({
   firstName: "Mario",
   lastName: "Rossi",
   password: "hashed",
-  municipality_role_id: 2,
   ...overrides,
 });
 
@@ -41,8 +64,143 @@ describe("userController", () => {
     jest.clearAllMocks();
   });
 
+  // ---------- register ----------
+  describe("register", () => {
+    it("returns 201, sets Location and cookie, and returns sanitized user + token", async () => {
+      const req = {
+        body: {
+          email: "mario.rossi@example.com",
+          username: "mrossi",
+          firstName: "Mario",
+          lastName: "Rossi",
+          password: "plain",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      const sanitized = {
+        firstName: "Mario",
+        lastName: "Rossi",
+        username: "mrossi",
+      };
+
+      (userService.registerUser as jest.Mock).mockResolvedValue(sanitized);
+      (authService.login as jest.Mock).mockResolvedValue({ token: "jwt-123" });
+
+      await userController.register(req as any, res as any);
+
+      expect(userService.registerUser).toHaveBeenCalledWith(
+        req.body,
+        roleType.CITIZEN,
+      );
+
+      // cookie + Location + 201
+      expect(res.cookie).toHaveBeenCalledWith(
+        "authToken",
+        "jwt-123",
+        expect.objectContaining({ httpOnly: true, sameSite: "lax", path: "/" }),
+      );
+      expect(res.setHeader).toHaveBeenCalledWith("Location", "/reports");
+      expect(res.status).toHaveBeenCalledWith(201);
+
+      expect(res.json).toHaveBeenCalledWith(sanitized);
+    });
+
+    it("returns 400 when required fields are missing", async () => {
+      const req = {
+        body: { email: "e@e.com", username: "u" }, // missing firstName, lastName, password
+      } as unknown as Request;
+      const res = makeRes();
+
+      await userController.register(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      // controller may return a detailed message, assert only the error kind
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: "Bad Request" }),
+      );
+    });
+
+    it("returns 409 when email is already in use", async () => {
+      const req = {
+        body: {
+          email: "e@e.com",
+          username: "u",
+          firstName: "F",
+          lastName: "L",
+          password: "p",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (userService.registerUser as jest.Mock).mockRejectedValue(
+        new Error("Email is already in use"),
+      );
+
+      await userController.register(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Conflict Error",
+        message: "Email is already in use",
+      });
+    });
+
+    it("returns 409 when username is already in use", async () => {
+      const req = {
+        body: {
+          email: "e@e.com",
+          username: "u",
+          firstName: "F",
+          lastName: "L",
+          password: "p",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (userService.registerUser as jest.Mock).mockRejectedValue(
+        new Error("Username is already in use"),
+      );
+
+      await userController.register(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Conflict Error",
+        message: "Username is already in use",
+      });
+    });
+
+    it("returns 400 for other errors", async () => {
+      const req = {
+        body: {
+          email: "e@e.com",
+          username: "u",
+          firstName: "F",
+          lastName: "L",
+          password: "p",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (userService.registerUser as jest.Mock).mockRejectedValue(
+        new Error("boom"),
+      );
+
+      await userController.register(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Bad Request",
+        message: "boom",
+      });
+    });
+  });
+
   // -------- createMunicipalityUser --------
   describe("createMunicipalityUser", () => {
+    const municipality_role_id = 2;
+
     it("returns 400 when required fields are missing", async () => {
       const req: any = { body: { email: "a@b.c" } }; // incomplete
       const res = makeRes();
@@ -60,7 +218,7 @@ describe("userController", () => {
 
     it("returns 409 when email or username is already in use", async () => {
       const payload = makeUser();
-      const req: any = { body: { ...payload } };
+      const req: any = { body: { ...payload, municipality_role_id } };
       const res = makeRes();
 
       (userService.createMunicipalityUser as jest.Mock).mockRejectedValue(
@@ -79,9 +237,9 @@ describe("userController", () => {
 
     it("returns 201 and the created user on success", async () => {
       const payload = makeUser();
-      const req: any = { body: payload };
+      const req: any = { body: { ...payload, municipality_role_id } };
       const res = makeRes();
-      const created = makeUser({ id: 10, role: "MUNICIPALITY" });
+      const created = makeUser({ id: 10 });
 
       (userService.createMunicipalityUser as jest.Mock).mockResolvedValue(
         created,
@@ -90,12 +248,8 @@ describe("userController", () => {
       await userController.createMunicipalityUser(req, res);
 
       expect(userService.createMunicipalityUser).toHaveBeenCalledWith(
-        payload.email,
-        payload.username,
-        payload.firstName,
-        payload.lastName,
-        payload.password,
-        payload.municipality_role_id,
+        expect.objectContaining(payload),
+        municipality_role_id,
       );
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(created);
@@ -103,7 +257,7 @@ describe("userController", () => {
 
     it("returns 500 for other errors from service", async () => {
       const payload = makeUser();
-      const req: any = { body: { ...payload } };
+      const req: any = { body: { ...payload, municipality_role_id } };
       const res = makeRes();
 
       (userService.createMunicipalityUser as jest.Mock).mockRejectedValue(
@@ -155,7 +309,10 @@ describe("userController", () => {
   // -------- getUserById --------
   describe("getUserById", () => {
     it("returns 400 for invalid id", async () => {
-      const req = { params: { id: "abc" } } as any;
+      const req = {
+        params: { id: "abc" },
+        body: { role: roleType.CITIZEN },
+      } as any;
       const res = makeRes();
 
       await userController.getUserById(req, res);
@@ -167,23 +324,30 @@ describe("userController", () => {
     });
 
     it("returns 404 when user not found", async () => {
-      const req = { params: { id: "5" } } as any;
+      const req = {
+        params: { id: "5" },
+        body: { role: roleType.CITIZEN },
+      } as any;
       const res = makeRes();
 
-      (userService.getUserById as jest.Mock).mockResolvedValue(null);
+      (userService.getUserById as jest.Mock).mockRejectedValue(
+        new NotFoundError("User not found"),
+      );
 
       await userController.getUserById(req, res);
 
-      expect(userService.getUserById).toHaveBeenCalledWith(5);
+      expect(userService.getUserById).toHaveBeenCalledWith(5, roleType.CITIZEN);
       expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({
-        error: "Not Found",
-        message: "User not found",
-      });
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: "Not Found" }),
+      );
     });
 
     it("returns 200 with user when found", async () => {
-      const req = { params: { id: "7" } } as any;
+      const req = {
+        params: { id: "7" },
+        body: { role: roleType.CITIZEN },
+      } as any;
       const res = makeRes();
       const user = makeUser({ id: 7 });
 
@@ -191,13 +355,16 @@ describe("userController", () => {
 
       await userController.getUserById(req, res);
 
-      expect(userService.getUserById).toHaveBeenCalledWith(7);
+      expect(userService.getUserById).toHaveBeenCalledWith(7, roleType.CITIZEN);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(user);
     });
 
     it("returns 500 on service error", async () => {
-      const req = { params: { id: "7" } } as any;
+      const req = {
+        params: { id: "7" },
+        body: { role: roleType.CITIZEN },
+      } as any;
       const res = makeRes();
 
       (userService.getUserById as jest.Mock).mockRejectedValue(
@@ -216,7 +383,10 @@ describe("userController", () => {
   // -------- deleteUser --------
   describe("deleteUser", () => {
     it("returns 400 for invalid id", async () => {
-      const req = { params: { id: "x" } } as any;
+      const req = {
+        params: { id: "x" },
+        body: { role: roleType.CITIZEN },
+      } as any;
       const res = makeRes();
 
       await userController.deleteUser(req, res);
@@ -228,20 +398,26 @@ describe("userController", () => {
     });
 
     it("returns 204 on successful delete", async () => {
-      const req = { params: { id: "3" } } as any;
+      const req = {
+        params: { id: "3" },
+        body: { role: roleType.CITIZEN },
+      } as any;
       const res = makeRes();
 
       (userService.deleteUser as jest.Mock).mockResolvedValue(undefined);
 
       await userController.deleteUser(req, res);
 
-      expect(userService.deleteUser).toHaveBeenCalledWith(3);
+      expect(userService.deleteUser).toHaveBeenCalledWith(3, roleType.CITIZEN);
       expect(res.status).toHaveBeenCalledWith(204);
       expect(res.send).toHaveBeenCalled();
     });
 
     it('returns 404 when service throws "User not found"', async () => {
-      const req = { params: { id: "9" } } as any;
+      const req = {
+        params: { id: "9" },
+        body: { role: roleType.CITIZEN },
+      } as any;
       const res = makeRes();
 
       (userService.deleteUser as jest.Mock).mockRejectedValue(
@@ -258,7 +434,10 @@ describe("userController", () => {
     });
 
     it("returns 500 for other errors", async () => {
-      const req = { params: { id: "9" } } as any;
+      const req = {
+        params: { id: "9" },
+        body: { role: roleType.CITIZEN },
+      } as any;
       const res = makeRes();
 
       (userService.deleteUser as jest.Mock).mockRejectedValue(
@@ -337,6 +516,194 @@ describe("userController", () => {
       );
 
       await userController.getMunicipalityUsers(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: "Internal Server Error" }),
+      );
+    });
+  });
+
+  // -------- updateCitizenProfile --------
+  describe("updateCitizenProfile", () => {
+    it("returns 400 when no fields provided", async () => {
+      const req: any = { user: { id: 1 }, body: {}, file: undefined };
+      const res = makeRes();
+
+      await userController.updateCitizenProfile(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Bad Request",
+        }),
+      );
+      expect(
+        userService.updateCitizenProfile as jest.Mock,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("stores image when file provided and calls service with tempKey", async () => {
+      const req: any = {
+        user: { id: 11 },
+        body: { telegramUsername: undefined, notificationsEnabled: undefined },
+        file: {
+          buffer: Buffer.from("img"),
+          mimetype: "image/png",
+          originalname: "a.png",
+        },
+      };
+      const res = makeRes();
+
+      (imageService.storeTemporaryImages as jest.Mock).mockResolvedValue([
+        "tmp-1",
+      ]);
+      (userService.updateCitizenProfile as jest.Mock).mockResolvedValue(
+        undefined,
+      );
+
+      await userController.updateCitizenProfile(req, res);
+
+      expect(imageService.storeTemporaryImages).toHaveBeenCalledWith([
+        {
+          buffer: req.file.buffer,
+          mimetype: req.file.mimetype,
+          originalname: req.file.originalname,
+        },
+      ]);
+      expect(userService.updateCitizenProfile).toHaveBeenCalledWith(
+        11,
+        "tmp-1",
+        undefined,
+        undefined,
+      );
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(res.send).toHaveBeenCalled();
+    });
+
+    it("passes telegramUsername and tempKey when both file and telegram provided", async () => {
+      const req: any = {
+        user: { id: 99 },
+        body: { telegramUsername: "tg99", notificationsEnabled: undefined },
+        file: {
+          buffer: Buffer.from("img2"),
+          mimetype: "image/jpeg",
+          originalname: "b.jpg",
+        },
+      };
+      const res = makeRes();
+
+      (imageService.storeTemporaryImages as jest.Mock).mockResolvedValue([
+        "tmp-99",
+      ]);
+      (userService.updateCitizenProfile as jest.Mock).mockResolvedValue(
+        undefined,
+      );
+
+      await userController.updateCitizenProfile(req, res);
+
+      expect(imageService.storeTemporaryImages).toHaveBeenCalledWith([
+        {
+          buffer: req.file.buffer,
+          mimetype: req.file.mimetype,
+          originalname: req.file.originalname,
+        },
+      ]);
+      expect(userService.updateCitizenProfile).toHaveBeenCalledWith(
+        99,
+        "tmp-99",
+        "tg99",
+        undefined,
+      );
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(res.send).toHaveBeenCalled();
+    });
+
+    it("converts notificationsEnabled string to boolean and passes to service", async () => {
+      const req: any = {
+        user: { id: 22 },
+        body: { telegramUsername: "tguser", notificationsEnabled: "true" },
+        file: undefined,
+      };
+      const res = makeRes();
+
+      (userService.updateCitizenProfile as jest.Mock).mockResolvedValue(
+        undefined,
+      );
+
+      await userController.updateCitizenProfile(req, res);
+
+      expect(userService.updateCitizenProfile).toHaveBeenCalledWith(
+        22,
+        undefined,
+        "tguser",
+        true,
+      );
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(res.send).toHaveBeenCalled();
+    });
+
+    it("converts notificationsEnabled string 'false' to boolean false", async () => {
+      const req: any = {
+        user: { id: 23 },
+        body: { telegramUsername: undefined, notificationsEnabled: "false" },
+        file: undefined,
+      };
+      const res = makeRes();
+
+      (userService.updateCitizenProfile as jest.Mock).mockResolvedValue(
+        undefined,
+      );
+
+      await userController.updateCitizenProfile(req, res);
+
+      expect(userService.updateCitizenProfile).toHaveBeenCalledWith(
+        23,
+        undefined,
+        undefined,
+        false,
+      );
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(res.send).toHaveBeenCalled();
+    });
+
+    it("accepts boolean notificationsEnabled true", async () => {
+      const req: any = {
+        user: { id: 33 },
+        body: { notificationsEnabled: true },
+        file: undefined,
+      };
+      const res = makeRes();
+
+      (userService.updateCitizenProfile as jest.Mock).mockResolvedValue(
+        undefined,
+      );
+
+      await userController.updateCitizenProfile(req, res);
+
+      expect(userService.updateCitizenProfile).toHaveBeenCalledWith(
+        33,
+        undefined,
+        undefined,
+        true,
+      );
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(res.send).toHaveBeenCalled();
+    });
+
+    it("returns 500 on service error", async () => {
+      const req: any = {
+        user: { id: 44 },
+        body: { telegramUsername: "x" },
+        file: undefined,
+      };
+      const res = makeRes();
+
+      (userService.updateCitizenProfile as jest.Mock).mockRejectedValue(
+        new Error("boom"),
+      );
+
+      await userController.updateCitizenProfile(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith(

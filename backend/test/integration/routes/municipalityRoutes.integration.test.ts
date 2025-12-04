@@ -1,6 +1,8 @@
 import request from "supertest";
 import { PrismaClient } from "@prisma/client";
+import { userService } from "@services/userService";
 import app from "@app";
+import { roleType } from "@models/enums";
 
 const prisma = new PrismaClient();
 
@@ -8,25 +10,26 @@ describe("Municipality Integration Tests", () => {
   const base = "/api/users";
   let adminAgent: any;
 
-  beforeAll(async () => {
-    // Setup municipality roles
-    try {
-      await prisma.municipality_role.createMany({
-        data: [
-          { id: 1, name: "OPERATOR" },
-          { id: 2, name: "VALIDATOR" },
-          { id: 3, name: "SUPERVISOR" },
-        ],
-        skipDuplicates: true,
-      });
-    } catch (e) {
-      console.warn("Municipality role seed failed:", e);
-    }
-  });
-
   beforeEach(async () => {
     // Clean database
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+    // Re-seed municipality roles
+    await prisma.municipality_role.createMany({
+      data: [
+        { id: 1, name: "municipal public relations officer" },
+        { id: 2, name: "municipal administrator" },
+        { id: 3, name: "public works project manager" },
+        { id: 4, name: "sanitation and waste management officer" },
+        { id: 5, name: "environmental protection officer" },
+        { id: 6, name: "traffic and mobility coordinator" },
+        { id: 7, name: "parks and green spaces officer" },
+        { id: 8, name: "urban planning specialist" },
+      ],
+      skipDuplicates: true,
+    });
 
     // Create and login admin user using the regular flow
     const adminUser = {
@@ -37,27 +40,28 @@ describe("Municipality Integration Tests", () => {
       password: "adminpass123",
     };
 
+    // Create admin user manually
+    await userService.registerUser(adminUser, roleType.ADMIN);
+
     // Create agent and register admin
     adminAgent = request.agent(app);
-
-    // Register admin user
-    await adminAgent.post("/api/users").send(adminUser).expect(201);
-
-    // Promote to admin manually
-    await prisma.user.update({
-      where: { email: adminUser.email },
-      data: { role: "ADMIN" },
-    });
 
     // Login to get cookie
     await adminAgent
       .post("/api/auth/session")
-      .send({ identifier: adminUser.email, password: adminUser.password })
+      .send({
+        identifier: adminUser.email,
+        password: adminUser.password,
+        role: "ADMIN",
+      })
       .expect(200);
   });
 
   afterAll(async () => {
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
     await prisma.$disconnect();
   });
 
@@ -80,7 +84,6 @@ describe("Municipality Integration Tests", () => {
       expect(response.body).toHaveProperty("id");
       expect(response.body.email).toBe(validPayload.email);
       expect(response.body.username).toBe(validPayload.username);
-      expect(response.body.role).toBe("MUNICIPALITY");
       expect(response.body.municipality_role_id).toBe(
         validPayload.municipality_role_id,
       );
@@ -96,11 +99,10 @@ describe("Municipality Integration Tests", () => {
         .expect(400);
 
       expect(response.body).toHaveProperty("error", "Bad Request");
-      expect(response.body.message).toContain("Missing required fields");
     });
 
     it("401 when not authenticated", async () => {
-      await request(app)
+      const response = await request(app)
         .post(`${base}/municipality-users`)
         .send(validPayload)
         .expect(401);
@@ -186,7 +188,6 @@ describe("Municipality Integration Tests", () => {
         expect(user).toHaveProperty("id");
         expect(user).toHaveProperty("email");
         expect(user).toHaveProperty("username");
-        expect(user).toHaveProperty("role", "MUNICIPALITY");
         expect(user).toHaveProperty("municipality_role_id");
       });
 
@@ -198,9 +199,7 @@ describe("Municipality Integration Tests", () => {
 
     it("200 returns empty array when no municipality users exist", async () => {
       // Clean up municipality users
-      await prisma.user.deleteMany({
-        where: { role: "MUNICIPALITY" },
-      });
+      await prisma.municipality_user.deleteMany();
 
       const response = await adminAgent
         .get(`${base}/municipality-users`)

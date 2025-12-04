@@ -29,14 +29,22 @@ jest.mock("@controllers/reportController", () => ({
 }));
 
 jest.mock("@middlewares/authMiddleware", () => ({
-  isAuthenticated: jest.fn((req: Request, res: Response, next: Function) => next()),
+  isAuthenticated: jest.fn((req: Request, res: Response, next: Function) =>
+    next(),
+  ),
 }));
 
 jest.mock("@middlewares/roleMiddleware", () => ({
-  isMunicipality: jest.fn((req: Request, res: Response, next: Function) => next()),
-  isMunicipalityStrict: jest.fn((req: Request, res: Response, next: Function) => next()),
+  isMunicipality: jest.fn((req: Request, res: Response, next: Function) =>
+    next(),
+  ),
+  isMunicipalityStrict: jest.fn((req: Request, res: Response, next: Function) =>
+    next(),
+  ),
   isCitizen: jest.fn((req: Request, res: Response, next: Function) => next()),
-  hasRole: jest.fn(() => (req: Request, res: Response, next: Function) => next()),
+  hasRole: jest.fn(
+    () => (req: Request, res: Response, next: Function) => next(),
+  ),
 }));
 
 jest.mock("@middlewares/uploadMiddleware", () => ({

@@ -1,5 +1,10 @@
 import { Request, Response } from "express";
-import { isCitizen, isAdmin, isMunicipality, hasRole } from "@middlewares/roleMiddleware";
+import {
+  isCitizen,
+  isAdmin,
+  isMunicipality,
+  hasRole,
+} from "@middlewares/roleMiddleware";
 
 type ResMock = Partial<Response> & {
   status: jest.Mock;
@@ -13,9 +18,11 @@ const makeRes = (): ResMock => {
   return res;
 };
 
-const makeReq = (user?: any): Request => ({
-  user,
-} as Request);
+const makeReq = (user?: any, role?: string): Request =>
+  ({
+    user,
+    role,
+  }) as Request;
 
 const makeNext = jest.fn();
 
@@ -26,7 +33,7 @@ describe("Role Middlewares", () => {
 
   describe("isCitizen", () => {
     it("allows citizen user to proceed", () => {
-      const req = makeReq({ role: "CITIZEN" });
+      const req = makeReq({ id: 1 }, "CITIZEN");
       const res = makeRes();
 
       isCitizen(req, res as Response, makeNext);
@@ -36,7 +43,7 @@ describe("Role Middlewares", () => {
     });
 
     it("allows admin user to proceed", () => {
-      const req = makeReq({ role: "ADMIN" });
+      const req = makeReq({ id: 1 }, "ADMIN");
       const res = makeRes();
 
       isCitizen(req, res as Response, makeNext);
@@ -46,7 +53,7 @@ describe("Role Middlewares", () => {
     });
 
     it("denies non-citizen user", () => {
-      const req = makeReq({ role: "MUNICIPALITY" });
+      const req = makeReq({ id: 1 }, "MUNICIPALITY");
       const res = makeRes();
 
       isCitizen(req, res as Response, makeNext);
@@ -76,7 +83,7 @@ describe("Role Middlewares", () => {
 
   describe("isAdmin", () => {
     it("allows admin user to proceed", () => {
-      const req = makeReq({ role: "ADMIN" });
+      const req = makeReq({ id: 1 }, "ADMIN");
       const res = makeRes();
 
       isAdmin(req, res as Response, makeNext);
@@ -86,7 +93,7 @@ describe("Role Middlewares", () => {
     });
 
     it("denies non-admin user", () => {
-      const req = makeReq({ role: "CITIZEN" });
+      const req = makeReq({ id: 1 }, "CITIZEN");
       const res = makeRes();
 
       isAdmin(req, res as Response, makeNext);
@@ -116,7 +123,7 @@ describe("Role Middlewares", () => {
 
   describe("isMunicipality", () => {
     it("allows municipality user to proceed", () => {
-      const req = makeReq({ role: "MUNICIPALITY" });
+      const req = makeReq({ id: 1 }, "MUNICIPALITY");
       const res = makeRes();
 
       isMunicipality(req, res as Response, makeNext);
@@ -126,7 +133,7 @@ describe("Role Middlewares", () => {
     });
 
     it("allows admin user to proceed", () => {
-      const req = makeReq({ role: "ADMIN" });
+      const req = makeReq({ id: 1 }, "ADMIN");
       const res = makeRes();
 
       isMunicipality(req, res as Response, makeNext);
@@ -136,7 +143,7 @@ describe("Role Middlewares", () => {
     });
 
     it("denies non-municipality user", () => {
-      const req = makeReq({ role: "CITIZEN" });
+      const req = makeReq({ id: 1 }, "CITIZEN");
       const res = makeRes();
 
       isMunicipality(req, res as Response, makeNext);
@@ -166,7 +173,7 @@ describe("Role Middlewares", () => {
 
   describe("hasRole", () => {
     it("allows user with required role to proceed", () => {
-      const req = makeReq({ role: "CITIZEN" });
+      const req = makeReq({ id: 1 }, "CITIZEN");
       const res = makeRes();
 
       hasRole(["CITIZEN"])(req, res as Response, makeNext);
@@ -176,7 +183,7 @@ describe("Role Middlewares", () => {
     });
 
     it("denies user without required role", () => {
-      const req = makeReq({ role: "CITIZEN" });
+      const req = makeReq({ id: 1 }, "CITIZEN");
       const res = makeRes();
 
       hasRole(["ADMIN"])(req, res as Response, makeNext);

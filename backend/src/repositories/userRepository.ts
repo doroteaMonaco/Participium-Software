@@ -1,6 +1,52 @@
 import { prisma } from "@database";
+import { buildParamsObject, throwBadRequestIfMissingObject } from "@utils";
 import { roleType } from "@models/enums";
-import { roleType as PrismaRole } from "@prisma/client";
+import { AnyUserDto, mapPrismaUserToDto } from "@dto/userDto";
+import { AuthenticationError } from "@errors/AuthenticationError";
+
+// Base fields common to all users
+const baseSelect = {
+  id: true,
+  username: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  createdAt: true,
+};
+
+/**
+ * Select extra fields based on role type
+ */
+const roleSelectMap: Record<roleType, any> = {
+  [roleType.CITIZEN]: {
+    profilePhoto: true,
+    telegramUsername: true,
+    notifications: true,
+  },
+  [roleType.MUNICIPALITY]: {
+    municipality_role_id: true,
+    municipality_role: true,
+  },
+  [roleType.ADMIN]: {},
+};
+
+const selectExtras = (role: roleType, needPass: boolean = false) => {
+  const extra = { ...(roleSelectMap[role] ?? {}) };
+  if (needPass) extra.password = true;
+  return { ...baseSelect, ...extra };
+};
+
+// Get the correct table name based on role
+const userTable = (role: roleType) => {
+  switch (role) {
+    case roleType.CITIZEN:
+      return "user";
+    case roleType.ADMIN:
+      return "admin_user";
+    case roleType.MUNICIPALITY:
+      return "municipality_user";
+  }
+};
 
 export const userRepository = {
   async createUser(
@@ -9,158 +55,96 @@ export const userRepository = {
     firstName: string,
     lastName: string,
     password: string,
-  ) {
-    return prisma.user.create({
+    role: roleType = roleType.CITIZEN,
+    override: object = {}, // check the prisma schema for the correct field name
+  ): Promise<AnyUserDto> {
+    const params = buildParamsObject(
+      { email, username, firstName, lastName, password, role },
+      override,
+    );
+    throwBadRequestIfMissingObject(params);
+
+    const createdUser = await (prisma as any)[userTable(role)].create({
       data: {
-        username,
         email,
+        username,
         firstName,
         lastName,
         password,
+        ...override,
       },
+      select: selectExtras(role),
     });
+
+    return mapPrismaUserToDto(createdUser, role)!;
   },
 
-  async findUserByEmail(email: string) {
-    return prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        password: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        createdAt: true,
-        municipality_role_id: true,
-        municipality_role: true,
-        profilePhoto: true,
-        telegramUsername: true,
-        notifications: true,
-      },
-    });
-  },
-
-  async findUserByUsername(username: string) {
-    return prisma.user.findUnique({
-      where: { username },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        password: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        createdAt: true,
-        municipality_role_id: true,
-        municipality_role: true,
-        profilePhoto: true,
-        telegramUsername: true,
-        notifications: true,
-      },
-    });
-  },
-
-  async findUserById(id: number) {
-    return prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        createdAt: true,
-        municipality_role_id: true,
-        municipality_role: true,
-        profilePhoto: true,
-        telegramUsername: true,
-        notifications: true,
-      },
-    });
-  },
-
-  async createUserWithRole(
+  async findUserByEmail(
     email: string,
-    username: string,
-    firstName: string,
-    lastName: string,
-    password: string,
-    role: string,
-    municipality_role_id?: number,
-  ) {
-    return prisma.user.create({
-      data: {
-        username,
-        email,
-        firstName,
-        lastName,
-        password,
-        role: role as any,
-        municipality_role_id: municipality_role_id,
-      },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        createdAt: true,
-        municipality_role_id: true,
-        municipality_role: true,
-      },
+    role: roleType = roleType.CITIZEN,
+  ): Promise<AnyUserDto | null> {
+    throwBadRequestIfMissingObject({ email });
+
+    const row = await (prisma as any)[userTable(role)].findUnique({
+      where: { email },
+      select: selectExtras(role, true),
     });
+
+    return mapPrismaUserToDto(row, role);
+  },
+
+  async findUserByUsername(
+    username: string,
+    role: roleType = roleType.CITIZEN,
+  ): Promise<AnyUserDto | null> {
+    throwBadRequestIfMissingObject({ username });
+
+    const row = await (prisma as any)[userTable(role)].findUnique({
+      where: { username },
+      select: selectExtras(role, true),
+    });
+
+    return mapPrismaUserToDto(row, role);
+  },
+
+  async findUserById(
+    id: number,
+    role: roleType = roleType.CITIZEN,
+  ): Promise<AnyUserDto | null> {
+    throwBadRequestIfMissingObject({ id });
+
+    const row = await (prisma as any)[userTable(role)].findUnique({
+      where: { id },
+      select: selectExtras(role),
+    });
+
+    return mapPrismaUserToDto(row, role);
   },
 
   async getAllUsers() {
-    return prisma.user.findMany({
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        createdAt: true,
-        municipality_role_id: true,
-        municipality_role: true,
-        profilePhoto: true,
-        telegramUsername: true,
-        notifications: true,
-      },
+    const users = await prisma.user.findMany({
+      select: selectExtras(roleType.CITIZEN),
     });
+
+    return users.map((user) => mapPrismaUserToDto(user, roleType.CITIZEN));
   },
 
-  async deleteUser(userId: number) {
-    return prisma.user.delete({
+  async deleteUser(userId: number, role: roleType = roleType.CITIZEN) {
+    throwBadRequestIfMissingObject({ userId });
+
+    const deletedUser = await (prisma as any)[userTable(role)].delete({
       where: { id: userId },
     });
+
+    return mapPrismaUserToDto(deletedUser, role);
   },
 
-  async getUsersByRole(role: roleType | PrismaRole) {
-    // ensure value is the Prisma enum type before querying
-    const prismaRole = role as PrismaRole;
-    return prisma.user.findMany({
-      where: { role: prismaRole },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        createdAt: true,
-        municipality_role_id: true,
-        municipality_role: true,
-        profilePhoto: true,
-        telegramUsername: true,
-        notifications: true,
-      },
+  async getUsersByRole(role: roleType) {
+    const users = await (prisma as any)[userTable(role)].findMany({
+      select: selectExtras(role),
     });
+
+    return users.map((user: any) => mapPrismaUserToDto(user, role));
   },
 
   async updateUserProfile(
@@ -169,6 +153,12 @@ export const userRepository = {
     notifications?: boolean,
     profilePhotoPath?: string,
   ) {
+    const params = buildParamsObject(
+      { id },
+      { telegramUsername, notifications, profilePhotoPath },
+    );
+    throwBadRequestIfMissingObject(params);
+
     const data: any = {};
     if (telegramUsername !== undefined) {
       data.telegramUsername = telegramUsername;
@@ -186,18 +176,21 @@ export const userRepository = {
   },
 
   async findLeastLoadedOfficerByOfficeName(officeName: string) {
-    return prisma.user.findFirst({
+    throwBadRequestIfMissingObject({ officeName });
+
+    const officer = await prisma.municipality_user.findFirst({
       where: {
-        role: roleType.MUNICIPALITY,
         municipality_role: {
-          name: officeName
-        }
+          name: officeName,
+        },
       },
       orderBy: {
         assignedReports: {
-          _count: 'asc'
-        }
-      }
-    })
-  }
+          _count: "asc",
+        },
+      },
+    });
+
+    return officer ? mapPrismaUserToDto(officer, roleType.MUNICIPALITY) : null;
+  },
 };

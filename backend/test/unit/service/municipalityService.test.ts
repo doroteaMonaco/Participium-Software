@@ -4,7 +4,6 @@ jest.mock("@repositories/userRepository", () => ({
     findUserByUsername: jest.fn(),
     findUserById: jest.fn(),
     createUser: jest.fn(),
-    createUserWithRole: jest.fn(),
     getAllUsers: jest.fn(),
     deleteUser: jest.fn(),
     getUsersByRole: jest.fn(),
@@ -26,12 +25,13 @@ import { userService } from "@services/userService";
 import { userRepository } from "@repositories/userRepository";
 import { roleRepository } from "@repositories/roleRepository";
 import { roleType } from "@models/enums";
+import { CreateBaseUserDto, MunicipalityUserDto } from "@dto/userDto";
 import bcrypt from "bcrypt";
 
 type UserRepoMock = {
   findUserByEmail: jest.Mock;
   findUserByUsername: jest.Mock;
-  createUserWithRole: jest.Mock;
+  createUser: jest.Mock;
   getUsersByRole: jest.Mock;
 };
 
@@ -42,13 +42,12 @@ type RoleRepoMock = {
 const userRepo = userRepository as unknown as UserRepoMock;
 const roleRepo = roleRepository as unknown as RoleRepoMock;
 
-const makeUser = (overrides: Partial<any> = {}) => ({
+const makeUser = (overrides: Partial<MunicipalityUserDto> = {}) => ({
   id: 1,
   email: "test@example.com",
   username: "testuser",
   firstName: "Test",
   lastName: "User",
-  role: roleType.MUNICIPALITY,
   municipality_role_id: 1,
   municipality_role: { id: 1, name: "Test Role" },
   createdAt: new Date(),
@@ -61,51 +60,55 @@ describe("userService - Municipality Functions", () => {
   });
 
   describe("createMunicipalityUser", () => {
-    const mockUserData = {
+    const mockUserData: CreateBaseUserDto = {
       email: "municipality@test.com",
       username: "municipality_user",
       firstName: "Municipality",
       lastName: "User",
       password: "password123",
-      municipality_role_id: 1,
     };
 
-    const mockCreatedUser = makeUser({
+    const municipality_role_id = 1;
+
+    const mockCreatedUser: MunicipalityUserDto = makeUser({
+      id: 2,
       email: mockUserData.email,
       username: mockUserData.username,
       firstName: mockUserData.firstName,
       lastName: mockUserData.lastName,
-      municipality_role_id: mockUserData.municipality_role_id,
+      municipality_role_id: municipality_role_id,
     });
 
     it("creates a municipality user successfully", async () => {
       userRepo.findUserByEmail.mockResolvedValue(null);
       userRepo.findUserByUsername.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue("hashed_password");
-      userRepo.createUserWithRole.mockResolvedValue(mockCreatedUser);
+      userRepo.createUser.mockResolvedValue(mockCreatedUser);
 
       const result = await userService.createMunicipalityUser(
-        mockUserData.email,
-        mockUserData.username,
-        mockUserData.firstName,
-        mockUserData.lastName,
-        mockUserData.password,
-        mockUserData.municipality_role_id,
+        mockUserData,
+        municipality_role_id,
       );
 
-      expect(userRepo.findUserByEmail).toHaveBeenCalledWith(mockUserData.email);
+      // repository email lookup must receive roleType.MUNICIPALITY
+      expect(userRepo.findUserByEmail).toHaveBeenCalledWith(
+        mockUserData.email,
+        roleType.MUNICIPALITY,
+      );
       expect(userRepo.findUserByUsername).toHaveBeenCalledWith(
         mockUserData.username,
+        roleType.MUNICIPALITY,
       );
       expect(bcrypt.hash).toHaveBeenCalledWith(mockUserData.password, 10);
-      expect(userRepo.createUserWithRole).toHaveBeenCalledWith(
+
+      expect(userRepo.createUser).toHaveBeenCalledWith(
         mockUserData.email,
         mockUserData.username,
         mockUserData.firstName,
         mockUserData.lastName,
         "hashed_password",
-        "MUNICIPALITY",
-        mockUserData.municipality_role_id,
+        roleType.MUNICIPALITY,
+        { municipality_role_id: municipality_role_id },
       );
       expect(result).toEqual(mockCreatedUser);
     });
@@ -114,53 +117,46 @@ describe("userService - Municipality Functions", () => {
       const existingUser = makeUser({
         email: mockUserData.email,
         username: "existing_user",
-        role: roleType.CITIZEN,
       });
-      userRepo.findUserByEmail.mockResolvedValue(existingUser);
+      userRepo.findUserByEmail.mockRejectedValue(
+        new Error("Email is already in use"),
+      );
 
       await expect(
-        userService.createMunicipalityUser(
-          mockUserData.email,
-          mockUserData.username,
-          mockUserData.firstName,
-          mockUserData.lastName,
-          mockUserData.password,
-          mockUserData.municipality_role_id,
-        ),
+        userService.createMunicipalityUser(mockUserData, municipality_role_id),
       ).rejects.toThrow("Email is already in use");
 
-      expect(userRepo.findUserByEmail).toHaveBeenCalledWith(mockUserData.email);
+      expect(userRepo.findUserByEmail).toHaveBeenCalledWith(
+        mockUserData.email,
+        roleType.MUNICIPALITY,
+      );
       expect(userRepo.findUserByUsername).not.toHaveBeenCalled();
       expect(bcrypt.hash).not.toHaveBeenCalled();
-      expect(userRepo.createUserWithRole).not.toHaveBeenCalled();
+      expect(userRepo.createUser).not.toHaveBeenCalled();
     });
 
     it("throws error when username is already in use", async () => {
       const existingUser = makeUser({
         email: "existing@test.com",
         username: mockUserData.username,
-        role: roleType.CITIZEN,
       });
       userRepo.findUserByEmail.mockResolvedValue(null);
       userRepo.findUserByUsername.mockResolvedValue(existingUser);
 
       await expect(
-        userService.createMunicipalityUser(
-          mockUserData.email,
-          mockUserData.username,
-          mockUserData.firstName,
-          mockUserData.lastName,
-          mockUserData.password,
-          mockUserData.municipality_role_id,
-        ),
+        userService.createMunicipalityUser(mockUserData, municipality_role_id),
       ).rejects.toThrow("Username is already in use");
 
-      expect(userRepo.findUserByEmail).toHaveBeenCalledWith(mockUserData.email);
+      expect(userRepo.findUserByEmail).toHaveBeenCalledWith(
+        mockUserData.email,
+        roleType.MUNICIPALITY,
+      );
       expect(userRepo.findUserByUsername).toHaveBeenCalledWith(
         mockUserData.username,
+        roleType.MUNICIPALITY,
       );
       expect(bcrypt.hash).not.toHaveBeenCalled();
-      expect(userRepo.createUserWithRole).not.toHaveBeenCalled();
+      expect(userRepo.createUser).not.toHaveBeenCalled();
     });
   });
 

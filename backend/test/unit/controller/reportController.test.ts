@@ -87,7 +87,11 @@ describe("reportController", () => {
       const reports = [makeReport({ id: 2 }), makeReport({ id: 1 })];
       svc.findAll.mockResolvedValue(reports);
 
-      const req = { query: {}, user: { role: "ADMIN" } } as unknown as Request;
+      const req = {
+        query: {},
+        user: { id: 1 },
+        role: "ADMIN",
+      } as unknown as Request;
       const res = makeRes();
 
       await getReports(req, res as unknown as Response);
@@ -99,7 +103,11 @@ describe("reportController", () => {
     it("returns 500 on service error", async () => {
       svc.findAll.mockRejectedValue(new Error("boom"));
 
-      const req = { query: {}, user: { role: "ADMIN" } } as unknown as Request;
+      const req = {
+        query: {},
+        user: { id: 1 },
+        role: "ADMIN",
+      } as unknown as Request;
       const res = makeRes();
 
       await getReports(req, res as unknown as Response);
@@ -146,7 +154,8 @@ describe("reportController", () => {
     it("returns 401 for invalid status filter", async () => {
       const req = {
         query: { status: "INVALID" },
-        user: { role: "CITIZEN" },
+        user: { id: 1 },
+        role: "CITIZEN",
       } as unknown as Request;
       const res = makeRes();
 
@@ -171,7 +180,8 @@ describe("reportController", () => {
 
       const req = {
         query: {},
-        user: { role: "ADMIN" },
+        user: { id: 1 },
+        role: "ADMIN",
       } as unknown as Request;
       const res = makeRes();
 
@@ -288,7 +298,7 @@ describe("reportController", () => {
       expect(svc.updateReportStatus).toHaveBeenCalledWith(
         5,
         "ASSIGNED",
-        undefined
+        undefined,
       );
       expect(res.json).toHaveBeenCalledWith({ status: "ASSIGNED" });
     });
@@ -380,7 +390,7 @@ describe("reportController", () => {
           photoKeys: ["k1", "k2"],
           anonymous: false,
         },
-        42
+        42,
       );
 
       expect(res.status).toHaveBeenCalledWith(201);
@@ -467,7 +477,7 @@ describe("reportController", () => {
       await submitReport(req as Request, res as unknown as Response);
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: "Invalid category" })
+        expect.objectContaining({ error: "Invalid category" }),
       );
     });
 
@@ -621,7 +631,7 @@ describe("reportController", () => {
       expect(svc.updateReportStatus).toHaveBeenCalledWith(
         1,
         "ASSIGNED",
-        undefined
+        undefined,
       );
       expect(res.json).toHaveBeenCalledWith({ status: "ASSIGNED" });
     });
@@ -640,7 +650,7 @@ describe("reportController", () => {
       expect(svc.updateReportStatus).toHaveBeenCalledWith(
         2,
         "REJECTED",
-        "Invalid report"
+        "Invalid report",
       );
       expect(res.json).toHaveBeenCalledWith({ status: "REJECTED" });
     });
@@ -774,7 +784,7 @@ describe("reportController", () => {
 
       expect(svc.findAssignedReportsForOfficer).toHaveBeenCalledWith(
         3,
-        "ASSIGNED"
+        "ASSIGNED",
       );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(reports);

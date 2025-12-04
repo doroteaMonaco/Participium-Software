@@ -1,6 +1,8 @@
 import request from "supertest";
 import { PrismaClient } from "@prisma/client";
 import app from "@app";
+import { roleType } from "@models/enums";
+import { userService } from "@services/userService";
 
 // Mock only the image service to avoid dealing with real Redis/FS in this e2e
 jest.mock("@services/imageService", () => {
@@ -36,7 +38,11 @@ jest.mock("@services/imageService", () => {
 const prisma = new PrismaClient();
 
 // --- Helpers: register, login, create/admin->municipality, create report ---
-const registerUser = async (agent: request.SuperAgentTest, user: any) => {
+const registerUser = async (
+  agent: request.SuperAgentTest,
+  user: any,
+  role: roleType = roleType.CITIZEN,
+) => {
   const res = await agent.post("/api/users").send(user);
   expect(res.status).toBe(201);
 };
@@ -44,30 +50,38 @@ const loginAgent = async (
   agent: request.SuperAgentTest,
   identifier: string,
   password: string,
+  role: roleType = roleType.CITIZEN,
 ) => {
   const res = await agent
     .post("/api/auth/session")
-    .send({ identifier, password });
+    .send({ identifier, password, role });
   expect(res.status).toBe(200);
+
+  return agent;
 };
 
-const createAndLogin = async (user: any) => {
+const createAndLogin = async (user: any, role: roleType = roleType.CITIZEN) => {
   const agent: any = request.agent(app);
 
-  await registerUser(agent, user);
-  await loginAgent(agent, user.username, user.password);
+  await registerUser(agent, user, role);
+  await loginAgent(agent, user.username, user.password, role);
   return agent;
 };
 
 const createAdmin = async (admin: any) => {
-  // create & login admin
-  const adminAgent = await createAndLogin(admin);
+  // Create admin user manually
+  await userService.registerUser(admin, roleType.ADMIN);
 
-  // promote admin in DB so the account has permission to create municipality users
-  await prisma.user.update({
-    where: { username: admin.username },
-    data: { role: "ADMIN" },
-  });
+  // Create agent and register admin
+  const agent: any = request.agent(app);
+
+  // login admin
+  const adminAgent = await loginAgent(
+    agent,
+    admin.username,
+    admin.password,
+    roleType.ADMIN,
+  );
 
   return adminAgent;
 };
@@ -85,7 +99,12 @@ const createMunicipality = async (
 
   // login municipality user via normal session endpoint
   const muniAgent: any = request.agent(app);
-  await loginAgent(muniAgent, municipality.username, municipality.password);
+  await loginAgent(
+    muniAgent,
+    municipality.username,
+    municipality.password,
+    roleType.MUNICIPALITY,
+  );
 
   return { muniAgent, createdMunicipality: res.body };
 };
@@ -133,11 +152,30 @@ describe("POST /api/reports (Create Report)", () => {
   beforeEach(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+    await prisma.municipality_role.createMany({
+      data: [
+        { id: 1, name: "municipal public relations officer" },
+        { id: 2, name: "municipal administrator" },
+        { id: 3, name: "public works project manager" },
+        { id: 4, name: "sanitation and waste management officer" },
+        { id: 5, name: "environmental protection officer" },
+        { id: 6, name: "traffic and mobility coordinator" },
+        { id: 7, name: "parks and green spaces officer" },
+        { id: 8, name: "urban planning specialist" },
+      ],
+      skipDuplicates: true,
+    });
   });
 
   afterAll(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
     await prisma.$disconnect();
   });
 
@@ -355,19 +393,6 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
     // Setup municipality roles
     try {
       await prisma.municipality_role.deleteMany();
-      await prisma.municipality_role.createMany({
-        data: [
-          { id: 1, name: "municipal public relations officer" },
-          { id: 2, name: "municipal administrator" },
-          { id: 3, name: "public works project manager" },
-          { id: 4, name: "sanitation and waste management officer" },
-          { id: 5, name: "environmental protection officer" },
-          { id: 6, name: "traffic and mobility coordinator" },
-          { id: 7, name: "parks and green spaces officer" },
-          { id: 8, name: "urban planning specialist" },
-        ],
-        skipDuplicates: true,
-      });
     } catch (e) {
       console.warn("Municipality role seed failed:", e);
     }
@@ -376,6 +401,22 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   beforeEach(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+    await prisma.municipality_role.createMany({
+      data: [
+        { id: 1, name: "municipal public relations officer" },
+        { id: 2, name: "municipal administrator" },
+        { id: 3, name: "public works project manager" },
+        { id: 4, name: "sanitation and waste management officer" },
+        { id: 5, name: "environmental protection officer" },
+        { id: 6, name: "traffic and mobility coordinator" },
+        { id: 7, name: "parks and green spaces officer" },
+        { id: 8, name: "urban planning specialist" },
+      ],
+      skipDuplicates: true,
+    });
 
     // Create admin user first to create municipality user
     const adminUser = {
@@ -432,6 +473,9 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   afterAll(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
     await prisma.$disconnect();
   });
 
@@ -506,6 +550,7 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
       .send({
         identifier: "citizen_report@example.com",
         password: "citizen123",
+        role: roleType.CITIZEN,
       })
       .expect(200);
 
@@ -537,11 +582,30 @@ describe("ReportRoutes Integration (Get Reports)", () => {
   beforeEach(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+    await prisma.municipality_role.createMany({
+      data: [
+        { id: 1, name: "municipal public relations officer" },
+        { id: 2, name: "municipal administrator" },
+        { id: 3, name: "public works project manager" },
+        { id: 4, name: "sanitation and waste management officer" },
+        { id: 5, name: "environmental protection officer" },
+        { id: 6, name: "traffic and mobility coordinator" },
+        { id: 7, name: "parks and green spaces officer" },
+        { id: 8, name: "urban planning specialist" },
+      ],
+      skipDuplicates: true,
+    });
   });
 
   afterAll(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
     await prisma.$disconnect();
   });
 
@@ -560,7 +624,11 @@ describe("ReportRoutes Integration (Get Reports)", () => {
     const agent = request.agent(app);
     await agent
       .post("/api/auth/session")
-      .send({ identifier: user.username, password: user.password })
+      .send({
+        identifier: user.username,
+        password: user.password,
+        role: roleType.CITIZEN,
+      })
       .expect(200);
 
     // Create a report
@@ -596,7 +664,11 @@ describe("ReportRoutes Integration (Get Reports)", () => {
     const citizenAgent = request.agent(app);
     await citizenAgent
       .post("/api/auth/session")
-      .send({ identifier: citizen.username, password: citizen.password })
+      .send({
+        identifier: citizen.username,
+        password: citizen.password,
+        role: roleType.CITIZEN,
+      })
       .expect(200);
 
     // Citizen tries to get approved reports (should succeed with status filter)
@@ -621,7 +693,11 @@ describe("ReportRoutes Integration (Get Reports)", () => {
     const citizenAgent = request.agent(app);
     await citizenAgent
       .post("/api/auth/session")
-      .send({ identifier: citizen.username, password: citizen.password })
+      .send({
+        identifier: citizen.username,
+        password: citizen.password,
+        role: roleType.CITIZEN,
+      })
       .expect(200);
 
     const response = await citizenAgent
@@ -644,17 +720,7 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       password: "adminpass123",
     };
 
-    await request(app).post("/api/users").send(admin).expect(201);
-    await prisma.user.update({
-      where: { email: admin.email },
-      data: { role: "ADMIN" },
-    });
-
-    const adminAgent = request.agent(app);
-    await adminAgent
-      .post("/api/auth/session")
-      .send({ identifier: admin.username, password: admin.password })
-      .expect(200);
+    const adminAgent = await createAdmin(admin);
 
     const response = await adminAgent
       .get("/api/reports?status=ASSIGNED")
@@ -693,11 +759,30 @@ describe("GET /api/reports/municipality-user/:municipalityUserId", () => {
   beforeEach(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+    await prisma.municipality_role.createMany({
+      data: [
+        { id: 1, name: "municipal public relations officer" },
+        { id: 2, name: "municipal administrator" },
+        { id: 3, name: "public works project manager" },
+        { id: 4, name: "sanitation and waste management officer" },
+        { id: 5, name: "environmental protection officer" },
+        { id: 6, name: "traffic and mobility coordinator" },
+        { id: 7, name: "parks and green spaces officer" },
+        { id: 8, name: "urban planning specialist" },
+      ],
+      skipDuplicates: true,
+    });
   });
 
   afterAll(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
     await prisma.$disconnect();
   });
 
@@ -825,11 +910,30 @@ describe("GET /api/reports (List Reports)", () => {
   beforeEach(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+    await prisma.municipality_role.createMany({
+      data: [
+        { id: 1, name: "municipal public relations officer" },
+        { id: 2, name: "municipal administrator" },
+        { id: 3, name: "public works project manager" },
+        { id: 4, name: "sanitation and waste management officer" },
+        { id: 5, name: "environmental protection officer" },
+        { id: 6, name: "traffic and mobility coordinator" },
+        { id: 7, name: "parks and green spaces officer" },
+        { id: 8, name: "urban planning specialist" },
+      ],
+      skipDuplicates: true,
+    });
   });
 
   afterAll(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
     await prisma.$disconnect();
   });
 
@@ -842,13 +946,7 @@ describe("GET /api/reports (List Reports)", () => {
       password: "Adm1nP@ss!",
     };
 
-    const adminAgent = await createAndLogin(admin);
-
-    // promote admin in DB so the account has permission to create municipality users
-    await prisma.user.update({
-      where: { username: admin.username },
-      data: { role: "ADMIN" },
-    });
+    const adminAgent = await createAdmin(admin);
 
     const res = await adminAgent.get("/api/reports").expect(200);
     expect(Array.isArray(res.body)).toBe(true);
@@ -901,11 +999,30 @@ describe("GET /api/reports/:id (Get Report by ID)", () => {
   beforeEach(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+    await prisma.municipality_role.createMany({
+      data: [
+        { id: 1, name: "municipal public relations officer" },
+        { id: 2, name: "municipal administrator" },
+        { id: 3, name: "public works project manager" },
+        { id: 4, name: "sanitation and waste management officer" },
+        { id: 5, name: "environmental protection officer" },
+        { id: 6, name: "traffic and mobility coordinator" },
+        { id: 7, name: "parks and green spaces officer" },
+        { id: 8, name: "urban planning specialist" },
+      ],
+      skipDuplicates: true,
+    });
   });
 
   afterAll(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
     await prisma.$disconnect();
   });
 
@@ -959,11 +1076,30 @@ describe("POST /api/reports/:id (Validate Report)", () => {
   beforeEach(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+    await prisma.municipality_role.createMany({
+      data: [
+        { id: 1, name: "municipal public relations officer" },
+        { id: 2, name: "municipal administrator" },
+        { id: 3, name: "public works project manager" },
+        { id: 4, name: "sanitation and waste management officer" },
+        { id: 5, name: "environmental protection officer" },
+        { id: 6, name: "traffic and mobility coordinator" },
+        { id: 7, name: "parks and green spaces officer" },
+        { id: 8, name: "urban planning specialist" },
+      ],
+      skipDuplicates: true,
+    });
   });
 
   afterAll(async () => {
     await prisma.report.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
     await prisma.$disconnect();
   });
 

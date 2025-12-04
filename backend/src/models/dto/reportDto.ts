@@ -8,7 +8,7 @@ export interface CreateReportDto {
   photoKeys: string[]; // Keys for images stored in Redis
 }
 
-export interface ReportResponseDto {
+export interface ReportDto {
   id: number;
   createdAt: Date;
   latitude: number;

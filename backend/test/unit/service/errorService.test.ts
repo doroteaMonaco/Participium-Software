@@ -1,5 +1,5 @@
 import { createAppError } from "@services/errorService";
-import { AppError } from "@models/errors/AppError";
+import { AppError } from "@errors/AppError";
 
 jest.mock("@services/loggingService", () => ({
   logError: jest.fn(),
@@ -40,7 +40,11 @@ describe("ErrorService", () => {
     });
 
     it("should create error DTO for error with status property", () => {
-      const error = { status: 404, error: "Not Found", message: "Resource not found" };
+      const error = {
+        status: 404,
+        error: "Not Found",
+        message: "Resource not found",
+      };
       const result = createAppError(error);
 
       expect(result).toEqual({

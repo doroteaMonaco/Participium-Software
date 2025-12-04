@@ -106,7 +106,7 @@ const findByStatus = async (status: ReportStatus) => {
     },
     orderBy: { createdAt: "desc" },
   });
-}
+};
 
 const findByStatusesAndCategories = async (
   statuses: ReportStatus[],
@@ -123,12 +123,12 @@ const findByStatusesAndCategories = async (
 
 const findAssignedReportsForOfficer = async (
   officerId: number,
-  status?: ReportStatus
+  status?: ReportStatus,
 ) => {
   return prisma.report.findMany({
     where: {
       assignedOfficerId: officerId,
-      ...(status ? { status: status } : {})
+      ...(status ? { status: status } : {}),
     },
     include: {
       user: {
@@ -142,7 +142,7 @@ const findAssignedReportsForOfficer = async (
     },
     orderBy: { createdAt: "desc" },
   });
-}
+};
 
 const deleteById = async (id: number) => {
   return prisma.report.delete({
@@ -169,7 +169,7 @@ const update = async (
 export default {
   findAll,
   findById,
-  findByStatus, 
+  findByStatus,
   create,
   findAssignedReportsForOfficer,
   deleteById,

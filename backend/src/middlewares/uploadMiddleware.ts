@@ -39,9 +39,7 @@ export const uploadArray = (fieldName: string, maxCount: number) => {
             .json({ error: "File size exceeds maximum allowed" });
         }
         if (err.message === "Only image files are allowed") {
-          return res
-            .status(400)
-            .json({ error: err.message });
+          return res.status(400).json({ error: err.message });
         }
         if (err.message === "Unexpected field") {
           return res
