@@ -114,7 +114,11 @@ export const Login: React.FC = () => {
                 Welcome back
               </h1>
               <p className="mt-2 text-sm text-slate-600">
-                Sign in to continue contributing to <span className="font-semibold text-indigo-600">Participium</span>.
+                Sign in to continue contributing to{" "}
+                <span className="font-semibold text-indigo-600">
+                  Participium
+                </span>
+                .
               </p>
             </div>
 
@@ -129,7 +133,10 @@ export const Login: React.FC = () => {
 
               {/* Username or Email */}
               <div className="flex flex-col gap-1 !w-full items-start justify-center ">
-                <label htmlFor="login-identifier" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="login-identifier"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Username or Email
                 </label>
                 <div className="relative w-full">
@@ -149,7 +156,10 @@ export const Login: React.FC = () => {
 
               {/* Password */}
               <div className="flex flex-col gap-1 !w-full items-start justify-center ">
-                <label htmlFor="login-password" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="login-password"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Password
                 </label>
                 <div className="relative w-full">

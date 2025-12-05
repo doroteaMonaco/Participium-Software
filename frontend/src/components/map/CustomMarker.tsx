@@ -84,7 +84,7 @@ function CustomMarker({
     } else {
       // inside: update previous valid position
       prevPositionRef.current = position;
-      
+
       // Fetch address using reverse geocoding
       const fetchAddress = async () => {
         setLoadingAddress(true);
@@ -93,9 +93,9 @@ function CustomMarker({
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.lat}&lon=${position.lng}&zoom=18&addressdetails=1`,
             {
               headers: {
-                'User-Agent': 'Participium (participatory budgeting app)'
-              }
-            }
+                "User-Agent": "Participium (participatory budgeting app)",
+              },
+            },
           );
           const data = await response.json();
           if (data.display_name) {
@@ -197,11 +197,17 @@ function CustomMarker({
           <Popup>
             <div className="space-y-3 py-1 min-w-[280px]">
               <div>
-                <p className="text-xs font-semibold text-slate-500 mb-1">LOCATION</p>
+                <p className="text-xs font-semibold text-slate-500 mb-1">
+                  LOCATION
+                </p>
                 {loadingAddress ? (
-                  <p className="text-sm text-slate-500 italic">Loading address...</p>
+                  <p className="text-sm text-slate-500 italic">
+                    Loading address...
+                  </p>
                 ) : (
-                  <p className="text-sm text-slate-700 leading-relaxed">{address}</p>
+                  <p className="text-sm text-slate-700 leading-relaxed">
+                    {address}
+                  </p>
                 )}
               </div>
 

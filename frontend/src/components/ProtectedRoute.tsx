@@ -24,7 +24,7 @@ const getMunicipalityRedirect = (municipalityRole: string): string => {
 
 const hasRequiredMunicipalityRole = (
   userRole: string,
-  requiredRole: string
+  requiredRole: string,
 ): boolean => {
   return userRole.toLowerCase().includes(requiredRole.toLowerCase());
 };
@@ -63,9 +63,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Check municipality role if required (for MUNICIPALITY users only)
   if (requiredMunicipalityRole && userRole === "MUNICIPALITY") {
     const userMunicipalityRole = user.municipality_role?.name || "";
-    
-    if (!hasRequiredMunicipalityRole(userMunicipalityRole, requiredMunicipalityRole)) {
-      return <Navigate to={getMunicipalityRedirect(userMunicipalityRole)} replace />;
+
+    if (
+      !hasRequiredMunicipalityRole(
+        userMunicipalityRole,
+        requiredMunicipalityRole,
+      )
+    ) {
+      return (
+        <Navigate to={getMunicipalityRedirect(userMunicipalityRole)} replace />
+      );
     }
   }
 

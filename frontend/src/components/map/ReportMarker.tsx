@@ -1,6 +1,6 @@
 import { CircleMarker, Popup } from "react-leaflet";
 import { Link } from "react-router-dom";
-import { type Report, ReportStatus } from "src/services/models";
+import { type ReportModel, ReportStatus } from "src/services/models";
 import { Badge } from "src/components/shared/Badge";
 
 function getColorForStatus(status?: ReportStatus): string {
@@ -22,7 +22,7 @@ function getColorForStatus(status?: ReportStatus): string {
   }
 }
 
-const ReportMarker: React.FC<{ report: Report }> = ({ report }) => {
+const ReportMarker: React.FC<{ report: ReportModel }> = ({ report }) => {
   const color = getColorForStatus(report.status);
 
   return (

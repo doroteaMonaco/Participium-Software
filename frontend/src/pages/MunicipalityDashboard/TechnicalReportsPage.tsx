@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { ReportModel } from "src/services/models";
+
 interface Comment {
   id: number;
   author: string;
@@ -43,6 +45,45 @@ interface Report {
   assignedOffice: string;
   comments: Comment[];
 }
+
+// Helper to map backend status to frontend status
+const mapBackendStatus = (status: string): Report["status"] => {
+  switch (status) {
+    case "ASSIGNED":
+      return "Assigned";
+    case "IN_PROGRESS":
+      return "In Progress";
+    case "SUSPENDED":
+      return "Suspended";
+    case "RESOLVED":
+      return "Resolved";
+    default:
+      return "Assigned";
+  }
+};
+
+// Map backend data to frontend format
+const mapReports = (data: ReportModel[]): Report[] => {
+  return data.map((r: ReportModel) => ({
+    id: `RPT-${r.id}`,
+    title: r.title || "Untitled Report",
+    description: r.description || "No description",
+    category: r.category || "Other",
+    status: mapBackendStatus(r.status),
+    // location: r.location || `${r.lat.toFixed(4)}, ${r.lng.toFixed(4)}`,
+    location: `${r.lat.toFixed(4)}, ${r.lng.toFixed(4)}`,
+    coordinates: { lat: r.lat, lng: r.lng },
+    createdAt: new Date(r.createdAt).toLocaleDateString(),
+    submittedBy: r.user ? `${r.user.firstName} ${r.user.lastName}` : "Unknown",
+    isAnonymous: r.isAnonymous || false,
+    photos: (r.photos || []).map(
+      (p: string) =>
+        `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`,
+    ),
+    assignedOffice: r.assignedOffice || "Not assigned",
+    comments: [],
+  }));
+};
 
 const statusColors = {
   Assigned: "bg-blue-50 text-blue-700 border-blue-200",
@@ -171,30 +212,8 @@ export const TechnicalReportsPage: React.FC = () => {
         setLoading(true);
         setError(null);
         const data = await getAssignedReports(user.id);
-
-        // Map backend data to frontend format
-        const mappedReports: Report[] = data.map((r: any) => ({
-          id: `RPT-${r.id}`,
-          title: r.title || "Untitled Report",
-          description: r.description || "No description",
-          category: r.category || "Other",
-          status: mapBackendStatus(r.status),
-          location:
-            r.location || `${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}`,
-          coordinates: { lat: r.latitude, lng: r.longitude },
-          createdAt: new Date(r.createdAt).toLocaleDateString(),
-          submittedBy: r.user
-            ? `${r.user.firstName} ${r.user.lastName}`
-            : "Unknown",
-          isAnonymous: r.anonymous || false,
-          photos: (r.photos || []).map(
-            (p: string) =>
-              `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`,
-          ),
-          assignedOffice: r.assignedOffice || "Not assigned",
-          comments: [],
-        }));
-
+        const reports = data.map((data) => new ReportModel(data));
+        const mappedReports = mapReports(reports);
         setReports(mappedReports);
       } catch (err) {
         console.error("Error fetching assigned reports:", err);
@@ -206,22 +225,6 @@ export const TechnicalReportsPage: React.FC = () => {
 
     fetchReports();
   }, [user?.id]);
-
-  // Helper to map backend status to frontend status
-  const mapBackendStatus = (status: string): Report["status"] => {
-    switch (status) {
-      case "ASSIGNED":
-        return "Assigned";
-      case "IN_PROGRESS":
-        return "In Progress";
-      case "SUSPENDED":
-        return "Suspended";
-      case "RESOLVED":
-        return "Resolved";
-      default:
-        return "Assigned";
-    }
-  };
 
   const handleStatusChange = (report: Report) => {
     setSelectedReport(report);

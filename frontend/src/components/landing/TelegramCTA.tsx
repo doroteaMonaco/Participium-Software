@@ -2,6 +2,7 @@ import React from "react";
 import { Send } from "lucide-react";
 import { Container } from "src/components/shared/Container";
 import { SectionTitle } from "src/components/shared/SectionTitle";
+import { Link } from "react-router-dom";
 
 export const TelegramCTA: React.FC = () => (
   <section id="telegram" className="bg-white py-20 sm:py-24">
@@ -15,17 +16,20 @@ export const TelegramCTA: React.FC = () => (
           />
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <a
-              href="#"
+              href="https://t.me/REPLACE_WITH_BOT_USERNAME"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open Participium bot in Telegram"
               className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
             >
               <Send className="h-4 w-4" /> Open in Telegram
             </a>
-            <a
-              href="#"
+            <Link
+              to="/docs/telegram" // change to your internal route
               className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
             >
               Learn more
-            </a>
+            </Link>
           </div>
         </div>
         <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-xl">

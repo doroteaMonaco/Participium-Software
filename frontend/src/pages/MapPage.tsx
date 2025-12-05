@@ -3,10 +3,10 @@ import { Container } from "src/components/shared/Container";
 import { SectionTitle } from "src/components/shared/SectionTitle";
 import MapView from "src/components/map/MapView";
 import { getReports } from "src/services/api";
-import { Report, ReportStatus } from "src/services/models";
+import { ReportModel } from "src/services/models";
 
 const MapPage: React.FC = () => {
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<ReportModel[]>([]);
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
@@ -17,22 +17,7 @@ const MapPage: React.FC = () => {
         console.debug("GET /api/reports ->", data);
         const mapped = (data ?? [])
           .filter((r: any) => r.status !== "REJECTED") // Don't show rejected reports on map
-          .map((r: any) => {
-            return new Report(
-              Number(r.latitude ?? r.lat ?? 0),
-              Number(r.longitude ?? r.lng ?? 0),
-              r.title ?? "",
-              (r.status as any) ?? ReportStatus.PENDING,
-              r.anonymous ?? false,
-              r.id,
-              r.description,
-              r.category,
-              r.photos,
-              r.createdAt,
-              r.rejectionReason,
-              r.user || null,
-            );
-          });
+          .map((r: any) => new ReportModel(r));
         setReports(mapped);
       } catch (err) {
         console.error("Error fetching reports:", err);
@@ -48,20 +33,7 @@ const MapPage: React.FC = () => {
         const ce = e as CustomEvent<any>;
         if (ce?.detail) {
           const r = ce.detail;
-          const rep = new Report(
-            Number(r.latitude ?? r.lat ?? 0),
-            Number(r.longitude ?? r.lng ?? 0),
-            r.title ?? "",
-            (r.status as any) ?? ReportStatus.PENDING,
-            r.anonymous ?? false,
-            r.id,
-            r.description,
-            r.category,
-            r.photos,
-            r.createdAt,
-            r.rejectionReason,
-            r.user || null,
-          );
+          const rep = new ReportModel(r);
           setReports((prev) => [rep, ...prev]);
           return;
         }

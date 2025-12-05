@@ -79,7 +79,7 @@ export const NavBar: React.FC = () => {
 
   const getUserDashboardPath = () => {
     if (!user) return "/dashboard";
-    
+
     if (user.role === "CITIZEN") return "/dashboard";
     if (user.role === "ADMIN") return "/admin";
     if (user.role === "MUNICIPALITY") return "/municipality/reports";
@@ -205,7 +205,7 @@ export const NavBar: React.FC = () => {
             className="fixed inset-0 z-[9998] bg-black/50 cursor-pointer"
             onClick={closeMobileMenu}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === 'Escape') {
+              if (e.key === "Enter" || e.key === "Escape") {
                 closeMobileMenu();
               }
             }}

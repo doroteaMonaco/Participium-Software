@@ -17,7 +17,8 @@ const ENUM_TO_LABEL: Record<string, string> = {
 
 const getStatusBadgeClass = (status: string): string => {
   if (status === "REJECTED") return "bg-red-100 text-red-800";
-  if (status === "PENDING" || status === "PENDING_APPROVAL") return "bg-indigo-100 text-indigo-800";
+  if (status === "PENDING" || status === "PENDING_APPROVAL")
+    return "bg-indigo-100 text-indigo-800";
   if (status === "ASSIGNED") return "bg-blue-100 text-blue-800";
   if (status === "IN_PROGRESS") return "bg-amber-100 text-amber-800";
   if (status === "RESOLVED") return "bg-green-100 text-green-800";
@@ -30,7 +31,10 @@ const getStatusDisplayText = (status: string): string => {
   return status.charAt(0) + status.slice(1).toLowerCase();
 };
 
-const ErrorView: React.FC<{ error: string; onGoBack: () => void }> = ({ error, onGoBack }) => (
+const ErrorView: React.FC<{ error: string; onGoBack: () => void }> = ({
+  error,
+  onGoBack,
+}) => (
   <main className="p-6">
     <p className="text-red-600">{error}</p>
     <button onClick={onGoBack} className="text-indigo-600 hover:underline">
@@ -78,7 +82,9 @@ const ReportDetailsPage: React.FC = () => {
       {/* Status Badge */}
       <div className="mb-4">
         <strong>Status:</strong>{" "}
-        <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(report.status)}`}>
+        <span
+          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(report.status)}`}
+        >
           {getStatusDisplayText(report.status)}
         </span>
       </div>

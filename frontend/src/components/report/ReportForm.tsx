@@ -63,9 +63,9 @@ const ReportForm: React.FC<ReportFormProps> = ({
           `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
           {
             headers: {
-              'User-Agent': 'Participium (participatory budgeting app)'
-            }
-          }
+              "User-Agent": "Participium (participatory budgeting app)",
+            },
+          },
         );
         const data = await response.json();
         if (data.display_name) {
@@ -92,7 +92,10 @@ const ReportForm: React.FC<ReportFormProps> = ({
     reader.readAsDataURL(file);
   };
 
-  const validatePhotoCount = (currentCount: number, newCount: number): string | null => {
+  const validatePhotoCount = (
+    currentCount: number,
+    newCount: number,
+  ): string | null => {
     if (currentCount + newCount > 3) {
       return "Maximum 3 photos allowed";
     }
@@ -100,9 +103,14 @@ const ReportForm: React.FC<ReportFormProps> = ({
   };
 
   const validateFileTypes = (files: File[]): string | null => {
-    const validTypes = new Set(["image/jpeg", "image/jpg", "image/png", "image/gif"]);
+    const validTypes = new Set([
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+    ]);
     const invalidFiles = files.filter((file) => !validTypes.has(file.type));
-    
+
     if (invalidFiles.length > 0) {
       return "Only image files (JPEG, PNG, GIF) are allowed";
     }
@@ -260,7 +268,9 @@ const ReportForm: React.FC<ReportFormProps> = ({
             <div className="text-sm flex-1">
               <span className="font-medium text-slate-700">Location: </span>
               {loadingAddress ? (
-                <span className="text-slate-500 italic">Loading address...</span>
+                <span className="text-slate-500 italic">
+                  Loading address...
+                </span>
               ) : (
                 <span className="text-slate-600">{address}</span>
               )}
@@ -269,7 +279,10 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
           {/* Title */}
           <div>
-            <label htmlFor="report-title" className="block text-sm font-medium text-slate-700 mb-2">
+            <label
+              htmlFor="report-title"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
               Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -289,7 +302,10 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
           {/* Description */}
           <div>
-            <label htmlFor="report-description" className="block text-sm font-medium text-slate-700 mb-2">
+            <label
+              htmlFor="report-description"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
               Description <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -309,7 +325,10 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
           {/* Category */}
           <div>
-            <label htmlFor="report-category" className="block text-sm font-medium text-slate-700 mb-2">
+            <label
+              htmlFor="report-category"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
               Category <span className="text-red-500">*</span>
             </label>
             <select
@@ -330,7 +349,10 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
           {/* Photo Upload */}
           <div>
-            <label htmlFor="report-photos" className="block text-sm font-medium text-slate-700 mb-2">
+            <label
+              htmlFor="report-photos"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
               Photos <span className="text-red-500">*</span>
               <span className="text-slate-500 font-normal ml-1">
                 (1-3 photos, max 5MB each)
@@ -361,7 +383,10 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
             {/* Upload Button */}
             {photos.length < 3 && (
-              <label htmlFor="report-photos" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition-colors cursor-pointer">
+              <label
+                htmlFor="report-photos"
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition-colors cursor-pointer"
+              >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <Upload className="h-8 w-8 text-slate-400 mb-2" />
                   <p className="text-sm text-slate-600 font-medium">

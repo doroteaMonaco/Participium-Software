@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+} from "react";
 import {
   verifyAuth,
   logout as apiLogout,
@@ -41,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const userData = await verifyAuth();
       setUser(userData);
-    } catch (error) {
+    } catch {
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -74,9 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 };
 
