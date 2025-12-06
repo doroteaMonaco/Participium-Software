@@ -59,6 +59,8 @@ export interface AdminUserDto extends BaseUserDto {
 }
 
 export interface ExternalMaintainerUserDto extends BaseUserDto {
+  firstName: string;
+  lastName: string;
   companyName: string;
   category: string;
   assignedReports?: ReportDto[];

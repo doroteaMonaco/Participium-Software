@@ -807,12 +807,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       
-  /reports/{report_id}/external-maintainers/{em_id}:
+  /reports/{report_id}/external-maintainers:
    post:
       tags: [Reports]
       summary: Assign a report in ASSIGNED status to an external maintainer
       description: >
-        Assign a report to an external maintainer by ID. Can be done only by technical municipality users.
+        Assign a report to an external maintainer. Can be done only by technical municipality users.
         **Requires role: MUNICIPALITY**.
       security:
         - cookieAuth: []
@@ -824,13 +824,6 @@ paths:
             type: integer
             format: int64
           description: Report ID
-        - in: path
-          name: em_id
-          required: true
-          schema:
-            type: integer
-            format: int64
-          description: External maintainer user ID
       responses:
         '204':
           description: OK - Report successfully assigned

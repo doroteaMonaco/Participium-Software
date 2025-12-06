@@ -166,6 +166,12 @@ const update = async (
   });
 };
 
+const findByExternalMaintainerId = async (externalMaintainerId: number) => {
+  return prisma.report.findMany({
+    where: { externalMaintainerId },
+  });
+}
+
 export default {
   findAll,
   findById,
@@ -175,4 +181,5 @@ export default {
   deleteById,
   update,
   findByStatusesAndCategories,
+  findByExternalMaintainerId,
 };

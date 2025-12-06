@@ -122,6 +122,8 @@ export const userController = {
       const {
         email,
         username,
+        firstName,
+        lastName,
         companyName,
         password,
         category,
@@ -130,6 +132,8 @@ export const userController = {
       throwBadRequestIfMissingObject({
         email,
         username,
+        firstName,
+        lastName,
         companyName,
         category,
         password

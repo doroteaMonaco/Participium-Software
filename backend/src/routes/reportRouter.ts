@@ -6,12 +6,14 @@ import {
   approveOrRejectReport,
   getReportsForMunicipalityUser,
   assignToExternalMaintainer,
+  getReportsForExternalMaintainer
 } from "@controllers/reportController";
 import { isAuthenticated } from "@middlewares/authMiddleware";
 import {
   isCitizen,
   isMunicipality,
   isMunicipalityStrict,
+  isExternalMaintainer
 } from "@middlewares/roleMiddleware";
 import { uploadArray } from "@middlewares/uploadMiddleware";
 
@@ -43,10 +45,13 @@ router.get(
 );
 
 router.post(
-  "/:report_id/external-maintainers/:em_id",
+  "/:report_id/external-maintainers/",
   isAuthenticated,
   isMunicipalityStrict,
   assignToExternalMaintainer,
 );
+
+// TODO
+router.get("/external-maintainers/:externalMaintainersId", isAuthenticated, isMunicipalityStrict, isExternalMaintainer, getReportsForExternalMaintainer);
 
 export default router;

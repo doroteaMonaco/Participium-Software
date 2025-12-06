@@ -51,8 +51,10 @@ model external_maintainer {
   id        Int      @id @default(autoincrement())
   username  String   @unique
   email     String   @unique
-  companyName String
+  firstName String
+  lastName String
   password  String
+  companyName String
   createdAt DateTime @default(now())
   category  Category
   reports   report[]

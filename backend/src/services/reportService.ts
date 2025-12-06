@@ -262,39 +262,69 @@ const deleteReport = async (id: number): Promise<ReportDto> => {
 
 const assignToExternalMaintainer = async (
   reportId: number,
-  externalMaintainerId: number,
 ): Promise<ReportDto> => {
-  const [report, externalMaintainer] = await Promise.all([
-    reportRepository.findById(reportId),
-    userRepository.findUserById(
-      externalMaintainerId,
-      roleType.EXTERNAL_MAINTAINER,
-    ),
-  ]);
+  // 1) Recupero il report
+  const report = await reportRepository.findById(reportId);
 
   if (!report) {
     throw new Error("Report not found");
   }
 
-  if (!externalMaintainer || !instanceOfExternalMaintainerUserDto(externalMaintainer)) {
-    throw new Error("External maintainer not found");
-  }
+  // 2) Recupero tutti gli external maintainers con la stessa categoria
+  const allExternalMaintainers = await userRepository.findExternalMaintainersByCategory(
+    report.category,
+  );
 
-  if (externalMaintainer.category !== report.category) {
+  if (allExternalMaintainers.length === 0) {
     throw new Error(
-      `External maintainer category "${externalMaintainer.category}" does not match report category "${report.category}"`,
+      `No external maintainers available for category "${report.category}"`,
+    );
+  }
+  
+  // 3) Per ognuno calcolo quanti report ha già assegnati
+  const maintainersWithCounts = await Promise.all(
+    allExternalMaintainers.map(async (em) => ({
+      maintainer: em,
+      assignedReports: em.assignedReports?.length,
+    })),
+  );
+
+  // 4) Scelgo quello con meno report (in caso di parità, quello con id più basso – tie-breaker deterministico)
+  const chosen = maintainersWithCounts.reduce((best, current) => {
+    if (!best) return current;
+    if ((current.assignedReports ?? 0) < (best.assignedReports ?? 0)) return current;
+    if (
+      (current.assignedReports ?? 0) === (best.assignedReports ?? 0) &&
+      current.maintainer.id < best.maintainer.id
+    ) {
+      return current;
+    }
+    return best;
+  }, null as (typeof maintainersWithCounts)[number] | null);
+
+  if (!chosen) {
+    throw new Error(
+      `No external maintainers available for category "${report.category}"`,
     );
   }
 
-  const updatedReport = await reportRepository.update(
-    reportId,
-    {
-      externalMaintainerId,
-    },
-  );
+  // 5) Aggiorno il report con l’EM scelto
+  const updatedReport = await reportRepository.update(reportId, {
+    externalMaintainerId: chosen.maintainer.id,
+  });
 
   return sanitizeReport(updatedReport);
 };
+
+const findReportsForExternalMaintainer = async (
+  externalMaintainerId: number,
+): Promise<ReportDto[]> => {
+  const reports = await reportRepository.findByExternalMaintainerId(
+    externalMaintainerId,
+  );
+
+  return reports.map(sanitizeReport);
+}
 
 export default {
   findAll,
@@ -306,4 +336,5 @@ export default {
   updateReportStatus,
   pickOfficerForService,
   assignToExternalMaintainer,
+  findReportsForExternalMaintainer,
 };
