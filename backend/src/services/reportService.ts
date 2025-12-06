@@ -2,7 +2,7 @@ import reportRepository from "@repositories/reportRepository";
 import { userRepository } from "@repositories/userRepository";
 import { CreateReportDto, ReportDto } from "@dto/reportDto";
 import imageService from "@services/imageService";
-import { ReportStatus, roleType } from "@models/enums";
+import { ReportStatus, roleType, Category } from "@models/enums";
 import { instanceOfExternalMaintainerUserDto } from "@models/dto/userDto";
 
 // Helper function to hide user info for anonymous reports
@@ -272,7 +272,7 @@ const assignToExternalMaintainer = async (
 
   // 2) Recupero tutti gli external maintainers con la stessa categoria
   const allExternalMaintainers = await userRepository.findExternalMaintainersByCategory(
-    report.category,
+    report.category as Category,
   );
 
   if (allExternalMaintainers.length === 0) {

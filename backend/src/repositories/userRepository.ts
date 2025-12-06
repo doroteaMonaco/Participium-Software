@@ -1,6 +1,6 @@
 import { prisma } from "@database";
 import { buildParamsObject, throwBadRequestIfMissingObject } from "@utils";
-import { roleType } from "@models/enums";
+import { roleType, Category } from "@models/enums";
 import { AnyUserDto, ExternalMaintainerUserDto, mapPrismaUserToDto } from "@dto/userDto";
 
 // Base fields common to all users
@@ -200,7 +200,7 @@ export const userRepository = {
     return officer ? mapPrismaUserToDto(officer, roleType.MUNICIPALITY) : null;
   },
 
-  async findExternalMaintainersByCategory(category: string) : Promise<ExternalMaintainerUserDto[]> {
+  async findExternalMaintainersByCategory(category: Category) : Promise<ExternalMaintainerUserDto[]> {
     throwBadRequestIfMissingObject({ category });
 
     const externalMaintainers = await prisma.external_maintainer.findMany({
