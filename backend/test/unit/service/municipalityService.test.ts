@@ -123,7 +123,7 @@ describe("userService - Municipality Functions", () => {
       );
 
       await expect(
-        userService.createMunicipalityUser(mockUserData, municipality_role_id),
+        userService.createMunicipalityUser(mockUserData, "Test", "User", municipality_role_id),
       ).rejects.toThrow("Email is already in use");
 
       expect(userRepo.findUserByEmail).toHaveBeenCalledWith(
@@ -144,7 +144,7 @@ describe("userService - Municipality Functions", () => {
       userRepo.findUserByUsername.mockResolvedValue(existingUser);
 
       await expect(
-        userService.createMunicipalityUser(mockUserData, municipality_role_id),
+        userService.createMunicipalityUser(mockUserData, "Test", "User", municipality_role_id),
       ).rejects.toThrow("Username is already in use");
 
       expect(userRepo.findUserByEmail).toHaveBeenCalledWith(
