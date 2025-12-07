@@ -1,3 +1,4 @@
+/* 
 import { Request, Response } from "express";
 import messageService from "@services/messageService";
 
@@ -32,7 +33,7 @@ export const getReceivedMessages = async (req: Request, res: Response) => {
     //if no messages found, return empty array
     res.json(messages);
   } catch (error) {
-        const errorMessage =
+    const errorMessage =
       error instanceof Error ? error.message : "Failed to fetch messages";
     res.status(500).json({ error: errorMessage });
   }
@@ -50,7 +51,7 @@ export const getMessageById = async (req: Request, res: Response) => {
 
     res.json(message);
   } catch (error) {
-        const errorMessage =
+    const errorMessage =
       error instanceof Error ? error.message : "Failed to fetch message";
     const statusCode =
       error instanceof Error && error.message === "Message not found"
@@ -79,3 +80,4 @@ export const markMessageAsRead = async (req: Request, res: Response) => {
     res.status(statusCode).json({ error: errorMessage });
   }
 };
+*/

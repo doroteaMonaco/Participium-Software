@@ -14,9 +14,11 @@ import {
   getMunicipalityUsers,
   getMunicipalityRoles,
   createMunicipalityUser,
-  type MunicipalityRole,
-  type MunicipalityUserCreateRequest,
-} from "../../services/api";
+} from "src/services/api";
+import type {
+  MunicipalityRole,
+  MunicipalityUserCreateRequest,
+} from "src/services/api";
 
 // Map API user to display format
 interface DisplayUser {
@@ -358,10 +360,14 @@ export const AdminUsersPage: React.FC = () => {
               <form onSubmit={handleAddUser} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label
+                      htmlFor="firstName"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
                       First Name <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id="firstName"
                       type="text"
                       required
                       value={newUser.firstName}
@@ -372,10 +378,14 @@ export const AdminUsersPage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label
+                      htmlFor="lastName"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
                       Last Name <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id="lastName"
                       type="text"
                       required
                       value={newUser.lastName}
@@ -388,10 +398,14 @@ export const AdminUsersPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label
+                    htmlFor="username"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
                     Username <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="username"
                     type="text"
                     required
                     value={newUser.username}
@@ -403,10 +417,14 @@ export const AdminUsersPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
                     Email <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="email"
                     type="email"
                     required
                     value={newUser.email}
@@ -419,10 +437,14 @@ export const AdminUsersPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
                     Password <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="password"
                     type="password"
                     required
                     value={newUser.password}
@@ -434,16 +456,20 @@ export const AdminUsersPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label
+                    htmlFor="role"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
                     Role <span className="text-red-500">*</span>
                   </label>
                   <select
+                    id="role"
                     required
                     value={newUser.roleId}
                     onChange={(e) =>
                       setNewUser({
                         ...newUser,
-                        roleId: parseInt(e.target.value),
+                        roleId: Number.parseInt(e.target.value),
                       })
                     }
                     className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"

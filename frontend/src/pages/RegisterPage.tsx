@@ -147,12 +147,16 @@ export const Register: React.FC = () => {
             {/* Full Name */}
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1 !w-full items-start justify-center ">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="register-firstName"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   First Name
                 </label>
                 <div className="relative w-full">
                   <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <input
+                    id="register-firstName"
                     type="text"
                     name="firstName"
                     value={formData.firstName}
@@ -164,12 +168,16 @@ export const Register: React.FC = () => {
                 </div>
               </div>
               <div className="flex flex-col gap-1 !w-full items-start justify-center ">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="register-lastName"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Last Name
                 </label>
                 <div className="relative w-full">
                   <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <input
+                    id="register-lastName"
                     type="text"
                     name="lastName"
                     value={formData.lastName}
@@ -184,12 +192,16 @@ export const Register: React.FC = () => {
 
             {/* Username */}
             <div className="flex flex-col gap-1 !w-full items-start justify-center ">
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label
+                htmlFor="register-username"
+                className="block text-sm font-medium text-slate-700 mb-1"
+              >
                 Username
               </label>
               <div className="relative w-full">
                 <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <input
+                  id="register-username"
                   type="text"
                   name="username"
                   value={formData.username}
@@ -203,12 +215,16 @@ export const Register: React.FC = () => {
 
             {/* Email */}
             <div className="flex flex-col gap-1 !w-full items-start justify-center ">
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label
+                htmlFor="register-email"
+                className="block text-sm font-medium text-slate-700 mb-1"
+              >
                 Email
               </label>
               <div className="relative w-full">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <input
+                  id="register-email"
                   type="email"
                   name="email"
                   value={formData.email}
@@ -223,12 +239,16 @@ export const Register: React.FC = () => {
             {/* Passwords */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1 !w-full items-start justify-center ">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="register-password"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Password
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <input
+                    id="register-password"
                     type="password"
                     name="password"
                     value={formData.password}
@@ -241,12 +261,16 @@ export const Register: React.FC = () => {
                 </div>
               </div>
               <div className="flex flex-col gap-1 !w-full items-start justify-center ">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="register-confirmPassword"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Confirm Password
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <input
+                    id="register-confirmPassword"
                     type="password"
                     name="confirmPassword"
                     value={formData.confirmPassword}

@@ -8,6 +8,27 @@ interface ProtectedRouteProps {
   requiredMunicipalityRole?: string;
 }
 
+const getDefaultDashboard = (role: UserRole | string): string => {
+  if (role === "ADMIN") return "/admin";
+  if (role === "MUNICIPALITY") return "/municipality/technical-reports";
+  return "/dashboard";
+};
+
+const getMunicipalityRedirect = (municipalityRole: string): string => {
+  const roleLower = municipalityRole.toLowerCase();
+  if (roleLower.includes("municipal public relations officer")) {
+    return "/municipality/reports";
+  }
+  return "/municipality/technical-reports";
+};
+
+const hasRequiredMunicipalityRole = (
+  userRole: string,
+  requiredRole: string,
+): boolean => {
+  return userRole.toLowerCase().includes(requiredRole.toLowerCase());
+};
+
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRole,
@@ -28,37 +49,30 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Not authenticated - redirect to login
-  if (!isAuthenticated || !user) {
+  if (!isAuthenticated || !user || !user.role) {
     return <Navigate to="/login" replace />;
   }
 
+  const userRole = user.role;
+
   // Check role if required
-  if (requiredRole && user.role !== requiredRole) {
-    // Redirect to appropriate dashboard based on user's role
-    if (user.role === "ADMIN") {
-      return <Navigate to="/admin" replace />;
-    } else if (user.role === "MUNICIPALITY") {
-      return <Navigate to="/municipality/technical-reports" replace />;
-    } else {
-      return <Navigate to="/dashboard" replace />;
-    }
+  if (requiredRole && userRole !== requiredRole) {
+    return <Navigate to={getDefaultDashboard(userRole)} replace />;
   }
 
   // Check municipality role if required (for MUNICIPALITY users only)
-  if (requiredMunicipalityRole && user.role === "MUNICIPALITY") {
-    const userMunicipalityRole =
-      user.municipality_role?.name?.toLowerCase() || "";
-    const requiredRoleLower = requiredMunicipalityRole.toLowerCase();
+  if (requiredMunicipalityRole && userRole === "MUNICIPALITY") {
+    const userMunicipalityRole = user.municipality_role?.name || "";
 
-    // Check if user's municipality role matches the required role
-    if (!userMunicipalityRole.includes(requiredRoleLower)) {
-      // Public relations officer goes to reports page, all others to technical reports
-      if (userMunicipalityRole.includes("municipal public relations officer")) {
-        return <Navigate to="/municipality/reports" replace />;
-      } else {
-        // All other municipality roles go to technical reports
-        return <Navigate to="/municipality/technical-reports" replace />;
-      }
+    if (
+      !hasRequiredMunicipalityRole(
+        userMunicipalityRole,
+        requiredMunicipalityRole,
+      )
+    ) {
+      return (
+        <Navigate to={getMunicipalityRedirect(userMunicipalityRole)} replace />
+      );
     }
   }
 

@@ -9,6 +9,8 @@ jest.mock("@services/reportService", () => {
     updateReportStatus: jest.fn(),
     deleteReport: jest.fn(),
     findAssignedReportsForOfficer: jest.fn(),
+    assignToExternalMaintainer: jest.fn(),
+    findReportsForExternalMaintainer: jest.fn(),
   };
   return { __esModule: true, default: m };
 });
@@ -41,6 +43,8 @@ type ServiceMock = {
   updateReportStatus: jest.Mock;
   deleteReport: jest.Mock;
   findAssignedReportsForOfficer: jest.Mock;
+  assignToExternalMaintainer: jest.Mock;
+  findReportsForExternalMaintainer: jest.Mock;
 };
 type ImageMock = {
   storeTemporaryImages: jest.Mock;
@@ -87,7 +91,11 @@ describe("reportController", () => {
       const reports = [makeReport({ id: 2 }), makeReport({ id: 1 })];
       svc.findAll.mockResolvedValue(reports);
 
-      const req = { query: {}, user: { role: "ADMIN" } } as unknown as Request;
+      const req = {
+        query: {},
+        user: { id: 1 },
+        role: "ADMIN",
+      } as unknown as Request;
       const res = makeRes();
 
       await getReports(req, res as unknown as Response);
@@ -99,7 +107,11 @@ describe("reportController", () => {
     it("returns 500 on service error", async () => {
       svc.findAll.mockRejectedValue(new Error("boom"));
 
-      const req = { query: {}, user: { role: "ADMIN" } } as unknown as Request;
+      const req = {
+        query: {},
+        user: { id: 1 },
+        role: "ADMIN",
+      } as unknown as Request;
       const res = makeRes();
 
       await getReports(req, res as unknown as Response);
@@ -146,7 +158,8 @@ describe("reportController", () => {
     it("returns 401 for invalid status filter", async () => {
       const req = {
         query: { status: "INVALID" },
-        user: { role: "CITIZEN" },
+        user: { id: 1 },
+        role: "CITIZEN",
       } as unknown as Request;
       const res = makeRes();
 
@@ -171,7 +184,8 @@ describe("reportController", () => {
 
       const req = {
         query: {},
-        user: { role: "ADMIN" },
+        user: { id: 1 },
+        role: "ADMIN",
       } as unknown as Request;
       const res = makeRes();
 
@@ -288,7 +302,7 @@ describe("reportController", () => {
       expect(svc.updateReportStatus).toHaveBeenCalledWith(
         5,
         "ASSIGNED",
-        undefined
+        undefined,
       );
       expect(res.json).toHaveBeenCalledWith({ status: "ASSIGNED" });
     });
@@ -380,7 +394,7 @@ describe("reportController", () => {
           photoKeys: ["k1", "k2"],
           anonymous: false,
         },
-        42
+        42,
       );
 
       expect(res.status).toHaveBeenCalledWith(201);
@@ -467,7 +481,7 @@ describe("reportController", () => {
       await submitReport(req as Request, res as unknown as Response);
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: "Invalid category" })
+        expect.objectContaining({ error: "Invalid category" }),
       );
     });
 
@@ -621,7 +635,7 @@ describe("reportController", () => {
       expect(svc.updateReportStatus).toHaveBeenCalledWith(
         1,
         "ASSIGNED",
-        undefined
+        undefined,
       );
       expect(res.json).toHaveBeenCalledWith({ status: "ASSIGNED" });
     });
@@ -640,7 +654,7 @@ describe("reportController", () => {
       expect(svc.updateReportStatus).toHaveBeenCalledWith(
         2,
         "REJECTED",
-        "Invalid report"
+        "Invalid report",
       );
       expect(res.json).toHaveBeenCalledWith({ status: "REJECTED" });
     });
@@ -774,7 +788,7 @@ describe("reportController", () => {
 
       expect(svc.findAssignedReportsForOfficer).toHaveBeenCalledWith(
         3,
-        "ASSIGNED"
+        "ASSIGNED",
       );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(reports);
@@ -797,6 +811,239 @@ describe("reportController", () => {
         error: "Internal Server Error",
         message: "Unable to fetch assigned reports for municipality user",
       });
+    });
+  });
+
+  // -------- getReports - coverage for edge cases --------
+  describe("getReports - edge cases", () => {
+    it("returns 400 when citizen requests invalid status", async () => {
+      const req = {
+        user: { id: 1 },
+        role: "CITIZEN",
+        query: { status: "PENDING_APPROVAL" }, // Citizens can only see ASSIGNED
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getReports(req as unknown as Request, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Validation Error",
+        }),
+      );
+    });
+
+    it("returns 400 when admin requests invalid status", async () => {
+      const req = {
+        user: { id: 1 },
+        role: "ADMIN",
+        query: { status: "INVALID_STATUS" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getReports(req as unknown as Request, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it("returns 403 when unknown role tries to access", async () => {
+      const req = {
+        user: { id: 1 },
+        role: "UNKNOWN_ROLE",
+        query: {},
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getReports(req as unknown as Request, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Authorization Error",
+        }),
+      );
+    });
+
+    it("returns 500 when service throws", async () => {
+      svc.findAll.mockRejectedValue(new Error("boom"));
+
+      const req = {
+        user: { id: 1 },
+        role: "CITIZEN",
+        query: {},
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getReports(req as unknown as Request, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Failed to fetch reports",
+      });
+    });
+  });
+
+  // -------- assignToExternalMaintainer --------
+  describe("assignToExternalMaintainer", () => {
+    it("should assign report to external maintainer", async () => {
+      const updatedReport = makeReport({ id: 5, externalMaintainerId: 1 });
+      svc.assignToExternalMaintainer.mockResolvedValue(updatedReport);
+
+      const req = {
+        params: { report_id: "5" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      // Import the function
+      const { assignToExternalMaintainer } = require("@controllers/reportController");
+
+      await assignToExternalMaintainer(req as unknown as Request, res as unknown as Response);
+
+      expect(svc.assignToExternalMaintainer).toHaveBeenCalledWith(5);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(updatedReport);
+    });
+
+    it("should return 400 for invalid report ID", async () => {
+      const req = {
+        params: { report_id: "invalid" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      const { assignToExternalMaintainer } = require("@controllers/reportController");
+      await assignToExternalMaintainer(req as unknown as Request, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Validation Error",
+        }),
+      );
+    });
+
+    it("should return 404 when report not found", async () => {
+      svc.assignToExternalMaintainer.mockRejectedValue(
+        new Error("Report not found"),
+      );
+
+      const req = {
+        params: { report_id: "999" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      const { assignToExternalMaintainer } = require("@controllers/reportController");
+      await assignToExternalMaintainer(req as unknown as Request, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    it("should return 500 on error", async () => {
+      svc.assignToExternalMaintainer.mockRejectedValue(new Error("boom"));
+
+      const req = {
+        params: { report_id: "1" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      const { assignToExternalMaintainer } = require("@controllers/reportController");
+      await assignToExternalMaintainer(req as unknown as Request, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  // -------- getReportsForExternalMaintainer --------
+  describe("getReportsForExternalMaintainer", () => {
+    beforeEach(() => {
+      svc.findReportsForExternalMaintainer = jest.fn();
+    });
+
+    it("should return 401 when not authenticated", async () => {
+      const req = {
+        user: null,
+        params: { externalMaintainersId: "1" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      const { getReportsForExternalMaintainer } = require("@controllers/reportController");
+      await getReportsForExternalMaintainer(req as unknown as Request, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Authentication Error",
+        }),
+      );
+    });
+
+    it("should return 400 for invalid external maintainer ID", async () => {
+      const req = {
+        user: { id: 1 },
+        params: { externalMaintainersId: "invalid" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      const { getReportsForExternalMaintainer } = require("@controllers/reportController");
+      await getReportsForExternalMaintainer(req as unknown as Request, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Bad Request",
+        }),
+      );
+    });
+
+    it("should return 403 when user tries to access other maintainer's reports", async () => {
+      const req = {
+        user: { id: 1 },
+        params: { externalMaintainersId: "5" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      const { getReportsForExternalMaintainer } = require("@controllers/reportController");
+      await getReportsForExternalMaintainer(req as unknown as Request, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Forbidden",
+        }),
+      );
+    });
+
+    it("should return reports for valid external maintainer", async () => {
+      const reports = [makeReport({ id: 1, externalMaintainerId: 3 })];
+      svc.findReportsForExternalMaintainer.mockResolvedValue(reports);
+
+      const req = {
+        user: { id: 3 },
+        params: { externalMaintainersId: "3" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      const { getReportsForExternalMaintainer } = require("@controllers/reportController");
+      await getReportsForExternalMaintainer(req as unknown as Request, res as unknown as Response);
+
+      expect(svc.findReportsForExternalMaintainer).toHaveBeenCalledWith(3);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(reports);
+    });
+
+    it("should return 500 on service error", async () => {
+      svc.findReportsForExternalMaintainer.mockRejectedValue(new Error("boom"));
+
+      const req = {
+        user: { id: 3 },
+        params: { externalMaintainersId: "3" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      const { getReportsForExternalMaintainer } = require("@controllers/reportController");
+      await getReportsForExternalMaintainer(req as unknown as Request, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
     });
   });
 });

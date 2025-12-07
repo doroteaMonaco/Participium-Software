@@ -52,10 +52,14 @@ export const CommentModal: React.FC<CommentModalProps> = ({
 
           {/* Comment Input */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label
+              htmlFor={`comment-input-${report.id}`}
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
               Comment <span className="text-red-500">*</span>
             </label>
             <textarea
+              id={`comment-input-${report.id}`}
               value={comment}
               onChange={(e) => onCommentChange(e.target.value)}
               placeholder="Add notes about progress, issues, or resolution..."

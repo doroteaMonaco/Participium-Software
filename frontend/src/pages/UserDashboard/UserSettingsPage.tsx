@@ -295,7 +295,10 @@ export const UserSettingsPage: React.FC = () => {
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  <label
+                    htmlFor="telegram_username"
+                    className="block text-sm font-semibold text-slate-700 mb-2"
+                  >
                     Your Telegram Username
                   </label>
                   <div className="relative">
@@ -303,6 +306,7 @@ export const UserSettingsPage: React.FC = () => {
                       @
                     </span>
                     <input
+                      id="telegram_username"
                       type="text"
                       value={telegramUsername}
                       onChange={(e) => setTelegramUsername(e.target.value)}

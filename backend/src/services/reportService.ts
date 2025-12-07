@@ -1,12 +1,12 @@
 import reportRepository from "@repositories/reportRepository";
 import { userRepository } from "@repositories/userRepository";
-import { CreateReportDto, ReportResponseDto } from "@dto/reportDto";
+import { CreateReportDto, ReportDto } from "@dto/reportDto";
 import imageService from "@services/imageService";
-import { ReportStatus } from "@models/enums";
-import { stat } from "node:fs";
+import { ReportStatus, roleType, Category } from "@models/enums";
+import { instanceOfExternalMaintainerUserDto } from "@models/dto/userDto";
 
 // Helper function to hide user info for anonymous reports
-const sanitizeReport = (report: any): ReportResponseDto => {
+const sanitizeReport = (report: any): ReportDto => {
   const sanitized = {
     ...report,
     photos: report.photos || [],
@@ -19,7 +19,7 @@ const sanitizeReport = (report: any): ReportResponseDto => {
     // Keep user_id so the user can see their own anonymous reports in their dashboard
   }
 
-  return sanitized as ReportResponseDto;
+  return sanitized as ReportDto;
 };
 
 // Helper function to map string to ReportStatus enum
@@ -38,7 +38,7 @@ const mapStringToStatus = (status: string): ReportStatus => {
 const findAll = async (
   statusFilter?: ReportStatus,
   userId?: number,
-): Promise<ReportResponseDto[]> => {
+): Promise<ReportDto[]> => {
   const reports = await reportRepository.findAll(statusFilter as any, userId);
   // Return stored relative paths for photos. The frontend expects relative
   // paths (e.g. "<reportId>/<file>") and will build the full URL as
@@ -47,7 +47,7 @@ const findAll = async (
   return reports.map(sanitizeReport);
 };
 
-const findById = async (id: number): Promise<ReportResponseDto | null> => {
+const findById = async (id: number): Promise<ReportDto | null> => {
   const report = await reportRepository.findById(id);
 
   if (!report) {
@@ -58,7 +58,7 @@ const findById = async (id: number): Promise<ReportResponseDto | null> => {
   return sanitizeReport(report);
 };
 
-const findByStatus = async (status: string): Promise<ReportResponseDto[]> => {
+const findByStatus = async (status: string): Promise<ReportDto[]> => {
   // Map string to enum
   const statusEnum = mapStringToStatus(status);
 
@@ -71,15 +71,18 @@ const findByStatus = async (status: string): Promise<ReportResponseDto[]> => {
   return reports.map(sanitizeReport);
 };
 
-const pickOfficerForService = async (officeName: string | undefined): Promise<number | null> => {
+const pickOfficerForService = async (
+  officeName: string | undefined,
+): Promise<number | null> => {
   if (!officeName) return null;
 
-  const officer = await userRepository.findLeastLoadedOfficerByOfficeName(officeName);
+  const officer =
+    await userRepository.findLeastLoadedOfficerByOfficeName(officeName);
 
   if (!officer) return null;
 
-  return officer.id
-}
+  return officer.id;
+};
 
 const updateReportStatus = async (
   id: number,
@@ -113,9 +116,9 @@ const updateReportStatus = async (
         .toString()
         .trim()
         .toUpperCase()
-        .replace(/\s+/g, "_")
-        .replace(/[–—]/g, "_")
-        .replace(/[^A-Z0-9_]/g, "");
+        .replaceAll(/\s+/g, "_")
+        .replaceAll(/[–—]/g, "_")
+        .replaceAll(/[^A-Z0-9_]/g, "");
 
     const key = normalize(rawCategory);
 
@@ -148,12 +151,12 @@ const updateReportStatus = async (
       "municipal administrator"; // Fallback to general municipal administrator
 
     assignedOfficerId = await pickOfficerForService(assignedOffice);
-    
+
     // Check if an officer was found
     if (!assignedOfficerId) {
       throw new Error(
         `Cannot approve report: No officer available with role "${assignedOffice}". ` +
-        `Please create a municipality user with this role before approving reports in category "${existing.category}".`
+          `Please create a municipality user with this role before approving reports in category "${existing.category}".`,
       );
     }
   }
@@ -172,7 +175,7 @@ const updateReportStatus = async (
 const submitReport = async (
   data: CreateReportDto,
   user_id: number,
-): Promise<ReportResponseDto> => {
+): Promise<ReportDto> => {
   // In unit tests we sometimes call submitReport with an empty dto ({}).
   // Shortcut: if empty, delegate directly to repository.create so tests can mock it.
   if (data && Object.keys(data).length === 0) {
@@ -222,24 +225,27 @@ const submitReport = async (
   try {
     await imageService.preloadCache(imagePaths);
   } catch (e) {
-    // non-fatal
+    console.warn("Failed to preload report images", e);
   }
 
   return sanitizeReport(updatedReport);
 };
 
 const findAssignedReportsForOfficer = async (
-  officerId: number, 
-  status?: string
-): Promise<ReportResponseDto[]> => {
+  officerId: number,
+  status?: string,
+): Promise<ReportDto[]> => {
   const statusEnum = status ? mapStringToStatus(status) : undefined;
 
-  const reports = await reportRepository.findAssignedReportsForOfficer(officerId, statusEnum);
+  const reports = await reportRepository.findAssignedReportsForOfficer(
+    officerId,
+    statusEnum,
+  );
 
   return reports.map(sanitizeReport);
-}
+};
 
-const deleteReport = async (id: number): Promise<ReportResponseDto> => {
+const deleteReport = async (id: number): Promise<ReportDto> => {
   // Directly call repository.deleteById so repository errors propagate to caller
   const report = await reportRepository.findById(id);
 
@@ -254,6 +260,72 @@ const deleteReport = async (id: number): Promise<ReportResponseDto> => {
   return sanitizeReport({ ...deletedReport, photos: [] });
 };
 
+const assignToExternalMaintainer = async (
+  reportId: number,
+): Promise<ReportDto> => {
+  // 1) Recupero il report
+  const report = await reportRepository.findById(reportId);
+
+  if (!report) {
+    throw new Error("Report not found");
+  }
+
+  // 2) Recupero tutti gli external maintainers con la stessa categoria
+  const allExternalMaintainers = await userRepository.findExternalMaintainersByCategory(
+    report.category as Category,
+  );
+
+  if (allExternalMaintainers.length === 0) {
+    throw new Error(
+      `No external maintainers available for category "${report.category}"`,
+    );
+  }
+  
+  // 3) Per ognuno calcolo quanti report ha già assegnati
+  const maintainersWithCounts = await Promise.all(
+    allExternalMaintainers.map(async (em) => ({
+      maintainer: em,
+      assignedReports: em.assignedReports?.length,
+    })),
+  );
+
+  // 4) Scelgo quello con meno report (in caso di parità, quello con id più basso – tie-breaker deterministico)
+  const chosen = maintainersWithCounts.reduce((best, current) => {
+    if (!best) return current;
+    if ((current.assignedReports ?? 0) < (best.assignedReports ?? 0)) return current;
+    if (
+      (current.assignedReports ?? 0) === (best.assignedReports ?? 0) &&
+      current.maintainer.id < best.maintainer.id
+    ) {
+      return current;
+    }
+    return best;
+  }, null as (typeof maintainersWithCounts)[number] | null);
+
+  if (!chosen) {
+    throw new Error(
+      `No external maintainers available for category "${report.category}"`,
+    );
+  }
+
+  // 5) Aggiorno il report con l’EM scelto
+  const updatedReport = await reportRepository.update(reportId, {
+    externalMaintainerId: chosen.maintainer.id,
+  });
+
+  return sanitizeReport(updatedReport);
+};
+
+const findReportsForExternalMaintainer = async (
+  externalMaintainerId: number,
+): Promise<ReportDto[]> => {
+  const reports = await reportRepository.findByExternalMaintainerId(
+    externalMaintainerId,
+  );
+
+  return reports.map(sanitizeReport);
+}
+
 export default {
   findAll,
   findById,
@@ -263,4 +335,6 @@ export default {
   deleteReport,
   updateReportStatus,
   pickOfficerForService,
+  assignToExternalMaintainer,
+  findReportsForExternalMaintainer,
 };

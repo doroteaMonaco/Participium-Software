@@ -1,6 +1,6 @@
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
 import { redisClient } from "@redis";
 
 interface ImageData {
@@ -36,9 +36,15 @@ const storeTemporaryImages = async (images: ImageData[]): Promise<string[]> => {
     };
 
     try {
-      await redisClient.setex(tempKey, CACHE_EXPIRY, JSON.stringify(imageObject));
+      await redisClient.setex(
+        tempKey,
+        CACHE_EXPIRY,
+        JSON.stringify(imageObject),
+      );
     } catch (error) {
-      console.warn(`Failed to store temporary image in Redis: ${error}, skipping`);
+      console.warn(
+        `Failed to store temporary image in Redis: ${error}, skipping`,
+      );
     }
     tempKeys.push(tempKey);
   }
@@ -70,7 +76,7 @@ const persistImagesForReport = async (
       console.warn(`Failed to get temporary image from Redis: ${error}`);
       imageDataString = null;
     }
-    
+
     let imageObject;
     if (!imageDataString) {
       // For testing or when Redis is not available, create dummy image

@@ -2,7 +2,7 @@ import Redis from "ioredis";
 import { CONFIG } from "@config";
 import { logError, logInfo } from "@services/loggingService";
 
-export let redisClient: Redis; 
+export let redisClient: Redis;
 
 export function createRedisInstance(): Redis {
   return new Redis({

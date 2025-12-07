@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { MunicipalityDashboardLayout } from "../../components/dashboard/MunicipalityDashboardLayout";
-import { StatusUpdateModal } from "../../components/dashboard/StatusUpdateModal";
-import { CommentModal } from "../../components/dashboard/CommentModal";
+import { MunicipalityDashboardLayout } from "src/components/dashboard/MunicipalityDashboardLayout";
+import { StatusUpdateModal } from "src/components/dashboard/StatusUpdateModal";
+import { CommentModal } from "src/components/dashboard/CommentModal";
+import { AssignMaintainerModal } from "src/components/dashboard/AssignMaintainerModal";
 import { motion } from "framer-motion";
-import { useAuth } from "../../contexts/AuthContext";
-import { getAssignedReports } from "../../services/api";
+import { useAuth } from "src/contexts/AuthContext";
+import { getAssignedReports } from "src/services/api";
 import {
   FileText,
   Search,
@@ -18,8 +19,11 @@ import {
   MessageSquare,
   Edit3,
   Image as ImageIcon,
+  UserPlus,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+
+import { ReportModel } from "src/services/models";
 
 interface Comment {
   id: number;
@@ -43,6 +47,45 @@ interface Report {
   assignedOffice: string;
   comments: Comment[];
 }
+
+// Helper to map backend status to frontend status
+const mapBackendStatus = (status: string): Report["status"] => {
+  switch (status) {
+    case "ASSIGNED":
+      return "Assigned";
+    case "IN_PROGRESS":
+      return "In Progress";
+    case "SUSPENDED":
+      return "Suspended";
+    case "RESOLVED":
+      return "Resolved";
+    default:
+      return "Assigned";
+  }
+};
+
+// Map backend data to frontend format
+const mapReports = (data: ReportModel[]): Report[] => {
+  return data.map((r: ReportModel) => ({
+    id: `RPT-${r.id}`,
+    title: r.title || "Untitled Report",
+    description: r.description || "No description",
+    category: r.category || "Other",
+    status: mapBackendStatus(r.status),
+    // location: r.location || `${r.lat.toFixed(4)}, ${r.lng.toFixed(4)}`,
+    location: `${r.lat.toFixed(4)}, ${r.lng.toFixed(4)}`,
+    coordinates: { lat: r.lat, lng: r.lng },
+    createdAt: new Date(r.createdAt).toLocaleDateString(),
+    submittedBy: r.user ? `${r.user.firstName} ${r.user.lastName}` : "Unknown",
+    isAnonymous: r.isAnonymous || false,
+    photos: (r.photos || []).map(
+      (p: string) =>
+        `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`,
+    ),
+    assignedOffice: r.assignedOffice || "Not assigned",
+    comments: [],
+  }));
+};
 
 const statusColors = {
   Assigned: "bg-blue-50 text-blue-700 border-blue-200",
@@ -156,6 +199,7 @@ export const TechnicalReportsPage: React.FC = () => {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [newStatus, setNewStatus] = useState<Report["status"] | "">("");
   const [newComment, setNewComment] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -171,30 +215,8 @@ export const TechnicalReportsPage: React.FC = () => {
         setLoading(true);
         setError(null);
         const data = await getAssignedReports(user.id);
-
-        // Map backend data to frontend format
-        const mappedReports: Report[] = data.map((r: any) => ({
-          id: `RPT-${r.id}`,
-          title: r.title || "Untitled Report",
-          description: r.description || "No description",
-          category: r.category || "Other",
-          status: mapBackendStatus(r.status),
-          location:
-            r.location || `${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}`,
-          coordinates: { lat: r.latitude, lng: r.longitude },
-          createdAt: new Date(r.createdAt).toLocaleDateString(),
-          submittedBy: r.user
-            ? `${r.user.firstName} ${r.user.lastName}`
-            : "Unknown",
-          isAnonymous: r.anonymous || false,
-          photos: (r.photos || []).map(
-            (p: string) =>
-              `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`,
-          ),
-          assignedOffice: r.assignedOffice || "Not assigned",
-          comments: [],
-        }));
-
+        const reports = data.map((data) => new ReportModel(data));
+        const mappedReports = mapReports(reports);
         setReports(mappedReports);
       } catch (err) {
         console.error("Error fetching assigned reports:", err);
@@ -206,22 +228,6 @@ export const TechnicalReportsPage: React.FC = () => {
 
     fetchReports();
   }, [user?.id]);
-
-  // Helper to map backend status to frontend status
-  const mapBackendStatus = (status: string): Report["status"] => {
-    switch (status) {
-      case "ASSIGNED":
-        return "Assigned";
-      case "IN_PROGRESS":
-        return "In Progress";
-      case "SUSPENDED":
-        return "Suspended";
-      case "RESOLVED":
-        return "Resolved";
-      default:
-        return "Assigned";
-    }
-  };
 
   const handleStatusChange = (report: Report) => {
     setSelectedReport(report);
@@ -235,6 +241,24 @@ export const TechnicalReportsPage: React.FC = () => {
     setShowCommentModal(true);
   };
 
+  const handleAssignToMaintainer = (report: Report) => {
+    setSelectedReport(report);
+    setShowAssignModal(true);
+  };
+
+  const handleAssignMaintainer = (maintainerName: string) => {
+    if (selectedReport) {
+      // Update the report in the list (in real app, this would call API)
+      setReports(
+        reports.map((r) =>
+          r.id === selectedReport.id
+            ? { ...r, assignedOffice: maintainerName }
+            : r,
+        ),
+      );
+    }
+  };
+
   const closeStatusModal = () => {
     setShowStatusModal(false);
     setSelectedReport(null);
@@ -245,6 +269,11 @@ export const TechnicalReportsPage: React.FC = () => {
     setShowCommentModal(false);
     setSelectedReport(null);
     setNewComment("");
+  };
+
+  const closeAssignModal = () => {
+    setShowAssignModal(false);
+    setSelectedReport(null);
   };
 
   const handleSubmitStatus = (e: React.FormEvent) => {
@@ -479,12 +508,12 @@ export const TechnicalReportsPage: React.FC = () => {
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                           {report.photos.map((photo, idx) => (
                             <div
-                              key={idx}
+                              key={photo}
                               className="group relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 bg-white hover:border-indigo-400 transition-all cursor-pointer"
                             >
                               <img
                                 src={photo}
-                                alt={`Report photo ${idx + 1}`}
+                                alt={`Report ${idx + 1}`}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
@@ -570,20 +599,31 @@ export const TechnicalReportsPage: React.FC = () => {
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200">
+                    <div className="flex flex-col gap-3 pt-4 border-t border-slate-200">
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                          onClick={() => handleStatusChange(report)}
+                          className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        >
+                          <Edit3 className="h-5 w-5" />
+                          Update Status
+                        </button>
+                        <button
+                          onClick={() => handleAddComment(report)}
+                          className="flex-1 rounded-xl bg-slate-600 hover:bg-slate-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        >
+                          <MessageSquare className="h-5 w-5" />
+                          Add Comment
+                        </button>
+                      </div>
+                      
+                      {/* Assign to External Maintainer */}
                       <button
-                        onClick={() => handleStatusChange(report)}
-                        className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        onClick={() => handleAssignToMaintainer(report)}
+                        className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                       >
-                        <Edit3 className="h-5 w-5" />
-                        Update Status
-                      </button>
-                      <button
-                        onClick={() => handleAddComment(report)}
-                        className="flex-1 rounded-xl bg-slate-600 hover:bg-slate-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                      >
-                        <MessageSquare className="h-5 w-5" />
-                        Add Comment
+                        <UserPlus className="h-5 w-5" />
+                        Assign to External Maintainer
                       </button>
                     </div>
                   </div>
@@ -611,6 +651,15 @@ export const TechnicalReportsPage: React.FC = () => {
         onCommentChange={setNewComment}
         onSubmit={handleSubmitComment}
         onClose={closeCommentModal}
+      />
+
+      <AssignMaintainerModal
+        isOpen={showAssignModal}
+        onClose={closeAssignModal}
+        reportId={selectedReport?.id || ""}
+        reportCategory={selectedReport?.category || ""}
+        reportTitle={selectedReport?.title || ""}
+        onAssign={handleAssignMaintainer}
       />
     </MunicipalityDashboardLayout>
   );

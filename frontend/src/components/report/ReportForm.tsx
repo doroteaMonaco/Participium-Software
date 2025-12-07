@@ -63,9 +63,9 @@ const ReportForm: React.FC<ReportFormProps> = ({
           `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
           {
             headers: {
-              'User-Agent': 'Participium (participatory budgeting app)'
-            }
-          }
+              "User-Agent": "Participium (participatory budgeting app)",
+            },
+          },
         );
         const data = await response.json();
         if (data.display_name) {
@@ -84,44 +84,71 @@ const ReportForm: React.FC<ReportFormProps> = ({
     fetchAddress();
   }, [lat, lng]);
 
+  const createFilePreview = (file: File) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoPreviews((prev) => [...prev, reader.result as string]);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const validatePhotoCount = (
+    currentCount: number,
+    newCount: number,
+  ): string | null => {
+    if (currentCount + newCount > 3) {
+      return "Maximum 3 photos allowed";
+    }
+    return null;
+  };
+
+  const validateFileTypes = (files: File[]): string | null => {
+    const validTypes = new Set([
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+    ]);
+    const invalidFiles = files.filter((file) => !validTypes.has(file.type));
+
+    if (invalidFiles.length > 0) {
+      return "Only image files (JPEG, PNG, GIF) are allowed";
+    }
+    return null;
+  };
+
+  const validateFileSizes = (files: File[]): string | null => {
+    const oversizedFiles = files.filter((file) => file.size > 5 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      return "Each photo must be less than 5MB";
+    }
+    return null;
+  };
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
 
-    // Validate number of photos (max 3)
-    if (photos.length + files.length > 3) {
-      setError("Maximum 3 photos allowed");
+    const countError = validatePhotoCount(photos.length, files.length);
+    if (countError) {
+      setError(countError);
       return;
     }
 
-    // Validate file types
-    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
-    const invalidFiles = files.filter(
-      (file) => !validTypes.includes(file.type),
-    );
-
-    if (invalidFiles.length > 0) {
-      setError("Only image files (JPEG, PNG, GIF) are allowed");
+    const typeError = validateFileTypes(files);
+    if (typeError) {
+      setError(typeError);
       return;
     }
 
-    // Validate file sizes (max 5MB each)
-    const oversizedFiles = files.filter((file) => file.size > 5 * 1024 * 1024);
-    if (oversizedFiles.length > 0) {
-      setError("Each photo must be less than 5MB");
+    const sizeError = validateFileSizes(files);
+    if (sizeError) {
+      setError(sizeError);
       return;
     }
 
     setError("");
     setPhotos([...photos, ...files]);
-
-    // Create previews
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreviews((prev) => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
+    files.forEach(createFilePreview);
   };
 
   const removePhoto = (index: number) => {
@@ -129,27 +156,34 @@ const ReportForm: React.FC<ReportFormProps> = ({
     setPhotoPreviews(photoPreviews.filter((_, i) => i !== index));
   };
 
+  const validateForm = (): string | null => {
+    if (!title.trim()) {
+      return "Title is required";
+    }
+    if (!description.trim()) {
+      return "Description is required";
+    }
+    if (!category) {
+      return "Please select a category";
+    }
+    if (photos.length === 0) {
+      return "At least one photo is required";
+    }
+    return null;
+  };
+
+  const getSubmitButtonText = (): string => {
+    if (loading) return "Submitting...";
+    if (success) return "Submitted!";
+    return "Submit Report";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
-    if (!title.trim()) {
-      setError("Title is required");
-      return;
-    }
-
-    if (!description.trim()) {
-      setError("Description is required");
-      return;
-    }
-
-    if (!category) {
-      setError("Please select a category");
-      return;
-    }
-
-    if (photos.length === 0) {
-      setError("At least one photo is required");
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -234,7 +268,9 @@ const ReportForm: React.FC<ReportFormProps> = ({
             <div className="text-sm flex-1">
               <span className="font-medium text-slate-700">Location: </span>
               {loadingAddress ? (
-                <span className="text-slate-500 italic">Loading address...</span>
+                <span className="text-slate-500 italic">
+                  Loading address...
+                </span>
               ) : (
                 <span className="text-slate-600">{address}</span>
               )}
@@ -243,10 +279,14 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label
+              htmlFor="report-title"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
               Title <span className="text-red-500">*</span>
             </label>
             <input
+              id="report-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -262,10 +302,14 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label
+              htmlFor="report-description"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
               Description <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="report-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the issue in detail..."
@@ -281,10 +325,14 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label
+              htmlFor="report-category"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
               Category <span className="text-red-500">*</span>
             </label>
             <select
+              id="report-category"
               value={category}
               onChange={(e) => setCategory(e.target.value as ReportCategory)}
               required
@@ -301,7 +349,10 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
           {/* Photo Upload */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label
+              htmlFor="report-photos"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
               Photos <span className="text-red-500">*</span>
               <span className="text-slate-500 font-normal ml-1">
                 (1-3 photos, max 5MB each)
@@ -312,7 +363,7 @@ const ReportForm: React.FC<ReportFormProps> = ({
             {photoPreviews.length > 0 && (
               <div className="grid grid-cols-3 gap-3 mb-3">
                 {photoPreviews.map((preview, index) => (
-                  <div key={index} className="relative group">
+                  <div key={preview} className="relative group">
                     <img
                       src={preview}
                       alt={`Preview ${index + 1}`}
@@ -332,7 +383,10 @@ const ReportForm: React.FC<ReportFormProps> = ({
 
             {/* Upload Button */}
             {photos.length < 3 && (
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition-colors cursor-pointer">
+              <label
+                htmlFor="report-photos"
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition-colors cursor-pointer"
+              >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <Upload className="h-8 w-8 text-slate-400 mb-2" />
                   <p className="text-sm text-slate-600 font-medium">
@@ -343,6 +397,7 @@ const ReportForm: React.FC<ReportFormProps> = ({
                   </p>
                 </div>
                 <input
+                  id="report-photos"
                   type="file"
                   accept="image/jpeg,image/jpg,image/png,image/gif"
                   multiple
@@ -389,11 +444,7 @@ const ReportForm: React.FC<ReportFormProps> = ({
               disabled={loading || success}
               className="flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-indigo-300 hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading
-                ? "Submitting..."
-                : success
-                  ? "Submitted!"
-                  : "Submit Report"}
+              {getSubmitButtonText()}
             </button>
           </div>
         </form>

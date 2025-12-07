@@ -65,9 +65,9 @@ export const Status: React.FC = () => (
         subtitle="Each report moves through transparent states."
       />
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        {statusData.map((s, i) => (
+        {statusData.map((s) => (
           <div
-            key={i}
+            key={s.label}
             className={`flex flex-col rounded-2xl border p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md ${s.color}`}
           >
             <div className="flex items-center gap-3 font-semibold">

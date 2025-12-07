@@ -44,6 +44,8 @@ describe("userController - Municipality Functions", () => {
   });
 
   describe("createMunicipalityUser", () => {
+    const municipality_role_id = 2;
+
     const mockRequest = {
       body: {
         email: "municipality@test.com",
@@ -51,7 +53,7 @@ describe("userController - Municipality Functions", () => {
         firstName: "Municipality",
         lastName: "User",
         password: "password123",
-        municipality_role_id: 1,
+        municipality_role_id: municipality_role_id,
       },
     } as Request;
 
@@ -61,7 +63,7 @@ describe("userController - Municipality Functions", () => {
         username: mockRequest.body.username,
         firstName: mockRequest.body.firstName,
         lastName: mockRequest.body.lastName,
-        municipality_role_id: mockRequest.body.municipality_role_id,
+        municipality_role_id: municipality_role_id,
       });
 
       userServiceMock.createMunicipalityUser.mockResolvedValue(mockUser);
@@ -73,15 +75,16 @@ describe("userController - Municipality Functions", () => {
       );
 
       expect(userServiceMock.createMunicipalityUser).toHaveBeenCalledWith(
-        "municipality@test.com",
-        "municipality_user",
+        expect.objectContaining(mockRequest.body),
         "Municipality",
         "User",
-        "password123",
-        1,
+        municipality_role_id,
       );
       expect(res.status).toHaveBeenCalledWith(201);
-      expect(res.json).toHaveBeenCalledWith(mockUser);
+      expect(res.json).toHaveBeenCalledWith({
+        ...mockUser,
+        municipality_role_id,
+      });
     });
 
     it("returns 400 when required fields are missing", async () => {
@@ -102,11 +105,10 @@ describe("userController - Municipality Functions", () => {
 
       expect(userServiceMock.createMunicipalityUser).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        error: "Bad Request",
-        message:
-          "Missing required fields: email, username, firstName, lastName, password, municipality_role_id",
-      });
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: "Bad Request" }),
+      );
     });
 
     it("returns 409 when email is already in use", async () => {

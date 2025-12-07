@@ -17,8 +17,13 @@ import { ProtectedRoute } from "src/components/ProtectedRoute";
 
 import LandingPage from "src/pages/LandingPage";
 
-// import MapPage from "./pages/MapPage";
 import ReportDetailsPage from "./pages/ReportDetailsPage";
+
+import NotFound from "./components/NotFound";
+import ComingSoon from "./components/ComingSoon";
+import { DashboardLayout } from "./components/dashboard/DashboardLayout";
+import { AdminDashboardLayout } from "./components/dashboard/AdminDashboardLayout";
+import { MunicipalityDashboardLayout } from "./components/dashboard/MunicipalityDashboardLayout";
 
 function App() {
   return (
@@ -29,14 +34,6 @@ function App() {
             {/* User Dashboard routes - protected, CITIZEN role */}
             <Route
               path="/dashboard"
-              element={
-                <ProtectedRoute requiredRole="CITIZEN">
-                  <UserDashboardPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/*"
               element={
                 <ProtectedRoute requiredRole="CITIZEN">
                   <UserDashboardPage />
@@ -56,6 +53,16 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="CITIZEN">
                   <UserSettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/*"
+              element={
+                <ProtectedRoute requiredRole="CITIZEN">
+                  <DashboardLayout>
+                    <ComingSoon />
+                  </DashboardLayout>
                 </ProtectedRoute>
               }
             />
@@ -86,6 +93,17 @@ function App() {
               }
             />
 
+            <Route
+              path="/admin/*"
+              element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <AdminDashboardLayout>
+                    <ComingSoon />
+                  </AdminDashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
             {/* Municipality Dashboard routes - protected, MUNICIPALITY role */}
             <Route
               path="/municipality/reports"
@@ -107,6 +125,17 @@ function App() {
               }
             />
 
+            <Route
+              path="/municipality/*"
+              element={
+                <ProtectedRoute requiredRole="MUNICIPALITY">
+                  <MunicipalityDashboardLayout>
+                    <ComingSoon />
+                  </MunicipalityDashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
             {/* Public routes - with navbar/footer */}
             <Route
               path="*"
@@ -119,6 +148,7 @@ function App() {
                     <Route path="/register" element={<Register />} />
                     {/* <Route path="/map" element={<MapPage />} /> */}
                     <Route path="/report/:id" element={<ReportDetailsPage />} />
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                   <Footer />
                 </>

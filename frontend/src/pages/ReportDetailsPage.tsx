@@ -15,6 +15,40 @@ const ENUM_TO_LABEL: Record<string, string> = {
   OTHER: "Other",
 };
 
+const getStatusBadgeClass = (status: string): string => {
+  if (status === "REJECTED") return "bg-red-100 text-red-800";
+  if (status === "PENDING" || status === "PENDING_APPROVAL")
+    return "bg-indigo-100 text-indigo-800";
+  if (status === "ASSIGNED") return "bg-blue-100 text-blue-800";
+  if (status === "IN_PROGRESS") return "bg-amber-100 text-amber-800";
+  if (status === "RESOLVED") return "bg-green-100 text-green-800";
+  return "bg-slate-100 text-slate-800";
+};
+
+const getStatusDisplayText = (status: string): string => {
+  if (status === "PENDING_APPROVAL") return "Pending";
+  if (status === "IN_PROGRESS") return "In Progress";
+  return status.charAt(0) + status.slice(1).toLowerCase();
+};
+
+const ErrorView: React.FC<{ error: string; onGoBack: () => void }> = ({
+  error,
+  onGoBack,
+}) => (
+  <main className="p-6">
+    <p className="text-red-600">{error}</p>
+    <button onClick={onGoBack} className="text-indigo-600 hover:underline">
+      ← Go Back
+    </button>
+  </main>
+);
+
+const LoadingView: React.FC = () => (
+  <main className="p-6">
+    <p>Loading...</p>
+  </main>
+);
+
 const ReportDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -35,27 +69,8 @@ const ReportDetailsPage: React.FC = () => {
     fetch();
   }, [id]);
 
-  if (error) {
-    return (
-      <main className="p-6">
-        <p className="text-red-600">{error}</p>
-        <button
-          onClick={() => navigate(-1)}
-          className="text-indigo-600 hover:underline"
-        >
-          ← Go Back
-        </button>
-      </main>
-    );
-  }
-
-  if (!report) {
-    return (
-      <main className="p-6">
-        <p>Loading...</p>
-      </main>
-    );
-  }
+  if (error) return <ErrorView error={error} onGoBack={() => navigate(-1)} />;
+  if (!report) return <LoadingView />;
 
   return (
     <main className="p-6 max-w-3xl mx-auto">
@@ -68,26 +83,9 @@ const ReportDetailsPage: React.FC = () => {
       <div className="mb-4">
         <strong>Status:</strong>{" "}
         <span
-          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-            report.status === "REJECTED"
-              ? "bg-red-100 text-red-800"
-              : report.status === "PENDING" ||
-                  report.status === "PENDING_APPROVAL"
-                ? "bg-indigo-100 text-indigo-800"
-                : report.status === "ASSIGNED"
-                  ? "bg-blue-100 text-blue-800"
-                  : report.status === "IN_PROGRESS"
-                    ? "bg-amber-100 text-amber-800"
-                    : report.status === "RESOLVED"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-slate-100 text-slate-800"
-          }`}
+          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(report.status)}`}
         >
-          {report.status === "PENDING_APPROVAL"
-            ? "Pending"
-            : report.status === "IN_PROGRESS"
-              ? "In Progress"
-              : report.status.charAt(0) + report.status.slice(1).toLowerCase()}
+          {getStatusDisplayText(report.status)}
         </span>
       </div>
 
@@ -122,11 +120,11 @@ const ReportDetailsPage: React.FC = () => {
         <div className="mb-4">
           <strong>Photos</strong>
           <div className="grid grid-cols-2 gap-3 mt-2">
-            {report.photos.map((p: string, i: number) => (
+            {report.photos.map((p: string) => (
               <img
-                key={i}
+                key={p}
                 src={`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`}
-                alt={`photo-${i}`}
+                alt={`Report photo`}
                 className="w-full h-40 object-cover rounded"
               />
             ))}

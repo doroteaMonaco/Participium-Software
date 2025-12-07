@@ -1,3 +1,4 @@
+/*
 import { Router } from "express";
 import {
   sendMessage,
@@ -26,3 +27,4 @@ router.get("/:id", getMessageById);
 router.put("/:id/read", markMessageAsRead);
 
 export default router;
+*/

@@ -1,6 +1,7 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { authService } from "@services/authService";
-import { CONFIG } from "@config";
+import { throwBadRequestIfMissingObject } from "@utils";
+import { BadRequestError } from "@errors/BadRequestError";
 
 export const cookieOpts = {
   httpOnly: true,
@@ -10,37 +11,30 @@ export const cookieOpts = {
 };
 
 export const authController = {
-  async login(req: Request, res: Response) {
+  async login(req: Request, res: Response, next: NextFunction) {
     try {
-      const { identifier, password } = req.body || {};
-      if (!identifier || !password) {
-        return res.status(400).json({
-          error: "Bad Request",
-          message: "identifier and password are required",
-        });
-      }
+      const { identifier, password, role } = req.body || {};
 
-      const { user, token } = await authService.login(identifier, password);
+      throwBadRequestIfMissingObject({ identifier, password, role });
 
-      if (!user) {
-        throw new Error("Authenticated user data missing");
-      }
+      const { user, token } = await authService.login(
+        identifier,
+        password,
+        role,
+      );
 
       res.cookie("authToken", token, cookieOpts);
       res.setHeader("Location", "/reports");
-      return res.status(200).json({
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        username: user.username,
-        role: user.role,
-        municipality_role_id: (user as any).municipality_role_id,
-        municipality_role: (user as any).municipality_role ?? null,
-        telegramUsername: user.telegramUsername,
-        notificationsEnabled: user.notifications,
-        profilePhoto: `${CONFIG.BACKEND_URL}${CONFIG.ROUTES.USER_PROFILES}/${user.profilePhoto}`
-      });
+
+      return res.status(200).json(user);
     } catch (error: any) {
+      if (error instanceof BadRequestError) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message: error?.message || "Missing required fields",
+        });
+      }
+
       return res.status(401).json({
         error: "Authentication Error",
         message: error?.message || "Invalid username or password",
@@ -50,25 +44,16 @@ export const authController = {
 
   async verifyAuth(req: Request, res: Response) {
     try {
-      const user = await authService.verifyAuth(req);
+      const token = req.cookies?.authToken;
+
+      const user = await authService.verifyAuth(token);
       if (!user) {
         return res.status(401).json({
           error: "Authentication Error",
           message: "Session is invalid or has expired",
         });
       }
-      return res.status(200).json({
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        username: user.username,
-        role: user.role,
-        municipality_role_id: (user as any).municipality_role_id,
-        municipality_role: (user as any).municipality_role ?? null,
-        telegramUsername: user.telegramUsername,
-        notificationsEnabled: user.notifications,
-        profilePhoto: `${CONFIG.BACKEND_URL}${CONFIG.ROUTES.USER_PROFILES}/${user.profilePhoto}`,
-      });
+      return res.status(200).json(user);
     } catch {
       return res.status(401).json({
         error: "Authentication Error",

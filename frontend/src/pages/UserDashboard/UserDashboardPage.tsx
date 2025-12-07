@@ -7,7 +7,7 @@ import {
 } from "src/components/dashboard/ReportsTable";
 import { StatusBadge } from "src/components/dashboard/StatusBadge";
 import { getReports } from "src/services/api";
-import { Report, ReportStatus } from "src/services/models";
+import { ReportModel, ReportStatus } from "src/services/models";
 import { useAuth } from "src/contexts/AuthContext";
 
 import { MapPin } from "lucide-react";
@@ -34,7 +34,7 @@ const mapStatus = (status: ReportStatus): string => {
 
 export const UserDashboard: React.FC = () => {
   const { user } = useAuth();
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<ReportModel[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -45,23 +45,7 @@ export const UserDashboard: React.FC = () => {
         const data = await getReports();
         const reportsData = data
           .filter((r) => r.user_id === user?.id)
-          .map(
-            (r) =>
-              new Report(
-                r.latitude ?? 0,
-                r.longitude ?? 0,
-                r.title ?? "",
-                r.status ?? "",
-                r.anonymous ?? false,
-                r.id,
-                r.description ?? "",
-                r.category ?? "",
-                r.photos ?? [],
-                r.createdAt ?? "",
-                r.rejectionReason,
-                r.user || null,
-              ),
-          );
+          .map((r) => new ReportModel(r));
         setReports(reportsData);
       } catch (err) {
         console.error("Error fetching reports:", err);

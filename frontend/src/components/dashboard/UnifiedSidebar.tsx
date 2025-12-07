@@ -275,8 +275,17 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
       {/* Mobile overlay */}
       {mobileMenuOpen && (
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Close menu"
           className="fixed inset-0 z-40 bg-slate-900/50 lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " " || e.code === "Space") {
+              e.preventDefault();
+              setMobileMenuOpen(false);
+            }
+          }}
         />
       )}
 

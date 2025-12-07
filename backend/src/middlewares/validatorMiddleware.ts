@@ -1,5 +1,5 @@
 import * as OpenApiValidator from "express-openapi-validator";
-import path from "path";
+import path from "node:path";
 
 const isDocker = process.env.IS_DOCKER === "true";
 const swaggerPath = isDocker

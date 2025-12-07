@@ -85,9 +85,9 @@ export const Hero: React.FC = () => {
               <div className="absolute -inset-4 -z-10 rounded-3xl bg-emerald-100/60 blur-2xl" />
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl ring-1 ring-black/5">
                 <div className="grid grid-cols-3 gap-3">
-                  {steps.map((s, i) => (
+                  {steps.map((s) => (
                     <div
-                      key={i}
+                      key={s.label}
                       className="flex flex-col items-center justify-center rounded-xl bg-slate-50 p-4 text-center transition-all hover:-translate-y-1 hover:shadow-md"
                     >
                       <div className="rounded-full bg-indigo-50 p-3 text-indigo-600">

@@ -56,16 +56,21 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
 
           {/* Status Selection */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label
+              htmlFor={`status-select-${report.id}`}
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
               New Status <span className="text-red-500">*</span>
             </label>
             <select
+              id={`status-select-${report.id}`}
               value={newStatus}
               onChange={(e) =>
                 onStatusChange(e.target.value as Report["status"])
               }
               required
               className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
+              aria-required="true"
             >
               <option value="Assigned">
                 Assigned - Newly assigned to office

@@ -4,6 +4,8 @@ jest.mock("@repositories/reportRepository", () => {
     findById: jest.fn(),
     findByStatus: jest.fn(),
     findAssignedReportsForOfficer: jest.fn(),
+    findByExternalMaintainerId: jest.fn(),
+    assignToExternalMaintainer: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     deleteById: jest.fn(),
@@ -32,6 +34,8 @@ type RepoMock = {
   findById: jest.Mock;
   findByStatus: jest.Mock;
   findAssignedReportsForOfficer: jest.Mock;
+  findByExternalMaintainerId: jest.Mock;
+  assignToExternalMaintainer: jest.Mock;
   create: jest.Mock;
   update: jest.Mock;
   deleteById: jest.Mock;
@@ -41,6 +45,7 @@ type ImageMock = {
   persistImagesForReport: jest.Mock;
   getMultipleImages: jest.Mock;
   deleteImages: jest.Mock;
+  preloadCache: jest.Mock;
 };
 
 const repo = reportRepository as unknown as RepoMock;
@@ -483,6 +488,221 @@ describe("reportService", () => {
         "Environmental Services - Waste Management",
       );
       expect(res).toBe(77);
+    });
+  });
+
+  // -------- External Maintainer Assignment --------
+  describe("assignToExternalMaintainer", () => {
+    it("should assign report to least loaded external maintainer", async () => {
+      const reportId = 1;
+      const report = {
+        id: reportId,
+        category: "PUBLIC_LIGHTING",
+        status: ReportStatus.PENDING_APPROVAL,
+      };
+      const maintainers = [
+        { id: 1, assignedReports: [1, 2, 3, 4, 5] },
+        { id: 2, assignedReports: [1, 2] },
+        { id: 3, assignedReports: [1, 2, 3, 4, 5, 6, 7, 8] },
+      ];
+      const updatedReport = {
+        ...report,
+        externalMaintainerId: 2,
+        status: ReportStatus.ASSIGNED,
+        photos: [],
+        user_id: undefined,
+      };
+
+      repo.findById.mockResolvedValue(report);
+      jest
+        .spyOn(userRepository, "findExternalMaintainersByCategory")
+        .mockResolvedValue(maintainers as any);
+      repo.update.mockResolvedValue(updatedReport);
+
+      const res = await reportService.assignToExternalMaintainer(reportId);
+
+      expect(repo.findById).toHaveBeenCalledWith(reportId);
+      expect(repo.update).toHaveBeenCalledWith(
+        reportId,
+        { externalMaintainerId: 2 },
+      );
+      expect(res).toEqual(updatedReport);
+    });
+
+    it("should throw error when report not found", async () => {
+      repo.findById.mockResolvedValue(null);
+
+      await expect(
+        reportService.assignToExternalMaintainer(999),
+      ).rejects.toThrow("Report not found");
+    });
+
+    it("should throw error when no external maintainers available", async () => {
+      const reportId = 1;
+      const report = {
+        id: reportId,
+        category: "UNKNOWN_CATEGORY",
+      };
+
+      repo.findById.mockResolvedValue(report);
+      jest
+        .spyOn(userRepository, "findExternalMaintainersByCategory")
+        .mockResolvedValue([]);
+
+      await expect(
+        reportService.assignToExternalMaintainer(reportId),
+      ).rejects.toThrow("No external maintainers available");
+    });
+  });
+
+  // -------- Find Reports for External Maintainer --------
+  describe("findReportsForExternalMaintainer", () => {
+    it("should return all reports for external maintainer", async () => {
+      const maintainerId = 1;
+      const reports = [
+        { id: 1, title: "Report 1", externalMaintainerId: maintainerId, photos: [], user_id: undefined, status: ReportStatus.PENDING_APPROVAL },
+        { id: 2, title: "Report 2", externalMaintainerId: maintainerId, photos: [], user_id: undefined, status: ReportStatus.PENDING_APPROVAL },
+      ];
+
+      repo.findByExternalMaintainerId = jest
+        .fn()
+        .mockResolvedValue(reports);
+
+      const res = await reportService.findReportsForExternalMaintainer(
+        maintainerId,
+      );
+
+      expect(repo.findByExternalMaintainerId).toHaveBeenCalledWith(
+        maintainerId,
+      );
+      expect(res.length).toBe(2);
+      expect(res[0].title).toBe("Report 1");
+      expect(res[1].title).toBe("Report 2");
+    });
+
+    it("should return reports with various statuses", async () => {
+      const maintainerId = 1;
+      const status = ReportStatus.IN_PROGRESS;
+      const reports = [
+        { id: 1, title: "Report 1", status, externalMaintainerId: maintainerId, photos: [], user_id: undefined },
+      ];
+
+      repo.findByExternalMaintainerId = jest
+        .fn()
+        .mockResolvedValue(reports);
+
+      const res = await reportService.findReportsForExternalMaintainer(
+        maintainerId,
+      );
+
+      expect(repo.findByExternalMaintainerId).toHaveBeenCalledWith(
+        maintainerId,
+      );
+      expect(res.length).toBe(1);
+      expect(res[0].title).toBe("Report 1");
+    });
+
+    it("should return empty array when no reports found", async () => {
+      repo.findByExternalMaintainerId = jest.fn().mockResolvedValue([]);
+
+      const res = await reportService.findReportsForExternalMaintainer(999);
+
+      expect(res).toEqual([]);
+    });
+  });
+
+  // -------- Anonymous Report Sanitization --------
+  describe("sanitizeReport - anonymous reports", () => {
+    it("should sanitize anonymous report by nullifying user details", async () => {
+      const anonymousReport = makeReport({
+        id: 1,
+        anonymous: true,
+        user: { id: 10, username: "user1" },
+      });
+      repo.findById.mockResolvedValue(anonymousReport);
+
+      const res = await reportService.findById(1);
+
+      expect(res?.user).toBeNull();
+      expect(res?.user_id).toBe(10); // Keep user_id for filtering
+    });
+
+    it("should keep user details for non-anonymous reports", async () => {
+      const report = makeReport({
+        id: 1,
+        anonymous: false,
+        user: { id: 10, username: "user1" },
+      });
+      repo.findById.mockResolvedValue(report);
+
+      const res = await reportService.findById(1);
+
+      expect(res?.user).toEqual({ id: 10, username: "user1" });
+    });
+  });
+
+  // -------- updateReportStatus - Officer Not Available --------
+  describe("updateReportStatus - officer not available", () => {
+    it("should throw error when no officer available", async () => {
+      const existing = makeReport({ id: 1, status: "PENDING_APPROVAL" });
+      repo.findById.mockResolvedValue(existing);
+      findLeastLoadedOfficerSpy.mockResolvedValue(null); // No officer available
+
+      await expect(
+        reportService.updateReportStatus(1, "ASSIGNED"),
+      ).rejects.toThrow(
+        'Cannot approve report: No officer available with role "sanitation and waste management officer"',
+      );
+    });
+  });
+
+  // -------- submitReport - preloadCache error handling --------
+  describe("submitReport - preloadCache error", () => {
+    it("should catch preloadCache errors gracefully", async () => {
+      const dto = makeCreateDto();
+      const created = { id: 10, photos: [] };
+      const updated = { id: 10, photos: ["p1"] };
+      repo.create.mockResolvedValue(created);
+      img.persistImagesForReport.mockResolvedValue(["p1"]);
+      repo.update.mockResolvedValue(updated);
+      img.preloadCache.mockRejectedValue(
+        new Error("Redis connection failed"),
+      );
+      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+
+      const res = await reportService.submitReport(dto as any, 123);
+
+      expect(res.photos).toEqual(["p1"]);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Failed to preload report images",
+        expect.any(Error),
+      );
+      consoleSpy.mockRestore();
+    });
+  });
+
+  // -------- assignToExternalMaintainer - no maintainers available --------
+  describe("assignToExternalMaintainer - no maintainers", () => {
+    it("should throw error when no external maintainers available for category", async () => {
+      const reportId = 1;
+      const report = makeReport({
+        id: reportId,
+        category: "PUBLIC_LIGHTING",
+        externalMaintainerId: null,
+      });
+      repo.findById.mockResolvedValue(report);
+      repo.findByExternalMaintainerId = jest.fn().mockResolvedValue([]);
+
+      // Mock userRepository to return empty list for category
+      jest
+        .spyOn(userRepository, "getUsersByRole")
+        .mockResolvedValue([]);
+
+      await expect(
+        reportService.assignToExternalMaintainer(reportId),
+      ).rejects.toThrow(
+        'No external maintainers available for category "PUBLIC_LIGHTING"',
+      );
     });
   });
 });

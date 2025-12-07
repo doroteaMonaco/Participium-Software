@@ -1,91 +1,103 @@
 import { userRepository } from "@repositories/userRepository";
 import bcrypt from "bcrypt";
 import imageService from "./imageService";
-import { roleType } from "@models/enums";
+import { Category, roleType } from "@models/enums";
 import { roleRepository } from "@repositories/roleRepository";
+import {
+  AnyUserDto,
+  buildUserDto,
+  CreateBaseUserDto,
+  ExternalMaintainerUserDto,
+  MunicipalityUserDto,
+} from "@dto/userDto";
+import { NotFoundError } from "@models/errors/NotFoundError";
 
 export const userService = {
   async registerUser(
-    email: string,
-    username: string,
-    firstName: string,
-    lastName: string,
-    password: string,
-  ) {
+    newUser: CreateBaseUserDto,
+    role: roleType = roleType.CITIZEN,
+    override: object = {},
+  ): Promise<AnyUserDto> {
     // Check if email is already in use
-    const existingEmail = await userRepository.findUserByEmail(email);
+    const existingEmail = await userRepository.findUserByEmail(
+      newUser.email,
+      role,
+    );
     if (existingEmail) {
-      throw new Error("Email is already in use");
+      throw new NotFoundError("Email is already in use");
     }
 
     // Check if username is already in use
-    const existingUsername = await userRepository.findUserByUsername(username);
+    const existingUsername = await userRepository.findUserByUsername(
+      newUser.username,
+      role,
+    );
     if (existingUsername) {
-      throw new Error("Username is already in use");
+      throw new NotFoundError("Username is already in use");
     }
 
     // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(newUser.password, 10);
+
+    // Extract firstName and lastName from newUser if not in override
+    const mergedOverride = {
+      ...((newUser as any).firstName && { firstName: (newUser as any).firstName }),
+      ...((newUser as any).lastName && { lastName: (newUser as any).lastName }),
+      ...((newUser as any).companyName && { companyName: (newUser as any).companyName }),
+      ...((newUser as any).category && { category: (newUser as any).category }),
+      ...override,
+    };
 
     // Create the user
     const user = await userRepository.createUser(
-      email,
-      username,
-      firstName,
-      lastName,
+      newUser.email,
+      newUser.username, 
       hashedPassword,
+      role,
+      mergedOverride,
     );
 
-    return user;
+    return buildUserDto(user)!;
   },
 
   async createMunicipalityUser(
-    email: string,
-    username: string,
+    municipalityUser: CreateBaseUserDto,
     firstName: string,
     lastName: string,
-    password: string,
-    municipality_role_id: number,
-  ) {
-    const existingEmail = await userRepository.findUserByEmail(email);
-    if (existingEmail) {
-      throw new Error("Email is already in use");
-    }
+    municipality_role_id?: number,
+  ): Promise<MunicipalityUserDto> {
+    return this.registerUser(municipalityUser, roleType.MUNICIPALITY, {
+      firstName: firstName,
+      lastName: lastName,
+      municipality_role_id: municipality_role_id,
+    }) as unknown as MunicipalityUserDto;
+  },
 
-    const existingUsername = await userRepository.findUserByUsername(username);
-    if (existingUsername) {
-      throw new Error("Username is already in use");
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await userRepository.createUserWithRole(
-      email,
-      username,
-      firstName,
-      lastName,
-      hashedPassword,
-      "MUNICIPALITY",
-      municipality_role_id,
-    );
-
-    return user;
+  async createExternalMaintainerUser(
+    externalMaintainerUser: CreateBaseUserDto,
+    companyName?: string,
+    category?: Category,
+  ): Promise<ExternalMaintainerUserDto> {
+    return this.registerUser(externalMaintainerUser, roleType.EXTERNAL_MAINTAINER, {
+      companyName: companyName,
+      category: category,
+    }) as unknown as ExternalMaintainerUserDto;
   },
 
   async getAllUsers() {
     return await userRepository.getAllUsers();
   },
 
-  async getUserById(userId: number) {
-    return await userRepository.findUserById(userId);
+  async getUserById(userId: number, role: roleType = roleType.CITIZEN) {
+    return await userRepository.findUserById(userId, role);
   },
 
-  async deleteUser(userId: number) {
-    const user = await userRepository.findUserById(userId);
+  async deleteUser(userId: number, role: roleType = roleType.CITIZEN) {
+    const user = await userRepository.findUserById(userId, role);
     if (!user) {
-      throw new Error("User not found");
+      throw new NotFoundError("User not found");
     }
-    return await userRepository.deleteUser(userId);
+    return await userRepository.deleteUser(userId, role);
   },
 
   async getAllMunicipalityRoles() {
@@ -96,6 +108,10 @@ export const userService = {
     return await userRepository.getUsersByRole(roleType.MUNICIPALITY);
   },
 
+   async getExternalMaintainerUsers() {
+    return await userRepository.getUsersByRole(roleType.EXTERNAL_MAINTAINER);
+  },
+
   async updateCitizenProfile(
     id: number,
     photoKey?: string | undefined,
@@ -104,7 +120,7 @@ export const userService = {
   ) {
     const user = await userRepository.findUserById(id);
     if (!user) {
-      throw new Error("User not found");
+      throw new NotFoundError("User not found");
     }
 
     let photoPath;

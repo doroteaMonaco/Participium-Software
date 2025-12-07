@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { getReports, approveOrRejectReport } from "src/services/api";
-import { Report, ReportStatus } from "src/services/models";
+import { ReportModel, ReportStatus } from "src/services/models";
+import type { ApproveReportRequest } from "src/services/api";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
 
 // Technical offices bound to each category
@@ -43,9 +44,11 @@ const statusColors = (status: ReportStatus) => {
   }
 };
 
-export const AdminReportsPage: React.FC = () => {
-  const [reports, setReports] = useState<Report[]>([]);
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+export const MunicipalityReportsPage: React.FC = () => {
+  const [reports, setReports] = useState<ReportModel[]>([]);
+  const [selectedReport, setSelectedReport] = useState<ReportModel | null>(
+    null,
+  );
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewAction, setReviewAction] = useState<"approve" | "reject" | null>(
     null,
@@ -61,23 +64,7 @@ export const AdminReportsPage: React.FC = () => {
     const fetchReports = async () => {
       try {
         const data = await getReports();
-        const reportsData = data.map(
-          (r) =>
-            new Report(
-              r.latitude ?? 0,
-              r.longitude ?? 0,
-              r.title ?? "",
-              r.status ?? "",
-              r.anonymous ?? true,
-              r.id,
-              r.description ?? "",
-              r.category ?? "",
-              r.photos ?? [],
-              r.createdAt ?? "",
-              r.rejectionReason,
-              r.user || null,
-            ),
-        );
+        const reportsData = data.map((r) => new ReportModel(r));
         setReports(reportsData);
       } catch (err) {
         console.error("Error fetching reports:", err);
@@ -87,7 +74,10 @@ export const AdminReportsPage: React.FC = () => {
     fetchReports();
   }, []);
 
-  const handleReviewClick = (report: Report, action: "approve" | "reject") => {
+  const handleReviewClick = (
+    report: ReportModel,
+    action: "approve" | "reject",
+  ) => {
     setSelectedReport(report);
     setReviewAction(action);
     setRejectionReason("");
@@ -109,10 +99,15 @@ export const AdminReportsPage: React.FC = () => {
       try {
         // Do not send `category` (this must be one of report categories).
         // Backend computes `assignedOffice` from the report's category.
-        await approveOrRejectReport(selectedReport.id, {
-          status: reviewAction === "approve" ? "ASSIGNED" : "REJECTED",
+        const request: ApproveReportRequest = {
+          status:
+            reviewAction === "approve"
+              ? ReportStatus.ASSIGNED
+              : ReportStatus.REJECTED,
           motivation: reviewAction === "reject" ? rejectionReason : undefined,
-        });
+        };
+
+        await approveOrRejectReport(selectedReport.id, request);
       } catch (err: any) {
         console.error("Error approving/rejecting report:", err);
         const errorMessage =
@@ -425,7 +420,6 @@ export const AdminReportsPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
-
                   {/* Photos */}
                   {report.photos && report.photos.length > 0 && (
                     <div className="space-y-2">
@@ -436,9 +430,9 @@ export const AdminReportsPage: React.FC = () => {
                         </span>
                       </div>
                       <div className="flex gap-3 pl-3 overflow-x-auto pb-2">
-                        {report.photos.map((p, idx) => (
+                        {report.photos.map((p: string, idx: number) => (
                           <div
-                            key={idx}
+                            key={`photo-${idx}`}
                             className="relative group/photo flex-shrink-0"
                           >
                             <img
@@ -452,7 +446,6 @@ export const AdminReportsPage: React.FC = () => {
                       </div>
                     </div>
                   )}
-
                   {/* Map */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
@@ -475,7 +468,6 @@ export const AdminReportsPage: React.FC = () => {
                       </MapContainer>
                     </div>
                   </div>
-
                   {/* Metadata Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex items-center gap-3 p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
@@ -505,7 +497,6 @@ export const AdminReportsPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-
                   {/* User Information */}
                   <div className="flex items-center gap-3 p-3 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200">
                     <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-500 text-white shadow-md flex-shrink-0">
@@ -524,7 +515,7 @@ export const AdminReportsPage: React.FC = () => {
                   </div>
 
                   {/* Status-specific info */}
-                  {/* {report.status === ReportStatus.ASSIGNED &&
+                  {report.status === ReportStatus.ASSIGNED &&
                     report.assignedOffice && (
                       <div className="rounded-xl bg-green-50 border-2 border-green-200 p-4 mb-4">
                         <div className="flex items-start gap-3">
@@ -540,7 +531,7 @@ export const AdminReportsPage: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                    )} */}
+                    )}
 
                   {report.status === ReportStatus.REJECTED &&
                     report.rejectionReason && (
@@ -561,7 +552,6 @@ export const AdminReportsPage: React.FC = () => {
                         </div>
                       </div>
                     )}
-
                   {/* Action Buttons */}
                   {report.status === ReportStatus.PENDING && (
                     <div className="flex flex-col sm:flex-row gap-4 pt-5">
@@ -686,10 +676,14 @@ export const AdminReportsPage: React.FC = () => {
                 ) : (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label
+                        htmlFor="reject_reason"
+                        className="block text-sm font-medium text-slate-700 mb-2"
+                      >
                         Rejection Reason <span className="text-red-500">*</span>
                       </label>
                       <textarea
+                        id="reject_reason"
                         value={rejectionReason}
                         onChange={(e) => setRejectionReason(e.target.value)}
                         placeholder="Explain why this report is being rejected..."
@@ -750,4 +744,4 @@ export const AdminReportsPage: React.FC = () => {
   );
 };
 
-export default AdminReportsPage;
+export default MunicipalityReportsPage;

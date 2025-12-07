@@ -35,9 +35,9 @@ export const Categories: React.FC = () => {
           subtitle="Help route requests to the right office."
         />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {categories.map((cat, i) => (
+          {categories.map((cat) => (
             <div
-              key={i}
+              key={cat.name}
               className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="flex items-center gap-3 text-slate-800">

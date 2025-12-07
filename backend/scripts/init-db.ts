@@ -2,6 +2,7 @@ import { logInfo, logWarn, logError } from "@services/loggingService";
 import { initializeDatabase, closeDatabase } from "@database";
 import { userRepository } from "@repositories/userRepository";
 import { roleRepository } from "@repositories/roleRepository";
+import { roleType } from "@models/enums";
 
 const DEFAULT_ADMIN = {
   firstName: "Admin",
@@ -79,13 +80,13 @@ async function createAdminUserIfMissing(adminUser = DEFAULT_ADMIN) {
       return;
     }
 
-    await userRepository.createUserWithRole(
+    await userRepository.createUser(
       adminUser.email,
       adminUser.username,
-      adminUser.firstName,
-      adminUser.lastName,
       adminUser.passwordPlain,
-      "ADMIN",
+      roleType.ADMIN,
+      { firstName: adminUser.firstName,
+         lastName: adminUser.lastName }
     );
     logInfo(
       `Admin user created (username="${adminUser.username}", email="${adminUser.email}").`,

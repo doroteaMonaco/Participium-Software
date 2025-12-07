@@ -53,13 +53,13 @@ export const Features: React.FC = () => {
           subtitle="From reporting to resolution, stay informed."
         />
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((f, i) => (
+          {features.map((f) => (
             <motion.div
-              key={i}
+              key={f.title}
               initial={{ opacity: 0, y: 8 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.35, delay: i * 0.05 }}
+              transition={{ duration: 0.35, delay: features.indexOf(f) * 0.05 }}
             >
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">

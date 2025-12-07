@@ -126,6 +126,27 @@ export interface MunicipalityUser {
   createdAt: string;
 }
 
+// ==================== External Maintainer User Types ====================
+export interface ExternalMaintainerUserCreateRequest {
+  email: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  companyName: string;
+  password: string;
+  category: string;
+}
+
+export interface ExternalMaintainerUser {
+  id: number;
+  email: string;
+  username: string;
+  companyName: string;
+  category: string;
+  createdAt: string;
+  reports: Report[];
+}
+
 // ==================== API Instance ====================
 
 const api = axios.create({
@@ -315,6 +336,27 @@ export const getAssignedReportsForOfficer = async (
 
   return response.data;
 };
+
+/**
+ * Assign a report to an external maintainer
+ * @param reportId Report ID
+ * @throws ApiError on failure
+ */
+export const assignReportToExternalMaintainer = async (
+  reportId: number,
+): Promise<void> => {
+  await api.post(
+    `/reports/${reportId}/external-maintainers/`,
+  );
+};
+
+export const getReportsForExternalMaintainer = async(
+  externalMaintainerId: number
+): Promise<Report[]> => {
+  const response = await api.get(`/reports/external-maintainers/${externalMaintainerId}`);
+  return response.data;
+};
+
 // ==================== Municipality User APIs ====================
 
 /**
@@ -370,6 +412,30 @@ export const updateMunicipalityUserRole = async (
   });
   return response.data;
 };
+
+// ==================== External Maintainer User APIs ====================
+/**
+ * Create a new external maintainer user
+ * @param userData 
+ * @returns Created external maintainer user
+ * @throws ApiError on failure
+ */
+export const createExternalMaintainerUser = async (
+  userData: ExternalMaintainerUserCreateRequest,
+): Promise<any> => {
+  const response = await api.post("/users/external-users", userData);
+  return response.data;
+}
+
+/**
+ * Get all external maintainer users
+ * @returns 
+ * @throws ApiError on failure
+ */
+export const getExternalMaintainerUsers = async (): Promise<ExternalMaintainerUser[]> => {
+  const response = await api.get("/users/external-users");
+  return response.data;
+}
 
 // ==================== Citizen Profile APIs ====================
 

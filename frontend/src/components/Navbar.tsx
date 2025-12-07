@@ -43,6 +43,7 @@ export const NavBar: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAuthenticated, user, logout } = useAuth();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -75,6 +76,15 @@ export const NavBar: React.FC = () => {
   };
 
   const closeMobileMenu = () => setMobileOpen(false);
+
+  const getUserDashboardPath = () => {
+    if (!user) return "/dashboard";
+
+    if (user.role === "CITIZEN") return "/dashboard";
+    if (user.role === "ADMIN") return "/admin";
+    if (user.role === "MUNICIPALITY") return "/municipality/reports";
+    return "/dashboard";
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/70 backdrop-blur">
@@ -142,61 +152,38 @@ export const NavBar: React.FC = () => {
             ))}
 
             {/* Auth Buttons / User */}
-            {(() => {
-              try {
-                const { isAuthenticated, user, logout } = useAuth();
-
-                if (isAuthenticated && user) {
-                  const displayName = user.firstName || user.username || "User";
-                  const handleLogout = async () => {
+            {isAuthenticated && user ? (
+              <div className="flex items-center gap-3">
+                <Link
+                  to={getUserDashboardPath()}
+                  className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                >
+                  {user.firstName || user.username || "User"}
+                </Link>
+                <button
+                  onClick={async () => {
                     await logout();
                     navigate("/");
-                  };
-
-                  return (
-                    <div className="flex items-center gap-3">
-                      <Link
-                        to={
-                          user.role === "CITIZEN"
-                            ? "/dashboard"
-                            : user.role === "ADMIN"
-                              ? "/admin"
-                              : user.role === "MUNICIPALITY"
-                                ? "/municipality/reports"
-                                : "/dashboard"
-                        }
-                        className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
-                      >
-                        {displayName}
-                      </Link>
-                      <button
-                        onClick={handleLogout}
-                        className="inline-flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Logout
-                      </button>
-                    </div>
-                  );
-                }
-              } catch (e) {
-                // If useAuth can't be used here (e.g., outside provider), fall back to default buttons
-              }
-
-              return (
-                <>
-                  {AUTH_BUTTONS.map((button) => (
-                    <Link
-                      key={button.to}
-                      to={button.to}
-                      className={button.className}
-                    >
-                      {button.label}
-                    </Link>
-                  ))}
-                </>
-              );
-            })()}
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <>
+                {AUTH_BUTTONS.map((button) => (
+                  <Link
+                    key={button.to}
+                    to={button.to}
+                    className={button.className}
+                  >
+                    {button.label}
+                  </Link>
+                ))}
+              </>
+            )}
           </nav>
 
           {/* Mobile Menu Button */}
@@ -214,10 +201,17 @@ export const NavBar: React.FC = () => {
       {mobileOpen && (
         <div className="md:hidden">
           {/* Overlay */}
-          <div
-            className="fixed inset-0 z-[9998] bg-black/50"
+          <button
+            className="fixed inset-0 z-[9998] bg-black/50 cursor-pointer"
             onClick={closeMobileMenu}
-          />
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === "Escape") {
+                closeMobileMenu();
+              }
+            }}
+            aria-label="Close menu"
+            type="button"
+          ></button>
 
           {/* Menu Panel */}
           <div className="fixed right-0 top-0 z-[9999] h-screen w-4/5 max-w-sm bg-white shadow-xl">
