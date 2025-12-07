@@ -83,10 +83,10 @@ async function createAdminUserIfMissing(adminUser = DEFAULT_ADMIN) {
     await userRepository.createUser(
       adminUser.email,
       adminUser.username,
-      adminUser.firstName,
-      adminUser.lastName,
       adminUser.passwordPlain,
       roleType.ADMIN,
+      { firstName: adminUser.firstName,
+         lastName: adminUser.lastName }
     );
     logInfo(
       `Admin user created (username="${adminUser.username}", email="${adminUser.email}").`,

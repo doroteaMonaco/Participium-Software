@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { MunicipalityDashboardLayout } from "../../components/dashboard/MunicipalityDashboardLayout";
-import { StatusUpdateModal } from "../../components/dashboard/StatusUpdateModal";
-import { CommentModal } from "../../components/dashboard/CommentModal";
+import { MunicipalityDashboardLayout } from "src/components/dashboard/MunicipalityDashboardLayout";
+import { StatusUpdateModal } from "src/components/dashboard/StatusUpdateModal";
+import { CommentModal } from "src/components/dashboard/CommentModal";
+import { AssignMaintainerModal } from "src/components/dashboard/AssignMaintainerModal";
 import { motion } from "framer-motion";
-import { useAuth } from "../../contexts/AuthContext";
-import { getAssignedReports } from "../../services/api";
+import { useAuth } from "src/contexts/AuthContext";
+import { getAssignedReports } from "src/services/api";
 import {
   FileText,
   Search,
@@ -18,6 +19,7 @@ import {
   MessageSquare,
   Edit3,
   Image as ImageIcon,
+  UserPlus,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -197,6 +199,7 @@ export const TechnicalReportsPage: React.FC = () => {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [newStatus, setNewStatus] = useState<Report["status"] | "">("");
   const [newComment, setNewComment] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -238,6 +241,24 @@ export const TechnicalReportsPage: React.FC = () => {
     setShowCommentModal(true);
   };
 
+  const handleAssignToMaintainer = (report: Report) => {
+    setSelectedReport(report);
+    setShowAssignModal(true);
+  };
+
+  const handleAssignMaintainer = (maintainerName: string) => {
+    if (selectedReport) {
+      // Update the report in the list (in real app, this would call API)
+      setReports(
+        reports.map((r) =>
+          r.id === selectedReport.id
+            ? { ...r, assignedOffice: maintainerName }
+            : r,
+        ),
+      );
+    }
+  };
+
   const closeStatusModal = () => {
     setShowStatusModal(false);
     setSelectedReport(null);
@@ -248,6 +269,11 @@ export const TechnicalReportsPage: React.FC = () => {
     setShowCommentModal(false);
     setSelectedReport(null);
     setNewComment("");
+  };
+
+  const closeAssignModal = () => {
+    setShowAssignModal(false);
+    setSelectedReport(null);
   };
 
   const handleSubmitStatus = (e: React.FormEvent) => {
@@ -573,20 +599,31 @@ export const TechnicalReportsPage: React.FC = () => {
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200">
+                    <div className="flex flex-col gap-3 pt-4 border-t border-slate-200">
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                          onClick={() => handleStatusChange(report)}
+                          className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        >
+                          <Edit3 className="h-5 w-5" />
+                          Update Status
+                        </button>
+                        <button
+                          onClick={() => handleAddComment(report)}
+                          className="flex-1 rounded-xl bg-slate-600 hover:bg-slate-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        >
+                          <MessageSquare className="h-5 w-5" />
+                          Add Comment
+                        </button>
+                      </div>
+                      
+                      {/* Assign to External Maintainer */}
                       <button
-                        onClick={() => handleStatusChange(report)}
-                        className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        onClick={() => handleAssignToMaintainer(report)}
+                        className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                       >
-                        <Edit3 className="h-5 w-5" />
-                        Update Status
-                      </button>
-                      <button
-                        onClick={() => handleAddComment(report)}
-                        className="flex-1 rounded-xl bg-slate-600 hover:bg-slate-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                      >
-                        <MessageSquare className="h-5 w-5" />
-                        Add Comment
+                        <UserPlus className="h-5 w-5" />
+                        Assign to External Maintainer
                       </button>
                     </div>
                   </div>
@@ -614,6 +651,15 @@ export const TechnicalReportsPage: React.FC = () => {
         onCommentChange={setNewComment}
         onSubmit={handleSubmitComment}
         onClose={closeCommentModal}
+      />
+
+      <AssignMaintainerModal
+        isOpen={showAssignModal}
+        onClose={closeAssignModal}
+        reportId={selectedReport?.id || ""}
+        reportCategory={selectedReport?.category || ""}
+        reportTitle={selectedReport?.title || ""}
+        onAssign={handleAssignMaintainer}
       />
     </MunicipalityDashboardLayout>
   );

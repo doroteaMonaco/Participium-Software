@@ -76,6 +76,8 @@ describe("userController - Municipality Functions", () => {
 
       expect(userServiceMock.createMunicipalityUser).toHaveBeenCalledWith(
         expect.objectContaining(mockRequest.body),
+        "Municipality",
+        "User",
         municipality_role_id,
       );
       expect(res.status).toHaveBeenCalledWith(201);

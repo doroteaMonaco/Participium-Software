@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import reportService from "@services/reportService";
 import imageService from "@services/imageService";
-import { stat } from "node:fs";
 import { roleType } from "@models/enums";
 
 const VALID_CATEGORIES = [
@@ -274,3 +273,77 @@ export const deleteReport = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to delete report" });
   }
 };
+
+export const assignToExternalMaintainer = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const rawReportId = req.params.report_id ?? req.params.reportId;
+    const reportId = Number.parseInt(String(rawReportId));
+
+    if (Number.isNaN(reportId)) {
+      return res.status(400).json({
+        error: "Validation Error",
+        message: "Invalid report or external maintainer id",
+      });
+    }
+
+    const updatedReport = await reportService.assignToExternalMaintainer(
+      reportId,
+    );
+
+    return res.status(200).json(updatedReport);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to assign external maintainer";
+    const statusCode =
+      error instanceof Error && /not found/i.test(error.message) ? 404 : 500;
+    return res.status(statusCode).json({ error: errorMessage });
+  };
+};
+
+export const getReportsForExternalMaintainer = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Authentication Error",
+        message: "User not authenticated",
+      });
+    }
+
+    const externalMaintainerId = Number(req.params.externalMaintainersId);
+    if (!Number.isInteger(externalMaintainerId) || externalMaintainerId < 0) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid external maintainer ID",
+      });
+    }
+
+    if (req.user.id !== externalMaintainerId) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You can only access reports assigned to yourself",
+      });
+    }
+
+    const reports = await reportService.findReportsForExternalMaintainer(
+      externalMaintainerId,
+    );
+
+    return res.status(200).json(reports);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to retrieve reports for external maintainer";
+    const statusCode =
+      error instanceof Error && /not found/i.test(error.message) ? 404 : 500;
+    return res.status(statusCode).json({ error: errorMessage });
+  }
+}

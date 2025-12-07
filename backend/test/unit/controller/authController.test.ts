@@ -136,6 +136,21 @@ describe("authController", () => {
       expect(res.json).toHaveBeenCalledWith(fullUser);
     });
 
+    it("returns 401 when user is not found", async () => {
+      const req = { cookies: { authToken: "expired" } } as unknown as Request;
+      const res = makeRes();
+
+      (authService.verifyAuth as jest.Mock).mockResolvedValue(null);
+
+      await authController.verifyAuth(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Authentication Error",
+        message: "Session is invalid or has expired",
+      });
+    });
+
     it("returns 401 on verification error", async () => {
       const req = { cookies: { authToken: "bad" } } as unknown as Request;
       const res = makeRes();

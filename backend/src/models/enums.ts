@@ -2,6 +2,7 @@ export enum roleType {
   CITIZEN = "CITIZEN",
   ADMIN = "ADMIN",
   MUNICIPALITY = "MUNICIPALITY",
+  EXTERNAL_MAINTAINER = "EXTERNAL_MAINTAINER",
 }
 
 export enum Category {

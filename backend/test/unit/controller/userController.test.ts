@@ -8,6 +8,8 @@ jest.mock("@services/userService", () => ({
     getAllMunicipalityRoles: jest.fn(),
     getMunicipalityUsers: jest.fn(),
     updateCitizenProfile: jest.fn(),
+    createExternalMaintainerUser: jest.fn(),
+    getExternalMaintainerUsers: jest.fn(),
   },
 }));
 
@@ -92,6 +94,7 @@ describe("userController", () => {
       expect(userService.registerUser).toHaveBeenCalledWith(
         req.body,
         roleType.CITIZEN,
+        { firstName: "Mario", lastName: "Rossi" },
       );
 
       // cookie + Location + 201
@@ -249,6 +252,8 @@ describe("userController", () => {
 
       expect(userService.createMunicipalityUser).toHaveBeenCalledWith(
         expect.objectContaining(payload),
+        "Mario",
+        "Rossi",
         municipality_role_id,
       );
       expect(res.status).toHaveBeenCalledWith(201);
@@ -704,6 +709,249 @@ describe("userController", () => {
       );
 
       await userController.updateCitizenProfile(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: "Internal Server Error" }),
+      );
+    });
+  });
+
+  // -------- normalizeCategoryInput and createExternalMaintainerUser --------
+  describe("createExternalMaintainerUser", () => {
+    it("returns 201 when external maintainer user created successfully", async () => {
+      const req = {
+        body: {
+          email: "em@example.com",
+          username: "em1",
+          firstName: "External",
+          lastName: "Maintainer",
+          password: "pass",
+          companyName: "CompanyA",
+          category: "PUBLIC_LIGHTING",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      const user = makeUser({ id: 5, email: "em@example.com" });
+      (userService.createExternalMaintainerUser as jest.Mock).mockResolvedValue(user);
+
+      await userController.createExternalMaintainerUser(req as any, res as any);
+
+      expect(userService.createExternalMaintainerUser).toHaveBeenCalledWith(
+        expect.any(Object),
+        "CompanyA",
+        "PUBLIC_LIGHTING",
+      );
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith(user);
+    });
+
+    it("returns 400 for invalid category", async () => {
+      const req = {
+        body: {
+          email: "em@example.com",
+          username: "em1",
+          firstName: "External",
+          lastName: "Maintainer",
+          password: "pass",
+          companyName: "CompanyA",
+          category: "INVALID_CATEGORY",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await userController.createExternalMaintainerUser(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Bad Request",
+          message: "Invalid category provided",
+        }),
+      );
+    });
+
+    it("returns 400 when category is null/whitespace", async () => {
+      const req = {
+        body: {
+          email: "em@example.com",
+          username: "em1",
+          firstName: "External",
+          lastName: "Maintainer",
+          password: "pass",
+          companyName: "CompanyA",
+          category: "   ",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await userController.createExternalMaintainerUser(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it("returns 409 when email already in use", async () => {
+      const req = {
+        body: {
+          email: "em@example.com",
+          username: "em1",
+          firstName: "External",
+          lastName: "Maintainer",
+          password: "pass",
+          companyName: "CompanyA",
+          category: "PUBLIC_LIGHTING",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (userService.createExternalMaintainerUser as jest.Mock).mockRejectedValue(
+        new Error("Email is already in use"),
+      );
+
+      await userController.createExternalMaintainerUser(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+    });
+
+    it("returns 409 when username already in use", async () => {
+      const req = {
+        body: {
+          email: "em@example.com",
+          username: "em1",
+          firstName: "External",
+          lastName: "Maintainer",
+          password: "pass",
+          companyName: "CompanyA",
+          category: "PUBLIC_LIGHTING",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (userService.createExternalMaintainerUser as jest.Mock).mockRejectedValue(
+        new Error("Username is already in use"),
+      );
+
+      await userController.createExternalMaintainerUser(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+    });
+
+    it("returns 500 on service error", async () => {
+      const req = {
+        body: {
+          email: "em@example.com",
+          username: "em1",
+          firstName: "External",
+          lastName: "Maintainer",
+          password: "pass",
+          companyName: "CompanyA",
+          category: "PUBLIC_LIGHTING",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (userService.createExternalMaintainerUser as jest.Mock).mockRejectedValue(
+        new Error("boom"),
+      );
+
+      await userController.createExternalMaintainerUser(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  // -------- deleteUser --------
+  describe("deleteUser", () => {
+    it("returns 204 when user deleted successfully", async () => {
+      const req = {
+        params: { id: "5" },
+        body: { role: roleType.CITIZEN },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (userService.deleteUser as jest.Mock).mockResolvedValue(undefined);
+
+      await userController.deleteUser(req as any, res as any);
+
+      expect(userService.deleteUser).toHaveBeenCalledWith(5, roleType.CITIZEN);
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(res.send).toHaveBeenCalled();
+    });
+
+    it("returns 400 for invalid user ID", async () => {
+      const req = {
+        params: { id: "invalid" },
+        body: { role: roleType.CITIZEN },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await userController.deleteUser(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it("returns 404 when user not found", async () => {
+      const req = {
+        params: { id: "999" },
+        body: { role: roleType.CITIZEN },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (userService.deleteUser as jest.Mock).mockRejectedValue(
+        new NotFoundError("User not found"),
+      );
+
+      await userController.deleteUser(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    it("returns 500 on service error", async () => {
+      const req = {
+        params: { id: "5" },
+        body: { role: roleType.CITIZEN },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (userService.deleteUser as jest.Mock).mockRejectedValue(new Error("boom"));
+
+      await userController.deleteUser(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  // -------- getExternalMaintainerUsers --------
+  describe("getExternalMaintainerUsers", () => {
+    it("returns 200 with list of external maintainers", async () => {
+      const req = {} as unknown as Request;
+      const res = makeRes();
+
+      const maintainers = [
+        makeUser({ id: 1, email: "m1@example.com" }),
+        makeUser({ id: 2, email: "m2@example.com" }),
+      ];
+
+      (userService.getExternalMaintainerUsers as jest.Mock).mockResolvedValue(
+        maintainers,
+      );
+
+      await userController.getExternalMaintainerUsers(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(maintainers);
+    });
+
+    it("returns 500 on service error", async () => {
+      const req = {} as unknown as Request;
+      const res = makeRes();
+
+      (userService.getExternalMaintainerUsers as jest.Mock).mockRejectedValue(
+        new Error("boom"),
+      );
+
+      await userController.getExternalMaintainerUsers(req as any, res as any);
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith(

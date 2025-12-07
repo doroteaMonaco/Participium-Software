@@ -1,13 +1,24 @@
 import { Request, Response } from "express";
 import { throwBadRequestIfMissingObject } from "@utils";
 import { CreateBaseUserDto, UserFromJSON } from "@dto/userDto";
-import { roleType } from "@models/enums";
+import { Category, roleType } from "@models/enums";
 import { authService } from "@services/authService";
 import { cookieOpts } from "@controllers/authController";
 import { userService } from "@services/userService";
 import imageService from "@services/imageService";
 import { BadRequestError } from "@errors/BadRequestError";
 import { NotFoundError } from "@errors/NotFoundError";
+
+const normalizeCategoryInput = (value?: string): Category | null => {
+  if (!value || typeof value !== "string") return null;
+  const normalized = value
+    .trim()
+    .toUpperCase()
+    .replaceAll(/\s+/g, "_");
+  return Object.values(Category).includes(normalized as Category)
+    ? (normalized as Category)
+    : null;
+};
 
 export const userController = {
   async register(req: Request, res: Response) {
@@ -25,6 +36,8 @@ export const userController = {
       const user = await userService.registerUser(
         UserFromJSON(req.body) as CreateBaseUserDto,
         roleType.CITIZEN,
+        {firstName,
+        lastName}
       );
 
       const { token } = await authService.login(
@@ -75,7 +88,71 @@ export const userController = {
 
       const user = await userService.createMunicipalityUser(
         UserFromJSON(req.body) as CreateBaseUserDto,
+        firstName,
+        lastName,
         municipality_role_id,
+      );
+
+      return res.status(201).json(user);
+    } catch (error: any) {
+      if (error instanceof BadRequestError) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message: error?.message || "Missing required fields",
+        });
+      }
+
+      if (
+        error?.message === "Email is already in use" ||
+        error?.message === "Username is already in use"
+      ) {
+        return res
+          .status(409)
+          .json({ error: "Conflict Error", message: error.message });
+      }
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: error?.message || "User creation failed",
+      });
+    }
+  },
+
+    async createExternalMaintainerUser(req: Request, res: Response) {
+    try {
+      const {
+        email,
+        username,
+        firstName,
+        lastName,
+        companyName,
+        password,
+        category,
+      } = req.body || {};
+
+      throwBadRequestIfMissingObject({
+        email,
+        username,
+        firstName,
+        lastName,
+        companyName,
+        category,
+        password
+      });
+
+      const normalizedCategory = normalizeCategoryInput(category);
+
+      if (!normalizedCategory) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message: "Invalid category provided",
+        });
+      }
+      
+
+      const user = await userService.createExternalMaintainerUser(
+        UserFromJSON(req.body) as CreateBaseUserDto,
+        companyName,
+        normalizedCategory,
       );
 
       return res.status(201).json(user);
@@ -220,9 +297,28 @@ export const userController = {
     }
   },
 
+    async getExternalMaintainerUsers(req: Request, res: Response) {
+    try {
+      const users = await userService.getExternalMaintainerUsers();
+      return res.status(200).json(users);
+    } catch (error: any) {
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: error?.message || "Failed to retrieve users",
+      });
+    }
+  },
+
   async updateCitizenProfile(req: Request, res: Response) {
     try {
       const id = req.user?.id;
+
+      if (!id) {
+        return res.status(401).json({
+          error: "Authentication Error",
+          message: "User not authenticated",
+        });
+      }
 
       const { telegramUsername, notificationsEnabled } = req.body || {};
       const file = req.file;
@@ -253,7 +349,7 @@ export const userController = {
       }
 
       await userService.updateCitizenProfile(
-        id!!, // non-null assertion since isCitizen middleware ensures id exists
+        id,
         tempKey,
         telegramUsername,
         notificationsEnabledBool,

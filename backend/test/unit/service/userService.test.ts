@@ -142,11 +142,12 @@ describe("userService", () => {
       expect(repo.createUser).toHaveBeenCalledWith(
         mockUserData.email,
         mockUserData.username,
-        mockUserData.firstName,
-        mockUserData.lastName,
         "h-pass",
         roleType.CITIZEN,
-        {},
+        {
+          firstName: mockUserData.firstName,
+          lastName: mockUserData.lastName,
+        },
       );
       expect(res).toBe(created);
     });
@@ -169,7 +170,7 @@ describe("userService", () => {
       const created = makeUser({ password: "h", municipality_role_id: 3 });
       repo.createUser.mockResolvedValue(created);
 
-      const res = await userService.createMunicipalityUser(mockUserData, 3);
+      const res = await userService.createMunicipalityUser(mockUserData, "M", "M", 3);
 
       expect(repo.findUserByEmail).toHaveBeenCalledWith(
         mockUserData.email,
@@ -182,11 +183,9 @@ describe("userService", () => {
       expect(repo.createUser).toHaveBeenCalledWith(
         mockUserData.email,
         mockUserData.username,
-        mockUserData.firstName,
-        mockUserData.lastName,
         "h",
         roleType.MUNICIPALITY,
-        { municipality_role_id: 3 },
+        { firstName: "M", lastName: "M", municipality_role_id: 3 },
       );
       expect(res).toBe(created);
     });
@@ -197,7 +196,7 @@ describe("userService", () => {
       );
 
       await expect(
-        userService.createMunicipalityUser(mockUserData, 3),
+        userService.createMunicipalityUser(mockUserData, "M", "M", 3),
       ).rejects.toThrow("Email is already in use");
 
       expect(repo.findUserByEmail).toHaveBeenCalledWith(
@@ -215,7 +214,7 @@ describe("userService", () => {
       );
 
       await expect(
-        userService.createMunicipalityUser(mockUserData, 2),
+        userService.createMunicipalityUser(mockUserData, "M", "M", 2),
       ).rejects.toThrow("Username is already in use");
 
       expect(repo.findUserByEmail).toHaveBeenCalledWith(
@@ -241,17 +240,15 @@ describe("userService", () => {
       });
       repo.createUser.mockResolvedValue(created);
 
-      const res = await userService.createMunicipalityUser(mockUserData, 5);
+      const res = await userService.createMunicipalityUser(mockUserData, "M", "M", 5);
 
       expect(bcrypt.hash).toHaveBeenCalledWith(mockUserData.password, 10);
       expect(repo.createUser).toHaveBeenCalledWith(
         mockUserData.email,
         mockUserData.username,
-        mockUserData.firstName,
-        mockUserData.lastName,
         "hashed-muni",
         roleType.MUNICIPALITY,
-        { municipality_role_id: 5 },
+        { firstName: "M", lastName: "M", municipality_role_id: 5 },
       );
       expect(res).toBe(created);
     });
@@ -362,6 +359,169 @@ describe("userService", () => {
         undefined,
       );
       expect(res).toBe(updated);
+    });
+  });
+
+  // -------- External Maintainer Functions --------
+  describe("createExternalMaintainerUser", () => {
+    it("should create external maintainer user successfully", async () => {
+      const userData: CreateBaseUserDto = {
+        username: "maintainer1",
+        email: "maintainer@example.com",
+        password: "plain",
+      };
+      const created = makeUser({
+        username: userData.username,
+        email: userData.email,
+        password: "hashed",
+      });
+
+      (bcrypt.hash as jest.Mock).mockResolvedValue("hashed");
+      repo.createUser.mockResolvedValue(created);
+
+      const res = await userService.createExternalMaintainerUser(
+        userData,
+        "CompanyX",
+        "PUBLIC_LIGHTING" as any,
+      );
+
+      expect(bcrypt.hash).toHaveBeenCalledWith("plain", 10);
+      expect(repo.createUser).toHaveBeenCalledWith(
+        userData.email,
+        userData.username,
+        "hashed",
+        roleType.EXTERNAL_MAINTAINER,
+        {
+          category: "PUBLIC_LIGHTING",
+          companyName: "CompanyX",
+        },
+      );
+      expect(res).toBe(created);
+    });
+
+    it("should throw error when email already exists", async () => {
+      const userData: CreateBaseUserDto = {
+        username: "maintainer1",
+        email: "existing@example.com",
+        password: "plain",
+      };
+
+      (bcrypt.hash as jest.Mock).mockResolvedValue("hashed");
+      repo.createUser.mockRejectedValue(
+        new Error("Email is already in use"),
+      );
+
+      await expect(
+        userService.createExternalMaintainerUser(
+          userData,
+          "CompanyX",
+          "PUBLIC_LIGHTING" as any,
+        ),
+      ).rejects.toThrow("Email is already in use");
+    });
+  });
+
+  describe("getExternalMaintainerUsers", () => {
+    it("should return all external maintainer users", async () => {
+      const maintainers = [
+        makeUser({ id: 1, username: "maintainer1" }),
+        makeUser({ id: 2, username: "maintainer2" }),
+      ];
+
+      repo.getUsersByRole.mockResolvedValue(maintainers);
+
+      const res = await userService.getExternalMaintainerUsers();
+
+      expect(repo.getUsersByRole).toHaveBeenCalledWith(
+        roleType.EXTERNAL_MAINTAINER,
+      );
+      expect(res).toEqual(maintainers);
+    });
+
+    it("should return empty array when no external maintainers", async () => {
+      repo.getUsersByRole.mockResolvedValue([]);
+
+      const res = await userService.getExternalMaintainerUsers();
+
+      expect(res).toEqual([]);
+    });
+
+    it("should throw error on database failure", async () => {
+      repo.getUsersByRole.mockRejectedValue(
+        new Error("Database error"),
+      );
+
+      await expect(
+        userService.getExternalMaintainerUsers(),
+      ).rejects.toThrow("Database error");
+    });
+  });
+
+  // -------- registerUser - username already in use --------
+  describe("registerUser - username already in use", () => {
+    const mockUserData: CreateBaseUserDto = {
+      email: "new@example.com",
+      username: "existing_username",
+      password: "password123",
+    };
+
+    it("should throw error when username is already in use", async () => {
+      repo.findUserByEmail.mockResolvedValue(null);
+      repo.findUserByUsername.mockResolvedValue(makeUser({ username: "existing_username" }));
+
+      await expect(userService.registerUser(mockUserData)).rejects.toThrow(
+        "Username is already in use",
+      );
+
+      expect(repo.findUserByEmail).toHaveBeenCalledWith(
+        mockUserData.email,
+        roleType.CITIZEN,
+      );
+      expect(repo.findUserByUsername).toHaveBeenCalledWith(
+        mockUserData.username,
+        roleType.CITIZEN,
+      );
+      expect(bcrypt.hash).not.toHaveBeenCalled();
+      expect(repo.createUser).not.toHaveBeenCalled();
+    });
+  });
+
+  // -------- updateCitizenProfile - user not found --------
+  describe("updateCitizenProfile - user not found", () => {
+    it("should throw error when user not found", async () => {
+      repo.findUserById.mockResolvedValue(null);
+
+      await expect(
+        userService.updateCitizenProfile(999, undefined, "telegram_user", true),
+      ).rejects.toThrow("User not found");
+
+      expect(repo.findUserById).toHaveBeenCalledWith(999);
+      expect(repo.updateUserProfile).not.toHaveBeenCalled();
+    });
+
+    it("should update citizen profile with photo", async () => {
+      const user = makeUser({ id: 5 });
+      repo.findUserById.mockResolvedValue(user);
+      (imageService.persistUserImage as jest.Mock).mockResolvedValue(
+        "user_5.jpg",
+      );
+      repo.updateUserProfile.mockResolvedValue({ ...user, profilePhoto: "user_5.jpg" });
+
+      const res = await userService.updateCitizenProfile(5, "photo_key", "telegram_user", true);
+
+      expect(imageService.persistUserImage).toHaveBeenCalledWith("photo_key", 5);
+      expect(repo.updateUserProfile).toHaveBeenCalledWith(5, "telegram_user", true, "user_5.jpg");
+    });
+
+    it("should update citizen profile without photo", async () => {
+      const user = makeUser({ id: 5 });
+      repo.findUserById.mockResolvedValue(user);
+      repo.updateUserProfile.mockResolvedValue({ ...user });
+
+      await userService.updateCitizenProfile(5, undefined, "telegram_user", false);
+
+      expect(imageService.persistUserImage).not.toHaveBeenCalled();
+      expect(repo.updateUserProfile).toHaveBeenCalledWith(5, "telegram_user", false, undefined);
     });
   });
 });

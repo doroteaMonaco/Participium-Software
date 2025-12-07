@@ -180,22 +180,8 @@ describe("POST /api/reports (Create Report)", () => {
   });
 
   it("201 creates a report with photos (multipart), returning JSON body per swagger-like shape", async () => {
-    const agent = await createAndLogin(fakeUser);
-
-    const body = await createReportAs(agent, {
-      title: "Broken street light",
-      description: "The street light on Via Roma has been broken for a week",
-      category: "PUBLIC_LIGHTING",
-      latitude: 45.4642,
-      longitude: 9.19,
-      photos: [
-        {
-          buffer: Buffer.from("fake_jpeg_bytes"),
-          name: "photo.jpg",
-          contentType: "image/jpeg",
-        },
-      ],
-    });
+    const user = { ...fakeUser, username: "citizen0", email: "c0@example.com" };
+    const agent = await createAndLogin(user);
 
     const title = "Broken street light";
     const description =
@@ -435,7 +421,7 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
       firstName: "Validator",
       lastName: "User",
       password: "validator123",
-      municipality_role_id: 1, // municipal public relations officer
+      municipality_role_id: 3, // public works project manager - for PUBLIC_LIGHTING reports
     };
     const { muniAgent } = await createMunicipality(
       adminAgent,
@@ -480,15 +466,6 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   });
 
   it("200 approves a report with valid municipality authentication", async () => {
-    await createMunicipality(adminAgent, {
-      username: "municipality_worker",
-      email: "municipality_worker@city.com",
-      firstName: "Muni",
-      lastName: "Worker",
-      password: "muniworker123",
-      municipality_role_id: 3, // public works project manager
-    });
-
     const response = await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "ASSIGNED" })
@@ -1273,5 +1250,240 @@ describe("POST /api/reports/:id (Validate Report)", () => {
       .post("/api/reports/999999")
       .send({ status: "ASSIGNED" })
       .expect(404);
+  });
+});
+
+describe("POST /api/reports/:report_id/external-maintainers (Assign to External Maintainer)", () => {
+  it("401 when not authenticated", async () => {
+    const response = await request(app)
+      .post("/api/reports/1/external-maintainers/")
+      .send({})
+      .expect(401);
+
+    expect(response.body).toHaveProperty("error");
+  });
+});
+
+describe("POST /api/reports/:id (Additional validation tests)", () => {
+  const fakeUser = {
+    username: "citizen1",
+    email: "citizen1@example.com",
+    firstName: "Mario",
+    lastName: "Rossi",
+    password: "P@ssw0rd!",
+  };
+
+  beforeEach(async () => {
+    await prisma.report.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+    await prisma.municipality_role.createMany({
+      data: [
+        { id: 1, name: "municipal public relations officer" },
+        { id: 2, name: "municipal administrator" },
+        { id: 3, name: "public works project manager" },
+        { id: 4, name: "sanitation and waste management officer" },
+        { id: 5, name: "environmental protection officer" },
+        { id: 6, name: "traffic and mobility coordinator" },
+        { id: 7, name: "parks and green spaces officer" },
+        { id: 8, name: "urban planning specialist" },
+      ],
+      skipDuplicates: true,
+    });
+  });
+
+  afterAll(async () => {
+    await prisma.report.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+    await prisma.$disconnect();
+  });
+
+  it("400 or 500 invalid report id format", async () => {
+    const admin = {
+      username: "admin_invalid_id",
+      email: "admin_invalid_id@example.com",
+      firstName: "Admin",
+      lastName: "InvalidId",
+      password: "AdmInvId1!",
+    };
+
+    const adminAgent = await createAdmin(admin);
+
+    const res = await adminAgent
+      .post("/api/reports/invalid-id")
+      .send({ status: "ASSIGNED" });
+
+    // Can return 400 or 500 depending on implementation
+    expect([400, 500]).toContain(res.status);
+  });
+
+  it("200 approves report and saves to database", async () => {
+    const citizenUser = {
+      ...fakeUser,
+      username: "citizen_approve_db",
+      email: "citizen_approve_db@example.com",
+    };
+    const agent = await createAndLogin(citizenUser);
+
+    const created = await createReportAs(agent, {
+      title: "Report for db verification",
+      description: "desc",
+      category: "WASTE",
+      latitude: 45.0,
+      longitude: 9.0,
+      photos: [
+        {
+          buffer: Buffer.from("fake"),
+          name: "p.jpg",
+          contentType: "image/jpeg",
+        },
+      ],
+    });
+
+    const admin = {
+      username: "admin_approve_db",
+      email: "admin_approve_db@example.com",
+      firstName: "Admin",
+      lastName: "ApproveDb",
+      password: "AdmAppDb1!",
+    };
+    const muniPayload = {
+      username: "muni_approve_db",
+      email: "muni_approve_db@example.com",
+      firstName: "Muni",
+      lastName: "ApproveDb",
+      password: "MuniAppDb1!",
+      municipality_role_id: 4, // sanitation and waste management officer - for WASTE reports
+    };
+
+    const adminAgent = await createAdmin(admin);
+    const { muniAgent, createdMunicipality } = await createMunicipality(
+      adminAgent,
+      muniPayload,
+    );
+
+    const response = await muniAgent
+      .post(`/api/reports/${created.id}`)
+      .send({ status: "ASSIGNED" });
+
+    // Endpoint returns 204 or 200, so just check status
+    expect([200, 204]).toContain(response.status);
+
+    // Verify database was updated
+    const dbReport = await prisma.report.findUnique({
+      where: { id: created.id },
+    });
+    expect(dbReport?.status).toBe("ASSIGNED");
+    expect(dbReport?.assignedOfficerId).toBe(createdMunicipality.id);
+  });
+});
+
+describe("GET /api/reports/:id (Additional validation tests)", () => {
+  const fakeUser = {
+    username: "citizen_get_report",
+    email: "citizen_get_report@example.com",
+    firstName: "Mario",
+    lastName: "GetReport",
+    password: "P@ssw0rd!",
+  };
+
+  beforeEach(async () => {
+    await prisma.report.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+    await prisma.municipality_role.createMany({
+      data: [
+        { id: 1, name: "municipal public relations officer" },
+        { id: 2, name: "municipal administrator" },
+        { id: 3, name: "public works project manager" },
+        { id: 4, name: "sanitation and waste management officer" },
+        { id: 5, name: "environmental protection officer" },
+        { id: 6, name: "traffic and mobility coordinator" },
+        { id: 7, name: "parks and green spaces officer" },
+        { id: 8, name: "urban planning specialist" },
+      ],
+      skipDuplicates: true,
+    });
+  });
+
+  afterAll(async () => {
+    await prisma.report.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+    await prisma.$disconnect();
+  });
+
+  it("200 report contains all required fields", async () => {
+    const agent = await createAndLogin(fakeUser);
+
+    const created = await createReportAs(agent, {
+      title: "Complete report",
+      description: "Full description",
+      category: "PUBLIC_LIGHTING",
+      latitude: 45.4642,
+      longitude: 9.19,
+      photos: [
+        {
+          buffer: Buffer.from("fake_jpeg_bytes"),
+          name: "photo.jpg",
+          contentType: "image/jpeg",
+        },
+      ],
+    });
+
+    const response = await request(app)
+      .get(`/api/reports/${created.id}`)
+      .expect(200);
+
+    expect(response.body).toHaveProperty("id");
+    expect(response.body).toHaveProperty("title", "Complete report");
+    expect(response.body).toHaveProperty("description", "Full description");
+    expect(response.body).toHaveProperty("category", "PUBLIC_LIGHTING");
+    expect(response.body).toHaveProperty("latitude");
+    expect(response.body).toHaveProperty("longitude");
+    expect(response.body).toHaveProperty("createdAt");
+    expect(response.body).toHaveProperty("photos");
+    expect(Array.isArray(response.body.photos)).toBe(true);
+  });
+
+  it("200 report is publicly accessible", async () => {
+    const agent = await createAndLogin(fakeUser);
+
+    const created = await createReportAs(agent, {
+      title: "Public report",
+      description: "Public desc",
+      category: "WASTE",
+      latitude: 45.0,
+      longitude: 9.0,
+      photos: [
+        {
+          buffer: Buffer.from("fake"),
+          name: "p.jpg",
+          contentType: "image/jpeg",
+        },
+      ],
+    });
+
+    // Access without authentication
+    const response = await request(app)
+      .get(`/api/reports/${created.id}`)
+      .expect(200);
+
+    expect(response.body).toHaveProperty("id", created.id);
+  });
+
+  it("404 returns proper error message", async () => {
+    const response = await request(app).get("/api/reports/999999").expect(404);
+
+    expect(response.body).toHaveProperty("error");
   });
 });

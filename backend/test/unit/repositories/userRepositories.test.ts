@@ -22,6 +22,13 @@ jest.mock("@database", () => ({
       findFirst: jest.fn(),
       delete: jest.fn(),
     },
+    external_maintainer: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      delete: jest.fn(),
+    },
   },
 }));
 
@@ -46,6 +53,13 @@ type PrismaMock = {
     delete: jest.Mock;
   };
   admin_user: {
+    create: jest.Mock;
+    findUnique: jest.Mock;
+    findMany: jest.Mock;
+    findFirst: jest.Mock;
+    delete: jest.Mock;
+  };
+  external_maintainer: {
     create: jest.Mock;
     findUnique: jest.Mock;
     findMany: jest.Mock;
@@ -88,6 +102,12 @@ describe("userRepository", () => {
     prismaMock.admin_user.findMany.mockReset();
     prismaMock.admin_user.findFirst.mockReset();
     prismaMock.admin_user.delete.mockReset();
+    // external_maintainer mocks
+    prismaMock.external_maintainer.create.mockReset();
+    prismaMock.external_maintainer.findUnique.mockReset();
+    prismaMock.external_maintainer.findMany.mockReset();
+    prismaMock.external_maintainer.findFirst.mockReset();
+    prismaMock.external_maintainer.delete.mockReset();
   });
 
   const baseSelect = {
@@ -126,8 +146,6 @@ describe("userRepository", () => {
       await userRepository.createUser(
         u.email,
         u.username,
-        u.firstName,
-        u.lastName,
         u.password,
       );
 
@@ -136,8 +154,6 @@ describe("userRepository", () => {
           data: expect.objectContaining({
             username: u.username,
             email: u.email,
-            firstName: u.firstName,
-            lastName: u.lastName,
             password: u.password,
           }),
           select: selectMatcher(roleType.CITIZEN),
@@ -152,11 +168,9 @@ describe("userRepository", () => {
       await userRepository.createUser(
         created.email,
         created.username,
-        created.firstName,
-        created.lastName,
         "hashed-pwd",
         roleType.MUNICIPALITY,
-        { municipality_role_id: 1 },
+        { municipality_role_id: 1, firstName: "Mario", lastName: "Rossi" },
       );
 
       expect(prismaMock.municipality_user.create).toHaveBeenCalledWith(
@@ -164,10 +178,10 @@ describe("userRepository", () => {
           data: expect.objectContaining({
             email: created.email,
             username: created.username,
-            firstName: created.firstName,
-            lastName: created.lastName,
             password: "hashed-pwd",
             municipality_role_id: 1,
+            firstName: "Mario",
+            lastName: "Rossi",
           }),
           select: selectMatcher(roleType.MUNICIPALITY),
         }),
@@ -181,19 +195,21 @@ describe("userRepository", () => {
       const res = await userRepository.createUser(
         created.email,
         created.username,
-        created.firstName,
-        created.lastName,
         "hashed-pwd",
         roleType.MUNICIPALITY,
+        {
+          firstName: created.firstName,
+          lastName: created.lastName,
+        },
       );
 
       expect(prismaMock.municipality_user.create).toHaveBeenCalledWith({
         data: {
           username: created.username,
           email: created.email,
+          password: "hashed-pwd",
           firstName: created.firstName,
           lastName: created.lastName,
-          password: "hashed-pwd",
         },
         select: selectMatcher(roleType.MUNICIPALITY),
       });
@@ -389,6 +405,191 @@ describe("userRepository", () => {
         },
       });
       expect(res).toBeNull();
+    });
+  });
+
+  // -------- External Maintainer Functions --------
+  describe("findExternalMaintainersByCategory", () => {
+    it("should find external maintainers by category", async () => {
+      const category = "PUBLIC_LIGHTING";
+      const rawMaintainers = [
+        { id: 1, username: "maint1", email: "m1@test.com", password: "hash", createdAt: new Date(), category, reports: [] },
+        { id: 2, username: "maint2", email: "m2@test.com", password: "hash", createdAt: new Date(), category, reports: [] },
+      ];
+
+      prismaMock.external_maintainer.findMany.mockResolvedValue(rawMaintainers);
+
+      const res = await userRepository.findExternalMaintainersByCategory(
+        category as any,
+      );
+
+      expect(prismaMock.external_maintainer.findMany).toHaveBeenCalledWith({
+        where: { category },
+        select: expect.objectContaining({
+          reports: true,
+        }),
+      });
+      expect(res.length).toBe(2);
+    });
+
+    it("should return empty array when no maintainers found", async () => {
+      prismaMock.external_maintainer.findMany.mockResolvedValue([]);
+
+      const res = await userRepository.findExternalMaintainersByCategory(
+        "WASTE" as any,
+      );
+
+      expect(res).toEqual([]);
+    });
+
+    it("should throw error on database failure", async () => {
+      prismaMock.external_maintainer.findMany.mockRejectedValue(
+        new Error("Database error"),
+      );
+
+      await expect(
+        userRepository.findExternalMaintainersByCategory("PUBLIC_LIGHTING" as any),
+      ).rejects.toThrow("Database error");
+    });
+  });
+
+  describe("getUsersByRole - external maintainer", () => {
+    it("should get all external maintainers from external_maintainer table", async () => {
+      const rawMaintainers = [
+        { id: 1, username: "maint1", email: "m1@test.com", password: "hash", createdAt: new Date() },
+        { id: 2, username: "maint2", email: "m2@test.com", password: "hash", createdAt: new Date() },
+      ];
+
+      prismaMock.external_maintainer.findMany.mockResolvedValue(rawMaintainers);
+
+      const res = await userRepository.getUsersByRole(
+        roleType.EXTERNAL_MAINTAINER,
+      );
+
+      expect(prismaMock.external_maintainer.findMany).toHaveBeenCalledWith({
+        select: expect.objectContaining({
+          id: true,
+          username: true,
+          email: true,
+          createdAt: true,
+          companyName: true,
+          category: true,
+        }),
+      });
+      expect(res.length).toBe(2);
+      expect(res[0].username).toBe("maint1");
+    });
+
+    it("should include companyName and category in select for external maintainer", async () => {
+      const maintainers = [
+        {
+          id: 1,
+          username: "maint1",
+          email: "m1@test.com",
+          createdAt: new Date(),
+          companyName: "TestCorp",
+          category: "Infrastructure",
+        },
+      ];
+
+      prismaMock.external_maintainer.findMany.mockResolvedValue(maintainers);
+
+      const res = await userRepository.getUsersByRole(
+        roleType.EXTERNAL_MAINTAINER,
+      );
+
+      expect(prismaMock.external_maintainer.findMany).toHaveBeenCalledWith({
+        select: expect.objectContaining({
+          companyName: true,
+          category: true,
+          id: true,
+          username: true,
+          email: true,
+          createdAt: true,
+        }),
+      });
+      expect(res).toEqual(maintainers);
+    });
+  });
+
+  describe("updateUserProfile", () => {
+    it("should update telegramUsername when provided", async () => {
+      const updated = makeUser({ id: 5, telegramUsername: "newTelegram" });
+      prismaMock.user.update.mockResolvedValue(updated);
+
+      await userRepository.updateUserProfile(5, "newTelegram", undefined, undefined);
+
+      expect(prismaMock.user.update).toHaveBeenCalledWith({
+        where: { id: 5 },
+        data: { telegramUsername: "newTelegram" },
+      });
+    });
+
+    it("should update notifications when provided", async () => {
+      const updated = makeUser({ id: 5, notifications: true });
+      prismaMock.user.update.mockResolvedValue(updated);
+
+      await userRepository.updateUserProfile(5, undefined, true, undefined);
+
+      expect(prismaMock.user.update).toHaveBeenCalledWith({
+        where: { id: 5 },
+        data: { notifications: true },
+      });
+    });
+
+    it("should update profilePhoto when provided", async () => {
+      const updated = makeUser({ id: 5, profilePhoto: "path/to/photo.jpg" });
+      prismaMock.user.update.mockResolvedValue(updated);
+
+      await userRepository.updateUserProfile(5, undefined, undefined, "path/to/photo.jpg");
+
+      expect(prismaMock.user.update).toHaveBeenCalledWith({
+        where: { id: 5 },
+        data: { profilePhoto: "path/to/photo.jpg" },
+      });
+    });
+
+    it("should update multiple fields when provided", async () => {
+      const updated = makeUser({
+        id: 5,
+        telegramUsername: "newTelegram",
+        notifications: false,
+        profilePhoto: "path/to/photo.jpg",
+      });
+      prismaMock.user.update.mockResolvedValue(updated);
+
+      await userRepository.updateUserProfile(
+        5,
+        "newTelegram",
+        false,
+        "path/to/photo.jpg",
+      );
+
+      expect(prismaMock.user.update).toHaveBeenCalledWith({
+        where: { id: 5 },
+        data: {
+          telegramUsername: "newTelegram",
+          notifications: false,
+          profilePhoto: "path/to/photo.jpg",
+        },
+      });
+    });
+
+    it("should update only defined fields and skip undefined ones", async () => {
+      const updated = makeUser({ id: 5, telegramUsername: "newTelegram" });
+      prismaMock.user.update.mockResolvedValue(updated);
+
+      await userRepository.updateUserProfile(5, "newTelegram", undefined, undefined);
+
+      expect(prismaMock.user.update).toHaveBeenCalledWith({
+        where: { id: 5 },
+        data: { telegramUsername: "newTelegram" },
+      });
+      expect(prismaMock.user.update).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ notifications: undefined }),
+        }),
+      );
     });
   });
 });

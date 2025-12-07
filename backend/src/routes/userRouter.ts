@@ -14,12 +14,28 @@ router.post(
   userController.createMunicipalityUser,
 );
 
+// POST /api/users/external-users - Create external maintainer user (admin required)
+router.post(
+  "/external-users",
+  isAuthenticated,
+  isAdmin,
+  userController.createExternalMaintainerUser,
+);
+
 // GET /api/users/municipality-users - Get all municipality users (admin required)
 router.get(
   "/municipality-users",
   isAuthenticated,
   isAdmin,
   userController.getMunicipalityUsers,
+);
+
+// GET /api/users/external-users - Get all external maintainer users (admin required)
+router.get(
+  "/external-users",
+  isAuthenticated,
+  isAdmin,
+  userController.getExternalMaintainerUsers,
 );
 
 // GET /api/users/municipality-users/roles - Get all municipality roles (admin required)

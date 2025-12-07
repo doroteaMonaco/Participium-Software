@@ -1,6 +1,8 @@
 jest.mock("@controllers/userController", () => ({
   userController: {
     createMunicipalityUser: jest.fn(),
+    createExternalMaintainerUser: jest.fn(),
+    getExternalMaintainerUsers: jest.fn(),
     getAllMunicipalityRoles: jest.fn(),
     getMunicipalityUsers: jest.fn(),
     register: jest.fn(),

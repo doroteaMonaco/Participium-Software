@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE "report" ADD COLUMN     "external_maintainer_id" INTEGER;
+ALTER TABLE "report" ADD COLUMN     "externalMaintainerId" INTEGER;
 
 -- CreateTable
 CREATE TABLE "external_maintainer" (
@@ -21,4 +21,4 @@ CREATE UNIQUE INDEX "external_maintainer_username_key" ON "external_maintainer"(
 CREATE UNIQUE INDEX "external_maintainer_email_key" ON "external_maintainer"("email");
 
 -- AddForeignKey
-ALTER TABLE "report" ADD CONSTRAINT "report_external_maintainer_id_fkey" FOREIGN KEY ("external_maintainer_id") REFERENCES "external_maintainer"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "report" ADD CONSTRAINT "report_externalMaintainerId_fkey" FOREIGN KEY ("externalMaintainerId") REFERENCES "external_maintainer"("id") ON DELETE SET NULL ON UPDATE CASCADE;

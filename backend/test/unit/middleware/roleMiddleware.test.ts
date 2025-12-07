@@ -3,6 +3,8 @@ import {
   isCitizen,
   isAdmin,
   isMunicipality,
+  isMunicipalityStrict,
+  isExternalMaintainer,
   hasRole,
 } from "@middlewares/roleMiddleware";
 
@@ -171,6 +173,100 @@ describe("Role Middlewares", () => {
     });
   });
 
+  describe("isMunicipalityStrict", () => {
+    it("allows only municipality user to proceed", () => {
+      const req = makeReq({ id: 1 }, "MUNICIPALITY");
+      const res = makeRes();
+
+      isMunicipalityStrict(req, res as Response, makeNext);
+
+      expect(makeNext).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it("denies admin user", () => {
+      const req = makeReq({ id: 1 }, "ADMIN");
+      const res = makeRes();
+
+      isMunicipalityStrict(req, res as Response, makeNext);
+
+      expect(makeNext).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Authorization Error",
+        message: "Access denied. Municipality role required.",
+      });
+    });
+
+    it("denies non-municipality user", () => {
+      const req = makeReq({ id: 1 }, "CITIZEN");
+      const res = makeRes();
+
+      isMunicipalityStrict(req, res as Response, makeNext);
+
+      expect(makeNext).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Authorization Error",
+        message: "Access denied. Municipality role required.",
+      });
+    });
+
+    it("denies when user is not authenticated", () => {
+      const req = makeReq(undefined);
+      const res = makeRes();
+
+      isMunicipalityStrict(req, res as Response, makeNext);
+
+      expect(makeNext).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Authentication Error",
+        message: "User not authenticated",
+      });
+    });
+  });
+
+  describe("isExternalMaintainer", () => {
+    it("allows external maintainer user to proceed", () => {
+      const req = makeReq({ id: 1 }, "EXTERNAL_MAINTAINER");
+      const res = makeRes();
+
+      isExternalMaintainer(req, res as Response, makeNext);
+
+      expect(makeNext).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it("denies non-external maintainer user", () => {
+      const req = makeReq({ id: 1 }, "CITIZEN");
+      const res = makeRes();
+
+      isExternalMaintainer(req, res as Response, makeNext);
+
+      expect(makeNext).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Authorization Error",
+        message: "Access denied. External Maintainer role required.",
+      });
+    });
+
+    it("denies when user is not authenticated", () => {
+      const req = makeReq(undefined);
+      const res = makeRes();
+
+      isExternalMaintainer(req, res as Response, makeNext);
+
+      expect(makeNext).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Authentication Error",
+        message: "User not authenticated",
+      });
+    });
+  });
+
   describe("hasRole", () => {
     it("allows user with required role to proceed", () => {
       const req = makeReq({ id: 1 }, "CITIZEN");
@@ -207,6 +303,20 @@ describe("Role Middlewares", () => {
       expect(res.json).toHaveBeenCalledWith({
         error: "Authentication Error",
         message: "User not authenticated",
+      });
+    });
+
+    it("denies when user role is not found", () => {
+      const req = makeReq({ id: 1 }, undefined);
+      const res = makeRes();
+
+      hasRole(["CITIZEN"])(req, res as Response, makeNext);
+
+      expect(makeNext).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Authentication Error",
+        message: "User role not found",
       });
     });
   });

@@ -87,6 +87,8 @@ describe("userService - Municipality Functions", () => {
 
       const result = await userService.createMunicipalityUser(
         mockUserData,
+        "Municipality",
+        "User",
         municipality_role_id,
       );
 
@@ -104,11 +106,9 @@ describe("userService - Municipality Functions", () => {
       expect(userRepo.createUser).toHaveBeenCalledWith(
         mockUserData.email,
         mockUserData.username,
-        mockUserData.firstName,
-        mockUserData.lastName,
         "hashed_password",
         roleType.MUNICIPALITY,
-        { municipality_role_id: municipality_role_id },
+        { firstName: "Municipality", lastName: "User", municipality_role_id: municipality_role_id },
       );
       expect(result).toEqual(mockCreatedUser);
     });

@@ -117,6 +117,37 @@ describe("reportRepository", () => {
       });
       expect(res).toBe(allReports);
     });
+
+    it("returns citizen own reports and ASSIGNED reports when userId is provided", async () => {
+      const userReports = [
+        makeReport({ id: 1, status: "PENDING_APPROVAL", user_id: 5 }),
+        makeReport({ id: 2, status: "ASSIGNED", user_id: 3 }),
+      ];
+      prismaMock.report.findMany.mockResolvedValue(userReports);
+
+      const res = await reportRepository.findAll(undefined, 5);
+
+      expect(prismaMock.report.findMany).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { user_id: 5 },
+            { status: "ASSIGNED" },
+          ],
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      expect(res).toBe(userReports);
+    });
   });
 
   // -------- findByStatus --------
@@ -568,6 +599,35 @@ describe("reportRepository", () => {
         },
         orderBy: { createdAt: "desc" },
       });
+      expect(res).toEqual([]);
+    });
+  });
+
+  // -------- findByExternalMaintainerId --------
+  describe("findByExternalMaintainerId", () => {
+    it("should find all reports assigned to external maintainer", async () => {
+      const maintainerId = 1;
+      const reports = [
+        makeReport({ id: 1, externalMaintainerId: maintainerId }),
+        makeReport({ id: 2, externalMaintainerId: maintainerId }),
+      ];
+      prismaMock.report.findMany.mockResolvedValue(reports);
+
+      const res = await reportRepository.findByExternalMaintainerId(
+        maintainerId,
+      );
+
+      expect(prismaMock.report.findMany).toHaveBeenCalledWith({
+        where: { externalMaintainerId: maintainerId },
+      });
+      expect(res).toEqual(reports);
+    });
+
+    it("should return empty array when no reports found", async () => {
+      prismaMock.report.findMany.mockResolvedValue([]);
+
+      const res = await reportRepository.findByExternalMaintainerId(999);
+
       expect(res).toEqual([]);
     });
   });

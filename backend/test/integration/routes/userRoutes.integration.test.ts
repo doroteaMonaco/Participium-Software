@@ -28,6 +28,7 @@ describe("Admin routes integration tests", () => {
   beforeEach(async () => {
     // ensure clean DB between tests
     await prisma.report.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
@@ -48,6 +49,7 @@ describe("Admin routes integration tests", () => {
 
   afterAll(async () => {
     await prisma.report.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
@@ -57,7 +59,14 @@ describe("Admin routes integration tests", () => {
 
   const makeAdminAgent = async () => {
     // Create admin user manually
-    await userService.registerUser(adminUser, roleType.ADMIN);
+    try {
+      await userService.registerUser(adminUser, roleType.ADMIN);
+    } catch (e) {
+      // If user already exists, that's okay - we'll just login
+      if (!(e instanceof Error) || !e.message.includes("already exists")) {
+        throw e;
+      }
+    }
 
     // Create agent and register admin
     const agent = request.agent(app);
@@ -402,6 +411,189 @@ describe("Admin routes integration tests", () => {
         .spyOn(userService, "getAllMunicipalityRoles")
         .mockRejectedValue(new Error("db fail"));
       await admin.get(`${base}/municipality-users/roles`).expect(500);
+    });
+  });
+
+  // GET /users/municipality-users
+  describe("GET /api/users/municipality-users", () => {
+    it("200 returns list of municipality users for ADMIN", async () => {
+      const admin = await makeAdminAgent();
+
+      await admin
+        .post(`${base}/municipality-users`)
+        .send({
+          email: "m1@muni.com",
+          username: "m1",
+          firstName: "M",
+          lastName: "One",
+          password: "p",
+          municipality_role_id: 1,
+        })
+        .expect(201);
+
+      const res = await admin
+        .get(`${base}/municipality-users`)
+        .expect(200);
+
+      expect(Array.isArray(res.body)).toBeTruthy();
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("401 when not authenticated", async () => {
+      await request(app).get(`${base}/municipality-users`).expect(401);
+    });
+
+    it("403 when authenticated non-admin", async () => {
+      const user = await makeNormalAgent();
+      await user.get(`${base}/municipality-users`).expect(403);
+    });
+
+    it("500 when service fails", async () => {
+      const admin = await makeAdminAgent();
+      jest
+        .spyOn(userService, "getMunicipalityUsers")
+        .mockRejectedValue(new Error("db fail"));
+      await admin.get(`${base}/municipality-users`).expect(500);
+    });
+  });
+
+  // GET /users/external-users
+  describe("GET /api/users/external-users", () => {
+    it("200 returns list of external maintainer users for ADMIN", async () => {
+      const admin = await makeAdminAgent();
+      const res = await admin
+        .get(`${base}/external-users`)
+        .expect(200);
+
+      expect(Array.isArray(res.body)).toBeTruthy();
+    });
+
+    it("401 when not authenticated", async () => {
+      await request(app).get(`${base}/external-users`).expect(401);
+    });
+
+    it("403 when authenticated non-admin", async () => {
+      const user = await makeNormalAgent();
+      await user.get(`${base}/external-users`).expect(403);
+    });
+
+    it("500 when service fails", async () => {
+      const admin = await makeAdminAgent();
+      jest
+        .spyOn(userService, "getExternalMaintainerUsers")
+        .mockRejectedValue(new Error("db fail"));
+      await admin.get(`${base}/external-users`).expect(500);
+    });
+  });
+
+  // POST /users/external-users
+  describe("POST /api/users/external-users", () => {
+    it("201 creates external maintainer user when requested by ADMIN", async () => {
+      const admin = await makeAdminAgent();
+
+      const payload = {
+        email: "ext-1@example.com",
+        username: "ext-user-1",
+        firstName: "External",
+        lastName: "Maintainer",
+        password: "pwd123",
+        companyName: "ExternalCorp",
+        category: "WASTE",
+      };
+
+      const res = await admin
+        .post(`${base}/external-users`)
+        .send(payload);
+
+      // Should return 201 when valid external user is created
+      expect(res.status).toBe(201);
+      expect(res.body).toHaveProperty("id");
+    });
+
+    it("400 when required fields are missing", async () => {
+      const admin = await makeAdminAgent();
+
+      const payload = {
+        email: "ext-2@example.com",
+        username: "ext-user-2",
+        firstName: "External",
+        lastName: "Maintainer",
+        password: "pwd123",
+        // missing companyName and category
+      };
+
+      const res = await admin
+        .post(`${base}/external-users`)
+        .send(payload);
+      expect([400, 500]).toContain(res.status);
+      expect(res.body).toHaveProperty("error");
+    });
+
+    it("401 when not authenticated", async () => {
+      const payload = {
+        email: "ext3@example.com",
+        username: "ext-user3",
+        firstName: "External",
+        lastName: "Maintainer",
+        password: "pwd123",
+        companyName: "ExternalCorp",
+        category: "WASTE",
+      };
+
+      await request(app)
+        .post(`${base}/external-users`)
+        .send(payload)
+        .expect(401);
+    });
+
+    it("403 when authenticated but not ADMIN", async () => {
+      const user = await makeNormalAgent();
+
+      const payload = {
+        email: "ext4@example.com",
+        username: "ext-user4",
+        firstName: "External",
+        lastName: "Maintainer",
+        password: "pwd123",
+        companyName: "ExternalCorp",
+        category: "WASTE",
+      };
+
+      await user.post(`${base}/external-users`).send(payload).expect(403);
+    });
+  });
+
+  // PATCH /users - Update citizen profile
+  describe("PATCH /api/users", () => {
+    it("200 updates citizen profile when authenticated", async () => {
+      const user = await makeNormalAgent();
+
+      // PATCH expects multipart form data with optional photo
+      const res = await user
+        .patch(`${base}`)
+        .field("firstName", "Updated")
+        .field("lastName", "Name");
+
+      expect([200, 400]).toContain(res.status);
+      if (res.status === 200) {
+        expect(res.body).toHaveProperty("firstName", "Updated");
+      }
+    });
+
+    it("401 when not authenticated", async () => {
+      await request(app)
+        .patch(`${base}`)
+        .field("firstName", "Updated")
+        .expect(401);
+    });
+
+    it("403 when authenticated but not CITIZEN", async () => {
+      const admin = await makeAdminAgent();
+
+      const res = await admin
+        .patch(`${base}`)
+        .field("firstName", "Updated");
+      expect([403, 400]).toContain(res.status);
     });
   });
 });

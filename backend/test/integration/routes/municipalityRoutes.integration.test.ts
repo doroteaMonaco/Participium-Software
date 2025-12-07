@@ -66,16 +66,16 @@ describe("Municipality Integration Tests", () => {
   });
 
   describe("POST /api/users/municipality-users", () => {
-    const validPayload = {
-      email: "municipality@test.com",
-      username: "municipality_user",
-      firstName: "Municipality",
-      lastName: "User",
-      password: "password123",
-      municipality_role_id: 1,
-    };
-
     it("201 creates municipality user with valid admin authentication", async () => {
+      const validPayload = {
+        email: "municipality1@test.com",
+        username: "municipality_user1",
+        firstName: "Municipality",
+        lastName: "User",
+        password: "password123",
+        municipality_role_id: 1,
+      };
+
       const response = await adminAgent
         .post(`${base}/municipality-users`)
         .send(validPayload)
@@ -90,6 +90,15 @@ describe("Municipality Integration Tests", () => {
     });
 
     it("400 when required fields are missing", async () => {
+      const validPayload = {
+        email: "municipality2@test.com",
+        username: "municipality_user2",
+        firstName: "Municipality",
+        lastName: "User",
+        password: "password123",
+        municipality_role_id: 1,
+      };
+
       const invalidPayload = { ...validPayload };
       delete (invalidPayload as any).municipality_role_id;
 
@@ -102,6 +111,15 @@ describe("Municipality Integration Tests", () => {
     });
 
     it("401 when not authenticated", async () => {
+      const validPayload = {
+        email: "municipality3@test.com",
+        username: "municipality_user3",
+        firstName: "Municipality",
+        lastName: "User",
+        password: "password123",
+        municipality_role_id: 1,
+      };
+
       const response = await request(app)
         .post(`${base}/municipality-users`)
         .send(validPayload)
@@ -109,6 +127,15 @@ describe("Municipality Integration Tests", () => {
     });
 
     it("409 when email already exists", async () => {
+      const validPayload = {
+        email: "municipality_dup@test.com",
+        username: "municipality_user_dup",
+        firstName: "Municipality",
+        lastName: "User",
+        password: "password123",
+        municipality_role_id: 1,
+      };
+
       // Create first user
       await adminAgent
         .post(`${base}/municipality-users`)
@@ -126,6 +153,15 @@ describe("Municipality Integration Tests", () => {
     });
 
     it("409 when username already exists", async () => {
+      const validPayload = {
+        email: "municipality_dup2@test.com",
+        username: "municipality_user_dup2",
+        firstName: "Municipality",
+        lastName: "User",
+        password: "password123",
+        municipality_role_id: 1,
+      };
+
       // Create first user
       await adminAgent
         .post(`${base}/municipality-users`)
@@ -148,7 +184,7 @@ describe("Municipality Integration Tests", () => {
   });
 
   describe("GET /api/users/municipality-users", () => {
-    beforeEach(async () => {
+    it("200 returns list of municipality users with admin authentication", async () => {
       // Create test municipality users
       await adminAgent
         .post(`${base}/municipality-users`)
@@ -173,9 +209,7 @@ describe("Municipality Integration Tests", () => {
           municipality_role_id: 2,
         })
         .expect(201);
-    });
 
-    it("200 returns list of municipality users with admin authentication", async () => {
       const response = await adminAgent
         .get(`${base}/municipality-users`)
         .expect(200);
@@ -198,9 +232,6 @@ describe("Municipality Integration Tests", () => {
     });
 
     it("200 returns empty array when no municipality users exist", async () => {
-      // Clean up municipality users
-      await prisma.municipality_user.deleteMany();
-
       const response = await adminAgent
         .get(`${base}/municipality-users`)
         .expect(200);
@@ -239,6 +270,97 @@ describe("Municipality Integration Tests", () => {
 
     it("401 when not authenticated", async () => {
       await request(app).get(`${base}/municipality-users/roles`).expect(401);
+    });
+
+    it("403 when non-admin authenticated", async () => {
+      // Create a citizen user and try to access roles
+      const citizenUser = {
+        username: "citizen_access_roles",
+        email: "citizen_roles@example.com",
+        firstName: "Citizen",
+        lastName: "Roles",
+        password: "citizenpass123",
+      };
+
+      const citizenAgent = request.agent(app);
+      await citizenAgent.post("/api/users").send(citizenUser).expect(201);
+      await citizenAgent
+        .post("/api/auth/session")
+        .send({
+          identifier: citizenUser.email,
+          password: citizenUser.password,
+          role: "CITIZEN",
+        })
+        .expect(200);
+
+      await citizenAgent.get(`${base}/municipality-users/roles`).expect(403);
+    });
+
+    it("500 when database error occurs", async () => {
+      const userServiceModule = require("@services/userService");
+      jest
+        .spyOn(userServiceModule.userService, "getAllMunicipalityRoles")
+        .mockRejectedValue(new Error("Database connection failed"));
+
+      const response = await adminAgent
+        .get(`${base}/municipality-users/roles`)
+        .expect(500);
+
+      expect(response.body).toHaveProperty("error");
+    });
+  });
+
+  describe("POST /api/users/municipality-users (Additional validation tests)", () => {
+    it("403 when non-admin tries to create municipality user", async () => {
+      const citizenUser = {
+        username: "citizen_create_muni",
+        email: "citizen_create_muni@example.com",
+        firstName: "Citizen",
+        lastName: "Create",
+        password: "citizenpass123",
+      };
+
+      const citizenAgent = request.agent(app);
+      await citizenAgent.post("/api/users").send(citizenUser).expect(201);
+      await citizenAgent
+        .post("/api/auth/session")
+        .send({
+          identifier: citizenUser.email,
+          password: citizenUser.password,
+          role: "CITIZEN",
+        })
+        .expect(200);
+
+      const muniPayload = {
+        email: "new_muni@test.com",
+        username: "new_muni",
+        firstName: "NewMuni",
+        lastName: "User",
+        password: "password123",
+        municipality_role_id: 1,
+      };
+
+      await citizenAgent
+        .post(`${base}/municipality-users`)
+        .send(muniPayload)
+        .expect(403);
+    });
+
+    it("400 or 500 when municipality_role_id does not exist", async () => {
+      const response = await adminAgent
+        .post(`${base}/municipality-users`)
+        .send({
+          email: "invalid_role@test.com",
+          username: "invalid_role_user",
+          firstName: "Invalid",
+          lastName: "Role",
+          password: "password123",
+          municipality_role_id: 9999, // non-existent role
+        });
+
+      // Can return either 400 (validation) or 500 (database foreign key constraint)
+      expect([400, 500]).toContain(response.status);
+      expect(response.body).toHaveProperty("error");
     });
   });
 });

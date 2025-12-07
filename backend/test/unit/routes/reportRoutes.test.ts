@@ -26,6 +26,12 @@ jest.mock("@controllers/reportController", () => ({
       municipalityUserId: req.params.municipalityUserId,
     }),
   ),
+  assignToExternalMaintainer: jest.fn((req: Request, res: Response) =>
+    res.json({ route: "assignToExternalMaintainer", reportId: req.params.report_id }),
+  ),
+  getReportsForExternalMaintainer: jest.fn((req: Request, res: Response) =>
+    res.json({ route: "getReportsForExternalMaintainer", maintainerId: req.params.externalMaintainersId }),
+  ),
 }));
 
 jest.mock("@middlewares/authMiddleware", () => ({
@@ -42,6 +48,9 @@ jest.mock("@middlewares/roleMiddleware", () => ({
     next(),
   ),
   isCitizen: jest.fn((req: Request, res: Response, next: Function) => next()),
+  isExternalMaintainer: jest.fn((req: Request, res: Response, next: Function) =>
+    next(),
+  ),
   hasRole: jest.fn(
     () => (req: Request, res: Response, next: Function) => next(),
   ),
@@ -389,6 +398,50 @@ describe("reportRouter", () => {
       expect(isMunicipalityMock).toHaveBeenCalled();
       expect(res.status).toBe(403);
       expect(approveOrRejectReport).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("External Maintainer Routes", () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it("should assign report to external maintainer", async () => {
+      const app = makeApp();
+      const res = await request(app)
+        .post("/api/reports/1/external-maintainers/")
+        .send({ externalMaintainerId: 5 });
+
+      expect(res.status).toBe(200);
+    });
+
+    it("should get reports for external maintainer", async () => {
+      const app = makeApp();
+      const res = await request(app).get("/api/reports/external-maintainers/5");
+
+      expect(res.status).toBe(200);
+    });
+
+    it("should return 401 when not authenticated for external maintainer reports", async () => {
+      (isAuthenticated as jest.Mock).mockImplementation((req: any, res: any) =>
+        res.status(401).send("unauthorized"),
+      );
+
+      const app = makeApp();
+      const res = await request(app).get("/api/reports/external-maintainers/5");
+
+      expect(res.status).toBe(401);
+    });
+
+    it("should accept valid external maintainer id format", async () => {
+      (isAuthenticated as jest.Mock).mockImplementation(
+        (req: any, res: any, next: any) => next(),
+      );
+
+      const app = makeApp();
+      const res = await request(app).get("/api/reports/external-maintainers/123");
+
+      expect(res.status).toBe(200);
     });
   });
 });

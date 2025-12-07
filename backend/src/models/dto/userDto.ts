@@ -10,9 +10,9 @@ import { MunicipalityRoleDto } from "@dto/municipalityRoleDto";
 export interface CreateBaseUserDto {
   username: string;
   email: string;
-  firstName: string;
-  lastName: string;
   password: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 /**
@@ -22,8 +22,6 @@ export interface BaseUserDto {
   id: number;
   username: string;
   email: string;
-  firstName: string;
-  lastName: string;
   password?: string;
   createdAt?: Date;
 }
@@ -32,6 +30,8 @@ export interface BaseUserDto {
  * Citizen (user) extends BaseUserDto
  */
 export interface CitizenDto extends BaseUserDto {
+  firstName: string;
+  lastName: string;
   profilePhoto?: string;
   telegramUsername?: string;
   notifications?: boolean;
@@ -44,6 +44,8 @@ export interface CitizenDto extends BaseUserDto {
  * Municipality officer extends BaseUser
  */
 export interface MunicipalityUserDto extends BaseUserDto {
+  firstName: string;
+  lastName: string;
   municipality_role_id?: number;
   municipality_role?: MunicipalityRoleDto;
   assignedReports?: ReportDto[];
@@ -51,14 +53,34 @@ export interface MunicipalityUserDto extends BaseUserDto {
 }
 
 /**
- * Admin extends BaseUser (no extra fields for now)
+ * Admin extends BaseUser
  */
-export interface AdminUserDto extends BaseUserDto {}
+export interface AdminUserDto extends BaseUserDto {
+  firstName: string;
+  lastName: string;
+}
+
+export interface ExternalMaintainerUserDto extends BaseUserDto {
+  firstName: string;
+  lastName: string;
+  companyName: string;
+  category: string;
+  assignedReports?: ReportDto[];
+}
 
 /**
  * Union type for convenience
  */
-export type AnyUserDto = CitizenDto | MunicipalityUserDto | AdminUserDto;
+export type AnyUserDto = CitizenDto | MunicipalityUserDto | AdminUserDto | ExternalMaintainerUserDto;
+
+const cleanReports = (reports?: ReportDto[]) =>
+  reports?.map((report) => removeNullAttributes(report));
+
+const cleanMessages = (messages?: MessageDto[]) =>
+  messages?.map((message) => removeNullAttributes(message));
+
+const cleanMunicipalityRole = (role?: MunicipalityRoleDto) =>
+  role ? removeNullAttributes(role) : undefined;
 
 /**
  * Check if a given object implements the BaseUserDto interface.
@@ -67,8 +89,6 @@ export function instanceOfBaseUser(value: any): value is BaseUserDto {
   if (!value || typeof value !== "object") return false;
   if (!("username" in value) || value["username"] === undefined) return false;
   if (!("email" in value) || value["email"] === undefined) return false;
-  if (!("firstName" in value) && value["firstName"] === undefined) return false;
-  if (!("lastName" in value) && value["lastName"] === undefined) return false;
   return true;
 }
 
@@ -103,12 +123,31 @@ export function instanceOfMunicipalityUserDto(
 }
 
 /**
+ * Check if a given object implements the ExternalMaintainerUserDto interface.
+ */
+export function instanceOfExternalMaintainerUserDto(
+  value: any,
+): value is ExternalMaintainerUserDto {
+  if (!instanceOfBaseUser(value)) return false;
+  return (
+    "companyName" in value ||
+    "company_name" in value ||
+    "category" in value ||
+    "assignedReports" in value
+  );
+}
+
+/**
  * Check if a given object implements the AdminUserDto interface.
  * Admin is treated as base user without citizen/municipality-specific fields.
  */
 export function instanceOfAdminUserDto(value: any): value is AdminUserDto {
   if (!instanceOfBaseUser(value)) return false;
-  return !instanceOfCitizenDto(value) && !instanceOfMunicipalityUserDto(value);
+  return (
+    !instanceOfCitizenDto(value) &&
+    !instanceOfMunicipalityUserDto(value) &&
+    !instanceOfExternalMaintainerUserDto(value)
+  );
 }
 
 /**
@@ -118,6 +157,7 @@ export function instanceOfAnyUserDto(value: any): value is AnyUserDto {
   return (
     instanceOfCitizenDto(value) ||
     instanceOfMunicipalityUserDto(value) ||
+    instanceOfExternalMaintainerUserDto(value) ||
     instanceOfAdminUserDto(value)
   );
 }
@@ -128,20 +168,23 @@ export function instanceOfAnyUserDto(value: any): value is AnyUserDto {
 export function UserFromJSON(json: any): AnyUserDto | null {
   if (json == null) return null;
 
-  const base: BaseUserDto = {
+  const resolvedFirstName = json.first_name ?? json.firstName ?? "";
+  const resolvedLastName = json.last_name ?? json.lastName ?? "";
+
+  const base: BaseUserDto = removeNullAttributes({
     id: json.id,
     username: json.username,
     email: json.email,
-    firstName: json.first_name ?? json.firstName,
-    lastName: json.last_name ?? json.lastName,
     password: json.password,
     createdAt: json.created_at ?? json.createdAt,
-  };
+  }) as BaseUserDto;
 
   // Detect municipality user by presence of municipality role id/field
   if (instanceOfMunicipalityUserDto(json)) {
     return removeNullAttributes({
       ...base,
+      firstName: resolvedFirstName,
+      lastName: resolvedLastName,
       municipality_role_id: json.municipality_role_id,
       municipality_role: json.municipality_role,
       assignedReports: json.assignedReports as ReportDto[] | undefined,
@@ -153,6 +196,8 @@ export function UserFromJSON(json: any): AnyUserDto | null {
   if (instanceOfCitizenDto(json)) {
     return removeNullAttributes({
       ...base,
+      firstName: resolvedFirstName,
+      lastName: resolvedLastName,
       profilePhoto: json.profilePhoto,
       telegramUsername: json.telegramUsername,
       notifications: json.notifications,
@@ -162,61 +207,86 @@ export function UserFromJSON(json: any): AnyUserDto | null {
     }) as CitizenDto;
   }
 
+  // Detect external maintainer
+  if (instanceOfExternalMaintainerUserDto(json)) {
+    return removeNullAttributes({
+      ...base,
+      companyName: json.companyName,
+      category: json.category,
+      assignedReports: json.assignedReports as ReportDto[] | undefined,
+    }) as ExternalMaintainerUserDto;
+  }
+
   // Fallback to admin (no extra fields)
-  return removeNullAttributes(base) as AdminUserDto;
+  return removeNullAttributes({
+    ...base,
+    firstName: resolvedFirstName,
+    lastName: resolvedLastName,
+  }) as AdminUserDto;
 }
 
 /**
  * Build a user DTO, removing null attributes and cleaning nested DTOs.
  */
 export function buildUserDto(data: AnyUserDto): AnyUserDto | null {
-  const base = {
+  const base = removeNullAttributes({
     id: data.id,
     username: data.username,
     email: data.email,
-    firstName: data.firstName,
-    lastName: data.lastName,
     password: data.password,
     createdAt: data.createdAt,
-  };
+  }) as BaseUserDto;
 
   // Citizen
   if (instanceOfCitizenDto(data)) {
-    const d = data as CitizenDto;
+    const d: CitizenDto = data;
     return removeNullAttributes({
       ...base,
+      firstName: d.firstName,
+      lastName: d.lastName,
       profilePhoto: d.profilePhoto,
       telegramUsername: d.telegramUsername,
       notifications: d.notifications,
-      reports: d.reports
-        ? d.reports.map((r) => removeNullAttributes(r))
-        : undefined,
-      messages: d.messages
-        ? d.messages.map((m) => removeNullAttributes(m))
-        : undefined,
+      reports: cleanReports(d.reports),
+      messages: cleanMessages(d.messages),
       anonymous: d.anonymous,
     }) as CitizenDto;
   }
 
   // Municipality user
   if (instanceOfMunicipalityUserDto(data)) {
-    const d = data as MunicipalityUserDto;
+    const d: MunicipalityUserDto = data;
     return removeNullAttributes({
       ...base,
+      firstName: d.firstName,
+      lastName: d.lastName,
       municipality_role_id: d.municipality_role_id,
-      municipality_role: d.municipality_role
-        ? removeNullAttributes(d.municipality_role)
-        : undefined,
-      assignedReports: d.assignedReports
-        ? d.assignedReports.map((r) => removeNullAttributes(r))
-        : undefined,
-      messages: d.messages
-        ? d.messages.map((m) => removeNullAttributes(m))
-        : undefined,
+      municipality_role: cleanMunicipalityRole(d.municipality_role),
+      assignedReports: cleanReports(d.assignedReports),
+      messages: cleanMessages(d.messages),
     }) as MunicipalityUserDto;
   }
 
-  // Admin
+  // External maintainer user
+  if (instanceOfExternalMaintainerUserDto(data)) {
+    const d: ExternalMaintainerUserDto = data;
+    return removeNullAttributes({
+      ...base,
+      companyName: d.companyName,
+      category: d.category,
+      assignedReports: cleanReports(d.assignedReports),
+    }) as ExternalMaintainerUserDto;
+  }
+
+  if (instanceOfAdminUserDto(data)) {
+    const d: AdminUserDto = data;
+    return removeNullAttributes({
+      ...base,
+      firstName: d.firstName,
+      lastName: d.lastName,
+    }) as AdminUserDto;
+  }
+
   return removeNullAttributes(base) as AdminUserDto;
 }
 
@@ -230,23 +300,29 @@ export function mapPrismaUserToDto(
 ): AnyUserDto | null {
   if (!row) return null;
 
-  const base: BaseUserDto = {
+  const resolvedFirstName = row.first_name ?? row.firstName;
+  const resolvedLastName = row.last_name ?? row.lastName;
+
+  const base: BaseUserDto = removeNullAttributes({
     id: row.id,
     username: row.username,
     email: row.email,
-    firstName: row.first_name ?? row.firstName,
-    lastName: row.last_name ?? row.lastName,
     password: row.password ?? undefined,
     createdAt: row.created_at ?? row.createdAt,
-  };
+  }) as BaseUserDto;
 
   const isMunicipality =
     role === roleType.MUNICIPALITY || instanceOfMunicipalityUserDto(row);
   const isCitizen = role === roleType.CITIZEN || instanceOfCitizenDto(row);
+  const isExternalMaintainer =
+    role === roleType.EXTERNAL_MAINTAINER ||
+    instanceOfExternalMaintainerUserDto(row);
 
   if (isMunicipality) {
     return removeNullAttributes({
       ...base,
+      firstName: resolvedFirstName,
+      lastName: resolvedLastName,
       municipality_role_id:
         row.municipality_role_id ?? row.municipality_role_id,
       municipality_role: row.municipality_role ?? row.municipality_role,
@@ -260,6 +336,8 @@ export function mapPrismaUserToDto(
   if (isCitizen) {
     return removeNullAttributes({
       ...base,
+      firstName: resolvedFirstName,
+      lastName: resolvedLastName,
       profilePhoto: row.profile_photo ?? row.profilePhoto,
       telegramUsername: row.telegram_username ?? row.telegramUsername,
       notifications: row.notifications,
@@ -269,5 +347,20 @@ export function mapPrismaUserToDto(
     }) as CitizenDto;
   }
 
-  return removeNullAttributes(base) as AdminUserDto;
+  if (isExternalMaintainer) {
+    return removeNullAttributes({
+      ...base,
+      companyName: row.company_name ?? row.companyName,
+      category: row.category,
+      assignedReports: (row.assignedReports ?? row.assigned_reports) as
+        | ReportDto[]
+        | undefined,
+    }) as ExternalMaintainerUserDto;
+  }
+
+  return removeNullAttributes({
+    ...base,
+    firstName: resolvedFirstName,
+    lastName: resolvedLastName,
+  }) as AdminUserDto;
 }
