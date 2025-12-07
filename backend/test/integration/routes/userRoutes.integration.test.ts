@@ -505,6 +505,10 @@ describe("Admin routes integration tests", () => {
         .post(`${base}/external-users`)
         .send(payload);
 
+      if (res.status !== 201) {
+        console.error("External user creation failed:", res.status, res.body);
+      }
+
       // Should return 201 when valid external user is created
       expect(res.status).toBe(201);
       expect(res.body).toHaveProperty("id");
