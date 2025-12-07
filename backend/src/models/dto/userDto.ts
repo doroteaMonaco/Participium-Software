@@ -211,6 +211,8 @@ export function UserFromJSON(json: any): AnyUserDto | null {
   if (instanceOfExternalMaintainerUserDto(json)) {
     return removeNullAttributes({
       ...base,
+      firstName: resolvedFirstName,
+      lastName: resolvedLastName,
       companyName: json.companyName,
       category: json.category,
       assignedReports: json.assignedReports as ReportDto[] | undefined,
@@ -272,6 +274,8 @@ export function buildUserDto(data: AnyUserDto): AnyUserDto | null {
     const d: ExternalMaintainerUserDto = data;
     return removeNullAttributes({
       ...base,
+      firstName: d.firstName,
+      lastName: d.lastName,
       companyName: d.companyName,
       category: d.category,
       assignedReports: cleanReports(d.assignedReports),

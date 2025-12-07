@@ -130,6 +130,10 @@ describe("userRepository", () => {
       municipality_role: true,
     },
     [roleType.ADMIN]: {},
+    [roleType.EXTERNAL_MAINTAINER]: {
+      companyName: true,
+      category: true,
+    },
   };
 
   const selectMatcher = (role: roleType, needPass: boolean = false) => {

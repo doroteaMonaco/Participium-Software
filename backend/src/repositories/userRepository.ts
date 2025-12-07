@@ -33,6 +33,8 @@ const roleSelectMap: Record<roleType, any> = {
     lastName: true,
   },
   [roleType.EXTERNAL_MAINTAINER]: {
+    firstName: true,
+    lastName: true,
     companyName: true,
     category: true,
   },
