@@ -1135,7 +1135,6 @@ components:
       required:
         - identifier
         - password
-        - role
       properties:
         identifier:
           type: string
@@ -1146,7 +1145,8 @@ components:
           format: password
           example: "P@ssw0rd!"
         role:
-          $ref: '#/components/schemas/Role' 
+          $ref: '#/components/schemas/Role'
+          description: Optional. If not provided, the system will search across all user types (citizen, municipality, admin, external maintainer) 
           
     ReportCategory:
       type: string

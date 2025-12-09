@@ -246,16 +246,17 @@ export const TechnicalReportsPage: React.FC = () => {
     setShowAssignModal(true);
   };
 
-  const handleAssignMaintainer = (maintainerName: string) => {
-    if (selectedReport) {
-      // Update the report in the list (in real app, this would call API)
-      setReports(
-        reports.map((r) =>
-          r.id === selectedReport.id
-            ? { ...r, assignedOffice: maintainerName }
-            : r,
-        ),
-      );
+  const handleAssignMaintainer = async () => {
+    // Reload data to get updated report with external maintainer assigned
+    if (user?.id) {
+      try {
+        const data = await getAssignedReports(user.id);
+        const reports = data.map((data) => new ReportModel(data));
+        const mappedReports = mapReports(reports);
+        setReports(mappedReports);
+      } catch (err) {
+        console.error("Error reloading reports:", err);
+      }
     }
   };
 

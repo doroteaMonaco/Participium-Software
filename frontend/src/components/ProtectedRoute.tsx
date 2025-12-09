@@ -11,6 +11,7 @@ interface ProtectedRouteProps {
 const getDefaultDashboard = (role: UserRole | string): string => {
   if (role === "ADMIN") return "/admin";
   if (role === "MUNICIPALITY") return "/municipality/technical-reports";
+  if (role === "EXTERNAL_MAINTAINER") return "/maintainer";
   return "/dashboard";
 };
 

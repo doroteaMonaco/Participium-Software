@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
-type UserRole = "CITIZEN" | "ADMIN" | "MUNICIPALITY";
+type UserRole = "CITIZEN" | "ADMIN" | "MUNICIPALITY" | "EXTERNAL_MAINTAINER";
 
 interface NavItem {
   href: string;
@@ -98,6 +98,11 @@ const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
         icon: <Users className="h-4 w-4" />,
       },
       {
+        href: "/admin/external-maintainers",
+        label: "External Maintainers",
+        icon: <Wrench className="h-4 w-4" />,
+      },
+      {
         href: "/admin/map",
         label: "Map View",
         icon: <MapPin className="h-4 w-4" />,
@@ -152,6 +157,34 @@ const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
       },
       {
         href: "/municipality/settings",
+        label: "Settings",
+        icon: <Settings className="h-4 w-4" />,
+      },
+    ],
+  },
+  EXTERNAL_MAINTAINER: {
+    icon: <Wrench className="h-5 w-5" />,
+    title: "Participium",
+    subtitle: "Maintainer Panel",
+    activeColor: "bg-orange-50 text-orange-700 border-orange-200",
+    bgColor: "bg-gradient-to-br from-orange-600 to-orange-700",
+    borderColor: "border-orange-200",
+    iconColor: "text-orange-600",
+    footerBg: "bg-gradient-to-br from-orange-50 to-amber-50",
+    footerText: "External Maintainer • Contractor Access",
+    navItems: [
+      {
+        href: "/maintainer",
+        label: "Dashboard",
+        icon: <LayoutDashboard className="h-4 w-4" />,
+      },
+      {
+        href: "/maintainer/reports",
+        label: "Assigned Reports",
+        icon: <FileText className="h-4 w-4" />,
+      },
+      {
+        href: "/maintainer/settings",
         label: "Settings",
         icon: <Settings className="h-4 w-4" />,
       },

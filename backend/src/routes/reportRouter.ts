@@ -53,7 +53,13 @@ router.post(
   assignToExternalMaintainer,
 );
 
-router.get("/external-maintainers/:externalMaintainersId", isAuthenticated, isMunicipalityStrict, isExternalMaintainer, getReportsForExternalMaintainer);
+// GET /api/reports/external-maintainers/:externalMaintainersId - Get reports assigned to an external maintainer
+router.get(
+  "/external-maintainers/:externalMaintainersId",
+  isAuthenticated,
+  isExternalMaintainer,
+  getReportsForExternalMaintainer
+);
 
 /**
  * Add a comment to a report - requires municipality user or external maintainer role

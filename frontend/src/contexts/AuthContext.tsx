@@ -11,7 +11,7 @@ import {
   type User as ApiUser,
 } from "../services/api";
 
-export type UserRole = "ADMIN" | "MUNICIPALITY" | "CITIZEN";
+export type UserRole = "ADMIN" | "MUNICIPALITY" | "CITIZEN" | "EXTERNAL_MAINTAINER";
 
 interface User {
   id?: number;

@@ -15,12 +15,13 @@ export const authController = {
     try {
       const { identifier, password, role } = req.body || {};
 
-      throwBadRequestIfMissingObject({ identifier, password, role });
+      // Only identifier and password are required, role is optional
+      throwBadRequestIfMissingObject({ identifier, password });
 
       const { user, token } = await authService.login(
         identifier,
         password,
-        role,
+        role, // Can be undefined, authService will search all tables
       );
 
       res.cookie("authToken", token, cookieOpts);
