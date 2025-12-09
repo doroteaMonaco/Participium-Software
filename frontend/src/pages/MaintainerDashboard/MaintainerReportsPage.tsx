@@ -20,9 +20,12 @@ import {
   Loader,
   AlertCircle,
   Wrench,
+  MessageSquare,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { createPortal } from "react-dom";
+import { Drawer } from "src/components/shared/Drawer";
+import CommentsSection from "src/components/report/CommentsSection";
 
 interface Report {
   id: string;
@@ -56,7 +59,9 @@ const mapBackendStatus = (status: string): Report["status"] => {
 };
 
 // Map frontend status to backend status
-const mapToBackendStatus = (status: Report["status"]): "IN_PROGRESS" | "SUSPENDED" | "RESOLVED" => {
+const mapToBackendStatus = (
+  status: Report["status"],
+): "IN_PROGRESS" | "SUSPENDED" | "RESOLVED" => {
   switch (status) {
     case "In Progress":
       return "IN_PROGRESS";
@@ -151,6 +156,7 @@ export const MaintainerReportsPage: React.FC = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showCommentsDrawer, setShowCommentsDrawer] = useState(false);
   const [newStatus, setNewStatus] = useState<Report["status"] | "">("");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -185,10 +191,20 @@ export const MaintainerReportsPage: React.FC = () => {
     setShowStatusModal(true);
   };
 
+  const handleOpenComments = (report: Report) => {
+    setSelectedReport(report);
+    setShowCommentsDrawer(true);
+  };
+
   const closeStatusModal = () => {
     setShowStatusModal(false);
     setSelectedReport(null);
     setNewStatus("");
+  };
+
+  const closeCommentsDrawer = () => {
+    setShowCommentsDrawer(false);
+    setSelectedReport(null);
   };
 
   const handleSubmitStatus = async (e: React.FormEvent) => {
@@ -198,10 +214,9 @@ export const MaintainerReportsPage: React.FC = () => {
     setUpdating(true);
     try {
       const backendStatus = mapToBackendStatus(newStatus as Report["status"]);
-      await updateReportStatusByExternalMaintainer(
-        selectedReport.numericId,
-        { status: backendStatus },
-      );
+      await updateReportStatusByExternalMaintainer(selectedReport.numericId, {
+        status: backendStatus,
+      });
 
       // Update local state
       setReports(
@@ -516,17 +531,24 @@ export const MaintainerReportsPage: React.FC = () => {
                     </div>
 
                     {/* Action Button */}
-                    {report.status !== "Resolved" && (
-                      <div className="pt-4 border-t border-slate-200">
+                    <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row gap-3">
+                      {report.status !== "Resolved" && (
                         <button
                           onClick={() => handleStatusChange(report)}
-                          className="w-full rounded-xl bg-orange-600 hover:bg-orange-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                          className="flex-1 rounded-xl bg-orange-600 hover:bg-orange-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                         >
                           <Wrench className="h-5 w-5" />
                           Update Status
                         </button>
-                      </div>
-                    )}
+                      )}
+                      <button
+                        onClick={() => handleOpenComments(report)}
+                        className="flex-1 rounded-xl bg-slate-600 hover:bg-slate-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <MessageSquare className="h-5 w-5" />
+                        Internal Comments
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               ))
@@ -609,6 +631,17 @@ export const MaintainerReportsPage: React.FC = () => {
           </div>,
           document.body,
         )}
+
+      <Drawer
+        isOpen={showCommentsDrawer}
+        onClose={closeCommentsDrawer}
+        title={`Internal Comments - ${selectedReport?.id}`}
+        subtitle={`These comments are only visible to internal staff and external maintainers.`}
+      >
+        {selectedReport && (
+          <CommentsSection reportId={selectedReport.numericId} />
+        )}
+      </Drawer>
     </ExternalMaintainerDashboardLayout>
   );
 };

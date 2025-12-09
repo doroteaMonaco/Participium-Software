@@ -149,14 +149,6 @@ function App() {
 
             {/* External Maintainer Dashboard routes - protected, EXTERNAL_MAINTAINER role */}
             <Route
-              path="/maintainer"
-              element={
-                <ProtectedRoute requiredRole="EXTERNAL_MAINTAINER">
-                  <MaintainerReportsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/maintainer/reports"
               element={
                 <ProtectedRoute requiredRole="EXTERNAL_MAINTAINER">
