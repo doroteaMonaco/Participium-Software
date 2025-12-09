@@ -10,8 +10,8 @@ export interface createCommentDto {
 export interface CommentDto {
   id: number;
   reportId: number;
-  municipalityUserId: number | null;
-  externalMaintainerId: number | null;
+  municipality_user_id: number | null;
+  external_maintainer_id: number | null;
   content: string;
   createdAt: Date;
   updatedAt: Date | null;

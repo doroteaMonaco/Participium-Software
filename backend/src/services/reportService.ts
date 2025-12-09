@@ -337,13 +337,13 @@ const addCommentToReport = async (
     throw new Error("Report not found");
   }
 
-  let municipalityUserId: number | null = null;
-  let externalMaintainerId: number | null = null;
+  let municipality_user_id: number | null = null;
+  let external_maintainer_id: number | null = null;
 
   if (authorType === "MUNICIPALITY") {
-    municipalityUserId = authorId;
+    municipality_user_id = authorId;
   } else if (authorType === "EXTERNAL_MAINTAINER") {
-    externalMaintainerId = authorId;
+    external_maintainer_id = authorId;
   } else {
     throw new Error("Invalid author type");
   }
@@ -351,15 +351,15 @@ const addCommentToReport = async (
   const created = await reportRepository.addCommentToReport({
     reportId,
     content,
-    municipalityUserId,
-    externalMaintainerId,
+    municipality_user_id,
+    external_maintainer_id,
   })
 
   const result: CommentDto = {
     id: created.id,
     reportId: created.reportId,
-    municipalityUserId: created.municipalityUserId,
-    externalMaintainerId: created.externalMaintainerId,
+    municipality_user_id: created.municipality_user_id,
+    external_maintainer_id: created.external_maintainer_id,
     content: created.content,
     createdAt: created.createdAt,
     updatedAt: created.updatedAt,
@@ -381,13 +381,77 @@ const getCommentsOfAReportById = async (
   return comments.map((comment: CommentDto) => ({
     id: comment.id,
     reportId: comment.reportId,
-    municipalityUserId: comment.municipalityUserId,
-    externalMaintainerId: comment.externalMaintainerId,
+    municipality_user_id: comment.municipality_user_id,
+    external_maintainer_id: comment.external_maintainer_id,
     content: comment.content,
     createdAt: comment.createdAt,
     updatedAt: comment.updatedAt,
   }));
 }
+
+/**
+ * Update the status of a report by an external maintainer.
+ * Only reports assigned to the external maintainer can be updated.
+ * Valid status transitions: ASSIGNED -> IN_PROGRESS, IN_PROGRESS -> SUSPENDED/RESOLVED, SUSPENDED -> IN_PROGRESS/RESOLVED
+ */
+const updateReportStatusByExternalMaintainer = async (
+  reportId: number,
+  externalMaintainerId: number,
+  newStatus: string,
+): Promise<ReportDto> => {
+  const statusEnum = mapStringToStatus(newStatus);
+
+  // Fetch existing report
+  const existing = await reportRepository.findById(reportId);
+  if (!existing) {
+    throw new Error("Report not found");
+  }
+
+  // Check if the report is assigned to this external maintainer
+  if (existing.externalMaintainerId !== externalMaintainerId) {
+    throw new Error("You are not authorized to update this report");
+  }
+
+  // Allowed statuses for external maintainer
+  const allowedStatuses = [
+    ReportStatus.IN_PROGRESS,
+    ReportStatus.SUSPENDED,
+    ReportStatus.RESOLVED,
+  ];
+
+  if (!allowedStatuses.includes(statusEnum)) {
+    throw new Error(
+      `Invalid status. External maintainers can only set status to: ${allowedStatuses.join(", ")}`,
+    );
+  }
+
+  // Validate state transitions
+  const validTransitions: Record<ReportStatus, ReportStatus[]> = {
+    [ReportStatus.ASSIGNED]: [ReportStatus.IN_PROGRESS],
+    [ReportStatus.IN_PROGRESS]: [ReportStatus.SUSPENDED, ReportStatus.RESOLVED],
+    [ReportStatus.SUSPENDED]: [ReportStatus.IN_PROGRESS, ReportStatus.RESOLVED],
+    [ReportStatus.PENDING_APPROVAL]: [],
+    [ReportStatus.REJECTED]: [],
+    [ReportStatus.RESOLVED]: [],
+  };
+
+  const currentStatus = existing.status as ReportStatus;
+  const allowedTransitions = validTransitions[currentStatus] || [];
+
+  if (!allowedTransitions.includes(statusEnum)) {
+    throw new Error(
+      `Invalid state transition: cannot change from ${currentStatus} to ${statusEnum}. ` +
+        `Allowed transitions from ${currentStatus}: ${allowedTransitions.length > 0 ? allowedTransitions.join(", ") : "none"}`,
+    );
+  }
+
+  // Update the report status
+  const updatedReport = await reportRepository.update(reportId, {
+    status: statusEnum,
+  });
+
+  return sanitizeReport(updatedReport);
+};
 
 export default {
   findAll,
@@ -401,5 +465,6 @@ export default {
   assignToExternalMaintainer,
   findReportsForExternalMaintainer,
   addCommentToReport,
-  getCommentsOfAReportById
+  getCommentsOfAReportById,
+  updateReportStatusByExternalMaintainer,
 };

@@ -9,8 +9,8 @@ type ReportStatusFilter = "ASSIGNED";
 interface AddCommentPersistenceData {
   reportId: number;
   content: string;
-  municipalityUserId: number | null;
-  externalMaintainerId: number | null;
+  municipality_user_id: number | null;
+  external_maintainer_id: number | null;
 }
 
 const findAll = async (statusFilter?: ReportStatusFilter, userId?: number) => {
@@ -186,8 +186,8 @@ const addCommentToReport = async (data: AddCommentPersistenceData) => {
     data: {
       reportId: data.reportId,
       content: data.content,
-      municipalityUserId: data.municipalityUserId,
-      externalMaintainerId: data.externalMaintainerId,
+      municipality_user_id: data.municipality_user_id,
+      external_maintainer_id: data.external_maintainer_id,
     },
   });
 }

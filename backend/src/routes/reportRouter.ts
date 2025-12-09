@@ -8,12 +8,11 @@ import {
   assignToExternalMaintainer,
   getReportsForExternalMaintainer,
   addCommentToReport,
-  getCommentOfAReportById
+  getCommentOfAReportById,
 } from "@controllers/reportController";
 import { isAuthenticated } from "@middlewares/authMiddleware";
 import {
   isCitizen,
-  isMunicipality,
   isMunicipalityStrict,
   isExternalMaintainer,
   isMunicipalityOrExternalMaintainer
@@ -37,8 +36,8 @@ router.get("/", isAuthenticated, getReports);
 // GET /api/reports/:id - Get report by ID (public)
 router.get("/:id", getReportById);
 
-// POST /api/reports/:id - Approve or reject a report (municipality role only)
-router.post("/:id", isAuthenticated, isMunicipality, approveOrRejectReport);
+// POST /api/reports/:id - Change report status (municipality or external maintainer)
+router.post("/:id", isAuthenticated, isMunicipalityOrExternalMaintainer, approveOrRejectReport);
 
 router.get(
   "/municipality-user/:municipalityUserId",

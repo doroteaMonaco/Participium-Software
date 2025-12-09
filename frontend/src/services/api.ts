@@ -91,6 +91,10 @@ export interface ApproveReportRequest {
   motivation?: string;
 }
 
+export interface UpdateReportStatusRequest {
+  status: Extract<ReportStatus, "IN_PROGRESS" | "SUSPENDED" | "RESOLVED">;
+}
+
 export interface ApiError {
   error: string;
   message: string;
@@ -354,6 +358,21 @@ export const getReportsForExternalMaintainer = async(
   externalMaintainerId: number
 ): Promise<Report[]> => {
   const response = await api.get(`/reports/external-maintainers/${externalMaintainerId}`);
+  return response.data;
+};
+
+/**
+ * Update report status by external maintainer
+ * @param reportId Report ID
+ * @param status "IN_PROGRESS", "SUSPENDED", or "RESOLVED"
+ * @returns Updated report
+ * @throws ApiError on failure
+ */
+export const updateReportStatusByExternalMaintainer = async (
+  reportId: number,
+  request: UpdateReportStatusRequest,
+): Promise<Report> => {
+  const response = await api.post(`/reports/${reportId}`, request);
   return response.data;
 };
 

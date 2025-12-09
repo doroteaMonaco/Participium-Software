@@ -115,15 +115,28 @@ export const getReportByStatus = async (req: Request, res: Response) => {
 export const approveOrRejectReport = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    // Accept either `rejectionReason` or `motivation` coming from frontend
     const { status } = req.body;
     const rejectionReason = req.body.rejectionReason ?? req.body.motivation;
+    const userRole = req.role;
 
-    // Only allow setting ASSIGNED (accepted) or REJECTED
-    if (status !== "ASSIGNED" && status !== "REJECTED") {
+    // Define allowed statuses based on user role
+    const municipalityStatuses = ["ASSIGNED", "REJECTED"];
+    const externalMaintainerStatuses = ["IN_PROGRESS", "SUSPENDED", "RESOLVED"];
+
+    const isMunicipalityRole = userRole === "MUNICIPALITY";
+    const isExternalMaintainerRole = userRole === "EXTERNAL_MAINTAINER";
+
+    // Validate status based on role
+    if (isMunicipalityRole && !municipalityStatuses.includes(status)) {
       return res
         .status(400)
-        .json({ error: "Invalid status. Must be ASSIGNED or REJECTED." });
+        .json({ error: "Invalid status. Municipality users can only set ASSIGNED or REJECTED." });
+    }
+
+    if (isExternalMaintainerRole && !externalMaintainerStatuses.includes(status)) {
+      return res
+        .status(400)
+        .json({ error: "Invalid status. External maintainers can only set IN_PROGRESS, SUSPENDED or RESOLVED." });
     }
 
     if (
@@ -135,20 +148,33 @@ export const approveOrRejectReport = async (req: Request, res: Response) => {
       });
     }
 
-    const updatedStatus = await reportService.updateReportStatus(
-      Number.parseInt(id),
-      status,
-      rejectionReason,
-    );
+    let result;
+    if (isExternalMaintainerRole) {
+      // External maintainer updating status
+      result = await reportService.updateReportStatusByExternalMaintainer(
+        Number.parseInt(id),
+        req.user!.id,
+        status,
+      );
+    } else {
+      // Municipality user approving/rejecting
+      result = await reportService.updateReportStatus(
+        Number.parseInt(id),
+        status,
+        rejectionReason,
+      );
+    }
 
-    res.status(204).json({ status: updatedStatus });
+    res.status(204).json({ status: result });
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Failed to update report status";
-    const statusCode =
-      error instanceof Error && error.message === "Report not found"
-        ? 404
-        : 500;
+    let statusCode = 500;
+    if (error instanceof Error) {
+      if (error.message === "Report not found") statusCode = 404;
+      else if (/not authorized/i.test(error.message)) statusCode = 403;
+      else if (/invalid/i.test(error.message)) statusCode = 400;
+    }
     res.status(statusCode).json({ error: errorMessage });
   }
 };
