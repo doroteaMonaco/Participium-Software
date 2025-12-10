@@ -25,7 +25,7 @@ export const Login: React.FC = () => {
           navigate("/municipality/technical-reports", { replace: true });
         }
       } else if (user.role === "EXTERNAL_MAINTAINER") {
-        navigate("/maintainer", { replace: true });
+        navigate("/maintainer/reports", { replace: true });
       } else {
         navigate("/dashboard", { replace: true });
       }
@@ -80,7 +80,7 @@ export const Login: React.FC = () => {
           navigate("/municipality/technical-reports");
         }
       } else if (user.role === "EXTERNAL_MAINTAINER") {
-        navigate("/maintainer");
+        navigate("/maintainer/reports");
       } else {
         // CITIZEN role or default
         navigate("/dashboard");

@@ -100,6 +100,20 @@ export interface ApiError {
   message: string;
 }
 
+export interface CommentRequest {
+  content: string;
+}
+
+export interface Comment {
+  id: number;
+  reportId: number;
+  municipality_user_id?: number | null;
+  external_maintainer_id?: number | null;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ==================== Municipality User Types ====================
 
 export interface MunicipalityRole {
@@ -349,15 +363,15 @@ export const getAssignedReportsForOfficer = async (
 export const assignReportToExternalMaintainer = async (
   reportId: number,
 ): Promise<void> => {
-  await api.post(
-    `/reports/${reportId}/external-maintainers/`,
-  );
+  await api.post(`/reports/${reportId}/external-maintainers/`);
 };
 
-export const getReportsForExternalMaintainer = async(
-  externalMaintainerId: number
+export const getReportsForExternalMaintainer = async (
+  externalMaintainerId: number,
 ): Promise<Report[]> => {
-  const response = await api.get(`/reports/external-maintainers/${externalMaintainerId}`);
+  const response = await api.get(
+    `/reports/external-maintainers/${externalMaintainerId}`,
+  );
   return response.data;
 };
 
@@ -435,7 +449,7 @@ export const updateMunicipalityUserRole = async (
 // ==================== External Maintainer User APIs ====================
 /**
  * Create a new external maintainer user
- * @param userData 
+ * @param userData
  * @returns Created external maintainer user
  * @throws ApiError on failure
  */
@@ -444,17 +458,19 @@ export const createExternalMaintainerUser = async (
 ): Promise<any> => {
   const response = await api.post("/users/external-users", userData);
   return response.data;
-}
+};
 
 /**
  * Get all external maintainer users
- * @returns 
+ * @returns
  * @throws ApiError on failure
  */
-export const getExternalMaintainerUsers = async (): Promise<ExternalMaintainerUser[]> => {
+export const getExternalMaintainerUsers = async (): Promise<
+  ExternalMaintainerUser[]
+> => {
   const response = await api.get("/users/external-users");
   return response.data;
-}
+};
 
 // ==================== Citizen Profile APIs ====================
 
@@ -469,6 +485,38 @@ export const updateCitizenProfile = async (
   formData: FormData,
 ): Promise<void> => {
   await api.patch("/users", formData);
+};
+
+// ==================== Comment APIs ====================
+
+/**
+ * Get internal comments for a report
+ * Requires: MUNICIPALITY_USER or EXTERNAL_MAINTAINER role
+ * @param reportId Report ID
+ * @returns List of comments
+ * @throws ApiError on failure
+ */
+export const getReportComments = async (
+  reportId: number,
+): Promise<Comment[]> => {
+  const response = await api.get(`/reports/${reportId}/comments`);
+  return response.data;
+};
+
+/**
+ * Add an internal comment to a report
+ * Requires: MUNICIPALITY_USER or EXTERNAL_MAINTAINER role
+ * @param reportId Report ID
+ * @param comment Comment data
+ * @returns Created comment
+ * @throws ApiError on failure
+ */
+export const addReportComment = async (
+  reportId: number,
+  comment: CommentRequest,
+): Promise<Comment> => {
+  const response = await api.post(`/reports/${reportId}/comments`, comment);
+  return response.data;
 };
 
 export default api;

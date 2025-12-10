@@ -3,6 +3,8 @@ import { MunicipalityDashboardLayout } from "src/components/dashboard/Municipali
 import { StatusUpdateModal } from "src/components/dashboard/StatusUpdateModal";
 import { CommentModal } from "src/components/dashboard/CommentModal";
 import { AssignMaintainerModal } from "src/components/dashboard/AssignMaintainerModal";
+import { Drawer } from "src/components/shared/Drawer";
+import CommentsSection from "src/components/report/CommentsSection";
 import { motion } from "framer-motion";
 import { useAuth } from "src/contexts/AuthContext";
 import { getAssignedReports } from "src/services/api";
@@ -200,6 +202,7 @@ export const TechnicalReportsPage: React.FC = () => {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showCommentsDrawer, setShowCommentsDrawer] = useState(false);
   const [newStatus, setNewStatus] = useState<Report["status"] | "">("");
   const [newComment, setNewComment] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -237,8 +240,9 @@ export const TechnicalReportsPage: React.FC = () => {
 
   const handleAddComment = (report: Report) => {
     setSelectedReport(report);
-    setNewComment("");
-    setShowCommentModal(true);
+    // setNewComment("");
+    // setShowCommentModal(true);
+    setShowCommentsDrawer(true);
   };
 
   const handleAssignToMaintainer = (report: Report) => {
@@ -274,6 +278,11 @@ export const TechnicalReportsPage: React.FC = () => {
 
   const closeAssignModal = () => {
     setShowAssignModal(false);
+    setSelectedReport(null);
+  };
+
+  const closeCommentsDrawer = () => {
+    setShowCommentsDrawer(false);
     setSelectedReport(null);
   };
 
@@ -614,7 +623,7 @@ export const TechnicalReportsPage: React.FC = () => {
                           className="flex-1 rounded-xl bg-slate-600 hover:bg-slate-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                         >
                           <MessageSquare className="h-5 w-5" />
-                          Add Comment
+                          Internal Comments
                         </button>
                       </div>
 
@@ -662,6 +671,19 @@ export const TechnicalReportsPage: React.FC = () => {
         reportTitle={selectedReport?.title || ""}
         onAssign={handleAssignMaintainer}
       />
+
+      <Drawer
+        isOpen={showCommentsDrawer}
+        onClose={closeCommentsDrawer}
+        title={`Internal Comments`}
+        subtitle={`These comments are only visible to internal staff and external maintainers.`}
+      >
+        {selectedReport && (
+          <CommentsSection
+            reportId={parseInt(selectedReport.id.replace("RPT-", ""), 10)}
+          />
+        )}
+      </Drawer>
     </MunicipalityDashboardLayout>
   );
 };
