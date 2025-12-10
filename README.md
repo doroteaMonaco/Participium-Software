@@ -31,7 +31,9 @@ Developed as a group project for the **Software Engineering II** course at **Pol
 - **Categorized Issues**: Select from 9 report categories (waste, water supply, sewer system, public lighting, roads, etc.)
 - **Real-time Status Tracking**: Monitor the status of submitted reports (Pending Approval → Assigned → In Progress → Resolved)
 - **Anonymous Reporting**: Option to submit reports anonymously
-- **Comments & Collaboration**: View and engage with municipality staff through report comments
+- **Comments & Collaboration**: Internal comments system for municipality staff and external maintainers to collaborate on reports
+  - **Comment Access Control**: Only municipality staff and assigned external maintainers can view and add comments
+  - **Comment Restriction on Resolved Reports**: Comments are disabled when a report reaches "Resolved" status
 - **Profile Management**: Customize profile settings and notification preferences
 
 ### For Municipality Staff
@@ -45,6 +47,12 @@ Developed as a group project for the **Software Engineering II** course at **Pol
 - **Office-Based Filtering**: See only reports relevant to their technical office
 - **External Maintainer Integration**: Assign reports to contractors with automatic load-balancing
 - **Collaboration**: Communicate with citizens and external maintainers through report comments
+  - **Internal Comments**: Staff-only comments for coordinating work on reports
+  - **Comment Collaboration Flow**:
+    - Technical officers can add comments while managing reports
+    - Once assigned to an external maintainer, technical officers lose the ability to update status (but can still comment)
+    - External maintainers can add comments and update status until report is resolved
+    - Both parties cannot add comments once report status becomes "Resolved"
 
 ### For Administrators
 
@@ -62,7 +70,9 @@ Developed as a group project for the **Software Engineering II** course at **Pol
 - **Database Persistence**: PostgreSQL database with Prisma ORM for type-safe data management
 - **Containerization**: Docker Compose for seamless deployment
 - **Testing**: Comprehensive unit and E2E tests using Jest
-
+- **Internal Comments System**: 
+  - Role-based comment access control (municipality staff and external maintainers only)
+  - Comments disabled on resolved reports to prevent unauthorized updates
 ### Key Design Patterns
 
 - **Repository Pattern**: Data access logic abstraction through `userRepository`, `reportRepository`, etc.
