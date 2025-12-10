@@ -110,6 +110,29 @@ const createMunicipality = async (
   return { muniAgent, createdMunicipality: res.body };
 };
 
+const createExternalMaintainer = async (
+  adminAgent: request.SuperAgentTest,
+  externalMaintainer: any,
+) => {
+  // admin creates external maintainer user via /api/users/external-users
+  const res = await adminAgent
+    .post("/api/users/external-users")
+    .send(externalMaintainer);
+
+  expect(res.status).toBe(201);
+
+  // login external maintainer user via normal session endpoint
+  const emAgent: any = request.agent(app);
+  await loginAgent(
+    emAgent,
+    externalMaintainer.username,
+    externalMaintainer.password,
+    "EXTERNAL_MAINTAINER" as any,
+  );
+
+  return { emAgent, createdExternalMaintainer: res.body };
+};
+
 const createReportAs = async (
   agent: request.SuperAgentTest,
   reportFields: any,
@@ -1510,6 +1533,7 @@ describe("Integration: Comments endpoints", () => {
     await prisma.admin_user.deleteMany();
     await prisma.comment.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_role.deleteMany();
     await prisma.municipality_role.createMany({
       data: [
@@ -1861,5 +1885,331 @@ describe("Integration: Comments endpoints", () => {
       .expect(500);
 
     jest.restoreAllMocks();
+  });
+
+  // --- External Maintainer comment scenarios ---
+  describe("External Maintainer Comments", () => {
+    it("POST 201: external maintainer can add a comment to assigned report", async () => {
+      const admin = {
+        username: "admin_em_comments",
+        email: "admin_em_comments@example.com",
+        firstName: "Admin",
+        lastName: "EM",
+        password: "adminpass1",
+      };
+      const muni = {
+        username: "muni_em_comments",
+        email: "muni_em_comments@example.com",
+        firstName: "Muni",
+        lastName: "EM",
+        password: "munipass1",
+        municipality_role_id: 3,
+      };
+      const emData = {
+        username: "em_comments_1",
+        email: "em_comments_1@example.com",
+        firstName: "ExtMaint",
+        lastName: "Comments",
+        password: "empass1",
+        companyName: "EMCorp",
+        category: "WASTE",
+      };
+
+      const adminAgent = await createAdmin(admin);
+      const { muniAgent } = await createMunicipality(adminAgent, muni);
+      const { emAgent } = await createExternalMaintainer(adminAgent, emData);
+      const citizenAgent = await createAndLogin(fakeUser);
+
+      const createdReport = await createReportAs(citizenAgent, {
+        title: "Report for EM comments",
+        description: "Description",
+        category: "WASTE",
+        latitude: 45.0,
+        longitude: 7.0,
+      });
+
+      // Assign report to external maintainer
+      await muniAgent
+        .post(`/api/reports/${createdReport.id}/external-maintainers/`)
+        .send({})
+        .expect(200);
+
+      // External maintainer adds comment
+      const postRes = await emAgent
+        .post(`/api/reports/${createdReport.id}/comments`)
+        .send({ content: "Hello from external maintainer" })
+        .expect(201);
+
+      expect(postRes.body).toHaveProperty("id");
+      expect(postRes.body).toHaveProperty("content", "Hello from external maintainer");
+      expect(postRes.body).toHaveProperty("external_maintainer_id");
+    });
+
+    it("POST 403 when external maintainer tries to comment on report not assigned to them", async () => {
+      const admin = {
+        username: "admin_em_403",
+        email: "admin_em_403@example.com",
+        firstName: "Admin",
+        lastName: "EM403",
+        password: "adminpass2",
+      };
+      const emData = {
+        username: "em_comments_2",
+        email: "em_comments_2@example.com",
+        firstName: "ExtMaint",
+        lastName: "Comments",
+        password: "empass2",
+        companyName: "EMCorp",
+        category: "WASTE",
+      };
+
+      const adminAgent = await createAdmin(admin);
+      const { emAgent } = await createExternalMaintainer(adminAgent, emData);
+      const citizenAgent = await createAndLogin(fakeUser);
+
+      const createdReport = await createReportAs(citizenAgent, {
+        title: "Report not assigned",
+        description: "Description",
+        category: "WASTE",
+        latitude: 45.0,
+        longitude: 7.0,
+      });
+
+      // External maintainer tries to comment on unassigned report
+      await emAgent
+        .post(`/api/reports/${createdReport.id}/comments`)
+        .send({ content: "Should not work" })
+        .expect(403);
+    });
+
+    it("GET 200: external maintainer can see comments on assigned report", async () => {
+      const admin = {
+        username: "admin_em_get",
+        email: "admin_em_get@example.com",
+        firstName: "Admin",
+        lastName: "EMGet",
+        password: "adminpass3",
+      };
+      const muni = {
+        username: "muni_em_get",
+        email: "muni_em_get@example.com",
+        firstName: "Muni",
+        lastName: "EMGet",
+        password: "munipass3",
+        municipality_role_id: 3,
+      };
+      const emData = {
+        username: "em_comments_3",
+        email: "em_comments_3@example.com",
+        firstName: "ExtMaint",
+        lastName: "Comments",
+        password: "empass3",
+        companyName: "EMCorp",
+        category: "WASTE",
+      };
+
+      const adminAgent = await createAdmin(admin);
+      const { muniAgent } = await createMunicipality(adminAgent, muni);
+      const { emAgent } = await createExternalMaintainer(adminAgent, emData);
+      const citizenAgent = await createAndLogin(fakeUser);
+
+      const createdReport = await createReportAs(citizenAgent, {
+        title: "Report for get EM comments",
+        description: "Description",
+        category: "WASTE",
+        latitude: 45.0,
+        longitude: 7.0,
+      });
+
+      // Assign report to external maintainer
+      await muniAgent
+        .post(`/api/reports/${createdReport.id}/external-maintainers/`)
+        .send({})
+        .expect(200);
+
+      // External maintainer adds comment
+      await emAgent
+        .post(`/api/reports/${createdReport.id}/comments`)
+        .send({ content: "EM comment visible" })
+        .expect(201);
+
+      // External maintainer retrieves comments
+      const getRes = await emAgent
+        .get(`/api/reports/${createdReport.id}/comments`)
+        .expect(200);
+
+      expect(Array.isArray(getRes.body)).toBeTruthy();
+      expect(getRes.body.length).toBeGreaterThanOrEqual(1);
+      expect(
+        getRes.body.some((c: any) => c.content === "EM comment visible"),
+      ).toBeTruthy();
+    });
+  });
+
+  // --- Collaboration tests between technical officer and external maintainer ---
+  describe("Technical Officer and External Maintainer Collaboration", () => {
+    it("POST 201: both roles can add comments and see each other's comments", async () => {
+      const admin = {
+        username: "admin_collab",
+        email: "admin_collab@example.com",
+        firstName: "Admin",
+        lastName: "Collab",
+        password: "adminpass4",
+      };
+      const muni = {
+        username: "muni_collab",
+        email: "muni_collab@example.com",
+        firstName: "Muni",
+        lastName: "Collab",
+        password: "munipass4",
+        municipality_role_id: 3,
+      };
+      const emData = {
+        username: "em_collab_1",
+        email: "em_collab_1@example.com",
+        firstName: "ExtMaint",
+        lastName: "Collab",
+        password: "empass4",
+        companyName: "EMCorp",
+        category: "WASTE",
+      };
+
+      const adminAgent = await createAdmin(admin);
+      const { muniAgent } = await createMunicipality(adminAgent, muni);
+      const { emAgent } = await createExternalMaintainer(adminAgent, emData);
+      const citizenAgent = await createAndLogin(fakeUser);
+
+      const createdReport = await createReportAs(citizenAgent, {
+        title: "Collaboration test",
+        description: "Description",
+        category: "WASTE",
+        latitude: 45.0,
+        longitude: 7.0,
+      });
+
+      // Assign report to external maintainer
+      await muniAgent
+        .post(`/api/reports/${createdReport.id}/external-maintainers/`)
+        .send({})
+        .expect(200);
+
+      // Municipality user adds comment
+      const muniComment = await muniAgent
+        .post(`/api/reports/${createdReport.id}/comments`)
+        .send({ content: "Please prioritize this issue" })
+        .expect(201);
+
+      expect(muniComment.body.municipality_user_id).toBeDefined();
+      expect(muniComment.body.content).toBe("Please prioritize this issue");
+
+      // External maintainer adds comment
+      const emComment = await emAgent
+        .post(`/api/reports/${createdReport.id}/comments`)
+        .send({ content: "Starting work tomorrow" })
+        .expect(201);
+
+      expect(emComment.body.external_maintainer_id).toBeDefined();
+      expect(emComment.body.content).toBe("Starting work tomorrow");
+
+      // Municipality user sees both comments
+      const muniCommentsRes = await muniAgent
+        .get(`/api/reports/${createdReport.id}/comments`)
+        .expect(200);
+
+      expect(muniCommentsRes.body.length).toBeGreaterThanOrEqual(2);
+      expect(
+        muniCommentsRes.body.some((c: any) => c.content === "Please prioritize this issue"),
+      ).toBeTruthy();
+      expect(
+        muniCommentsRes.body.some((c: any) => c.content === "Starting work tomorrow"),
+      ).toBeTruthy();
+
+      // External maintainer sees both comments
+      const emCommentsRes = await emAgent
+        .get(`/api/reports/${createdReport.id}/comments`)
+        .expect(200);
+
+      expect(emCommentsRes.body.length).toBeGreaterThanOrEqual(2);
+      expect(
+        emCommentsRes.body.some((c: any) => c.content === "Please prioritize this issue"),
+      ).toBeTruthy();
+      expect(
+        emCommentsRes.body.some((c: any) => c.content === "Starting work tomorrow"),
+      ).toBeTruthy();
+    });
+
+    it("POST 403: cannot add comment on RESOLVED report", async () => {
+      const admin = {
+        username: "admin_resolved",
+        email: "admin_resolved@example.com",
+        firstName: "Admin",
+        lastName: "Resolved",
+        password: "adminpass5",
+      };
+      const muni = {
+        username: "muni_resolved",
+        email: "muni_resolved@example.com",
+        firstName: "Muni",
+        lastName: "Resolved",
+        password: "munipass5",
+        municipality_role_id: 3,
+      };
+      const emData = {
+        username: "em_resolved_1",
+        email: "em_resolved_1@example.com",
+        firstName: "ExtMaint",
+        lastName: "Resolved",
+        password: "empass5",
+        companyName: "EMCorp",
+        category: "PUBLIC_LIGHTING",
+      };
+
+      const adminAgent = await createAdmin(admin);
+      const { muniAgent } = await createMunicipality(adminAgent, muni);
+      const { emAgent } = await createExternalMaintainer(adminAgent, emData);
+      const citizenAgent = await createAndLogin(fakeUser);
+
+      const createdReport = await createReportAs(citizenAgent, {
+        title: "Report to resolve",
+        description: "Description",
+        category: "PUBLIC_LIGHTING",
+        latitude: 45.0,
+        longitude: 7.0,
+      });
+
+      // Municipality approves the report first
+      await muniAgent
+        .post(`/api/reports/${createdReport.id}`)
+        .send({ status: "ASSIGNED" })
+        .expect(204);
+
+      // Assign report to external maintainer
+      await muniAgent
+        .post(`/api/reports/${createdReport.id}/external-maintainers/`)
+        .send({})
+        .expect(200);
+
+      // External maintainer changes status to IN_PROGRESS then RESOLVED
+      await emAgent
+        .post(`/api/reports/${createdReport.id}`)
+        .send({ status: "IN_PROGRESS" })
+        .expect(204);
+
+      await emAgent
+        .post(`/api/reports/${createdReport.id}`)
+        .send({ status: "RESOLVED" })
+        .expect(204);
+
+      // Try to add comment on RESOLVED report - should fail
+      await muniAgent
+        .post(`/api/reports/${createdReport.id}/comments`)
+        .send({ content: "Should not be able to comment" })
+        .expect(403);
+
+      await emAgent
+        .post(`/api/reports/${createdReport.id}/comments`)
+        .send({ content: "Should not be able to comment" })
+        .expect(403);
+    });
   });
 });

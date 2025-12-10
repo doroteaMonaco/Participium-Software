@@ -848,5 +848,275 @@ describe("reportService", () => {
         ),
       ).rejects.toThrow(/Invalid state transition/i);
     });
+
+    it("throws when invalid status string passed", async () => {
+      const existing = { id: 7, externalMaintainerId: 3, status: "ASSIGNED" };
+      (repo as any).findById.mockResolvedValue(existing);
+
+      await expect(
+        require("@services/reportService").default.updateReportStatusByExternalMaintainer(
+          7,
+          3,
+          "INVALID_STATUS",
+        ),
+      ).rejects.toThrow(/Invalid status/i);
+    });
+
+    it("throws when report not found", async () => {
+      (repo as any).findById.mockResolvedValue(null);
+
+      await expect(
+        require("@services/reportService").default.updateReportStatusByExternalMaintainer(
+          999,
+          3,
+          "IN_PROGRESS",
+        ),
+      ).rejects.toThrow(/not found/i);
+    });
+
+    it("allows IN_PROGRESS to SUSPENDED transition", async () => {
+      const existing = { id: 7, externalMaintainerId: 3, status: "IN_PROGRESS" };
+      (repo as any).findById.mockResolvedValue(existing);
+      (repo as any).update.mockResolvedValue({
+        ...existing,
+        status: "SUSPENDED",
+      });
+
+      const updated = await require("@services/reportService").default.updateReportStatusByExternalMaintainer(
+        7,
+        3,
+        "SUSPENDED",
+      );
+      expect(updated).toHaveProperty("status", "SUSPENDED");
+    });
+
+    it("allows SUSPENDED to IN_PROGRESS transition", async () => {
+      const existing = { id: 7, externalMaintainerId: 3, status: "SUSPENDED" };
+      (repo as any).findById.mockResolvedValue(existing);
+      (repo as any).update.mockResolvedValue({
+        ...existing,
+        status: "IN_PROGRESS",
+      });
+
+      const updated = await require("@services/reportService").default.updateReportStatusByExternalMaintainer(
+        7,
+        3,
+        "IN_PROGRESS",
+      );
+      expect(updated).toHaveProperty("status", "IN_PROGRESS");
+    });
+  });
+
+  // ---------- assignToExternalMaintainer ----------
+  describe("assignToExternalMaintainer", () => {
+    it("selects maintainer with least assigned reports", async () => {
+      const svc = require("@services/reportService").default;
+      const report = { id: 5, category: "WASTE" };
+      const maintainers = [
+        { id: 1, assignedReports: [{ id: 10 }, { id: 11 }] },
+        { id: 2, assignedReports: [{ id: 12 }] },
+        { id: 3, assignedReports: [] },
+      ];
+
+      (repo as any).findById.mockResolvedValue(report);
+      jest
+        .spyOn(userRepository, "findExternalMaintainersByCategory")
+        .mockResolvedValue(maintainers as any);
+      (repo as any).update.mockResolvedValue({
+        ...report,
+        externalMaintainerId: 3,
+      });
+
+      await svc.assignToExternalMaintainer(5);
+
+      expect((repo as any).update).toHaveBeenCalledWith(
+        5,
+        expect.objectContaining({ externalMaintainerId: 3 }),
+      );
+    });
+
+    it("uses tie-breaker (lowest ID) when maintainers have same report count", async () => {
+      const svc = require("@services/reportService").default;
+      const report = { id: 5, category: "WASTE" };
+      const maintainers = [
+        { id: 5, assignedReports: [{ id: 10 }] },
+        { id: 2, assignedReports: [{ id: 11 }] },
+        { id: 3, assignedReports: [{ id: 12 }] },
+      ];
+
+      (repo as any).findById.mockResolvedValue(report);
+      jest
+        .spyOn(userRepository, "findExternalMaintainersByCategory")
+        .mockResolvedValue(maintainers as any);
+      (repo as any).update.mockResolvedValue({
+        ...report,
+        externalMaintainerId: 2,
+      });
+
+      await svc.assignToExternalMaintainer(5);
+
+      // Should select ID 2 (lowest among those with 1 report each)
+      expect((repo as any).update).toHaveBeenCalledWith(
+        5,
+        expect.objectContaining({ externalMaintainerId: 2 }),
+      );
+    });
+
+    it("throws when report not found", async () => {
+      const svc = require("@services/reportService").default;
+      (repo as any).findById.mockResolvedValue(null);
+
+      await expect(svc.assignToExternalMaintainer(999)).rejects.toThrow(
+        /not found/i,
+      );
+    });
+
+    it("throws when no maintainers available for category", async () => {
+      const svc = require("@services/reportService").default;
+      const report = { id: 5, category: "WASTE" };
+
+      (repo as any).findById.mockResolvedValue(report);
+      jest
+        .spyOn(userRepository, "findExternalMaintainersByCategory")
+        .mockResolvedValue([]);
+
+      await expect(svc.assignToExternalMaintainer(5)).rejects.toThrow(
+        /No external maintainers available/i,
+      );
+    });
+  });
+
+  // ---------- addCommentToReport - additional coverage ----------
+  describe("addCommentToReport - extended coverage", () => {
+    it("throws on invalid author type", async () => {
+      const svc = require("@services/reportService").default;
+      const report = { id: 5, status: ReportStatus.PENDING_APPROVAL };
+      (repo as any).findById.mockResolvedValue(report);
+
+      await expect(
+        svc.addCommentToReport({
+          reportId: 5,
+          authorId: 1,
+          authorType: "INVALID_TYPE",
+          content: "test",
+        }),
+      ).rejects.toThrow(/Invalid author type/i);
+    });
+
+    it("throws when external maintainer tries to comment on unassigned report", async () => {
+      const svc = require("@services/reportService").default;
+      const report = { 
+        id: 5, 
+        status: ReportStatus.PENDING_APPROVAL,
+        externalMaintainerId: null 
+      };
+      (repo as any).findById.mockResolvedValue(report);
+
+      await expect(
+        svc.addCommentToReport({
+          reportId: 5,
+          authorId: 1,
+          authorType: "EXTERNAL_MAINTAINER",
+          content: "test",
+        }),
+      ).rejects.toThrow(/only comment on reports assigned/i);
+    });
+
+    it("throws when external maintainer tries to comment on report assigned to different maintainer", async () => {
+      const svc = require("@services/reportService").default;
+      const report = { 
+        id: 5, 
+        status: ReportStatus.PENDING_APPROVAL,
+        externalMaintainerId: 5 
+      };
+      (repo as any).findById.mockResolvedValue(report);
+
+      await expect(
+        svc.addCommentToReport({
+          reportId: 5,
+          authorId: 3, // Different ID from externalMaintainerId
+          authorType: "EXTERNAL_MAINTAINER",
+          content: "test",
+        }),
+      ).rejects.toThrow(/only comment on reports assigned/i);
+    });
+
+    it("allows external maintainer to comment on assigned report", async () => {
+      const svc = require("@services/reportService").default;
+      const report = { 
+        id: 5, 
+        status: ReportStatus.PENDING_APPROVAL,
+        externalMaintainerId: 3 
+      };
+      const comment = {
+        id: 99,
+        reportId: 5,
+        content: "comment",
+        municipality_user_id: null,
+        external_maintainer_id: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      (repo as any).findById.mockResolvedValue(report);
+      (repo as any).addCommentToReport.mockResolvedValue(comment);
+
+      const result = await svc.addCommentToReport({
+        reportId: 5,
+        authorId: 3,
+        authorType: "EXTERNAL_MAINTAINER",
+        content: "comment",
+      });
+
+      expect(result).toHaveProperty("id", 99);
+      expect(result).toHaveProperty("external_maintainer_id", 3);
+    });
+
+    it("throws when trying to comment on RESOLVED report", async () => {
+      const svc = require("@services/reportService").default;
+      const report = { 
+        id: 5, 
+        status: ReportStatus.RESOLVED,
+        externalMaintainerId: 3 
+      };
+      (repo as any).findById.mockResolvedValue(report);
+
+      await expect(
+        svc.addCommentToReport({
+          reportId: 5,
+          authorId: 3,
+          authorType: "EXTERNAL_MAINTAINER",
+          content: "test",
+        }),
+      ).rejects.toThrow(/Cannot add comments to resolved reports/i);
+    });
+
+    it("allows municipality user to comment without assignment check", async () => {
+      const svc = require("@services/reportService").default;
+      const report = { 
+        id: 5, 
+        status: ReportStatus.PENDING_APPROVAL,
+        externalMaintainerId: null 
+      };
+      const comment = {
+        id: 100,
+        reportId: 5,
+        content: "muni comment",
+        municipality_user_id: 7,
+        external_maintainer_id: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      (repo as any).findById.mockResolvedValue(report);
+      (repo as any).addCommentToReport.mockResolvedValue(comment);
+
+      const result = await svc.addCommentToReport({
+        reportId: 5,
+        authorId: 7,
+        authorType: "MUNICIPALITY",
+        content: "muni comment",
+      });
+
+      expect(result).toHaveProperty("municipality_user_id", 7);
+    });
   });
 });

@@ -63,6 +63,14 @@ describe("reportRepository", () => {
               lastName: true,
             },
           },
+          externalMaintainer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              companyName: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
       });
@@ -84,6 +92,14 @@ describe("reportRepository", () => {
               username: true,
               firstName: true,
               lastName: true,
+            },
+          },
+          externalMaintainer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              companyName: true,
             },
           },
         },
@@ -110,6 +126,14 @@ describe("reportRepository", () => {
               username: true,
               firstName: true,
               lastName: true,
+            },
+          },
+          externalMaintainer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              companyName: true,
             },
           },
         },
@@ -140,6 +164,14 @@ describe("reportRepository", () => {
               lastName: true,
             },
           },
+          externalMaintainer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              companyName: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
       });
@@ -168,6 +200,14 @@ describe("reportRepository", () => {
               lastName: true,
             },
           },
+          externalMaintainer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              companyName: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
       });
@@ -192,6 +232,14 @@ describe("reportRepository", () => {
               username: true,
               firstName: true,
               lastName: true,
+            },
+          },
+          externalMaintainer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              companyName: true,
             },
           },
         },
@@ -226,6 +274,14 @@ describe("reportRepository", () => {
               username: true,
               firstName: true,
               lastName: true,
+            },
+          },
+          externalMaintainer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              companyName: true,
             },
           },
         },
@@ -539,6 +595,14 @@ describe("reportRepository", () => {
               lastName: true,
             },
           },
+          externalMaintainer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              companyName: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
       });
@@ -571,6 +635,14 @@ describe("reportRepository", () => {
               lastName: true,
             },
           },
+          externalMaintainer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              companyName: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
       });
@@ -591,6 +663,14 @@ describe("reportRepository", () => {
               username: true,
               firstName: true,
               lastName: true,
+            },
+          },
+          externalMaintainer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              companyName: true,
             },
           },
         },

@@ -647,7 +647,8 @@ export const TechnicalReportsPage: React.FC = () => {
                         </button>
                         <button
                           onClick={() => handleAddComment(report)}
-                          className="flex-1 rounded-xl bg-slate-600 hover:bg-slate-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                          disabled={report.status === "Resolved"}
+                          className="flex-1 rounded-xl bg-slate-600 hover:bg-slate-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <MessageSquare className="h-5 w-5" />
                           Internal Comments

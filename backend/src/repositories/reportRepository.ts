@@ -135,6 +135,14 @@ const findByStatus = async (status: ReportStatus) => {
           lastName: true,
         },
       },
+      externalMaintainer: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          companyName: true,
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });

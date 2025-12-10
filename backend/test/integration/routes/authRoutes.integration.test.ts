@@ -15,7 +15,9 @@ describe("AuthRoutes Integration Tests", () => {
 
   beforeEach(async () => {
     // cleanup DB per evitare conflitti unique
+    // Delete in correct order to respect foreign key constraints
     await prisma.report.deleteMany();
+    await prisma.comment.deleteMany();
     await prisma.user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.admin_user.deleteMany();
@@ -23,6 +25,7 @@ describe("AuthRoutes Integration Tests", () => {
 
   afterAll(async () => {
     await prisma.report.deleteMany();
+    await prisma.comment.deleteMany();
     await prisma.user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.admin_user.deleteMany();

@@ -337,6 +337,20 @@ const addCommentToReport = async (
     throw new Error("Report not found");
   }
 
+  // Check if report is RESOLVED - cannot add comments to resolved reports
+  if (report.status === ReportStatus.RESOLVED) {
+    throw new Error("Cannot add comments to resolved reports");
+  }
+
+  // Check if external maintainer can comment on this report
+  // External maintainers can only comment on reports assigned to them
+  if (authorType === "EXTERNAL_MAINTAINER") {
+    if (report.externalMaintainerId === null || report.externalMaintainerId !== authorId) {
+      throw new Error("You can only comment on reports assigned to yourself");
+    }
+  }
+  // Municipality users can always comment on reports they manage
+
   let municipality_user_id: number | null = null;
   let external_maintainer_id: number | null = null;
 

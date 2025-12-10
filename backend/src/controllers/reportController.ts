@@ -431,6 +431,22 @@ export const addCommentToReport = async (req: Request, res: Response) => {
       error instanceof Error
         ? error.message
         : "Failed to add comment to report";
+    
+    // Check for specific error messages
+    if (error instanceof Error && /resolved/i.test(error.message)) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: errorMessage,
+      });
+    }
+    
+    if (error instanceof Error && /only comment on reports assigned/i.test(error.message)) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: errorMessage,
+      });
+    }
+    
     const statusCode =
       error instanceof Error && /not found/i.test(error.message) ? 404 : 500;
     return res.status(statusCode).json({ error: errorMessage });

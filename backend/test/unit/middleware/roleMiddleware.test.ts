@@ -5,6 +5,7 @@ import {
   isMunicipality,
   isMunicipalityStrict,
   isExternalMaintainer,
+  isMunicipalityOrExternalMaintainer,
   hasRole,
 } from "@middlewares/roleMiddleware";
 
@@ -257,6 +258,72 @@ describe("Role Middlewares", () => {
       const res = makeRes();
 
       isExternalMaintainer(req, res as Response, makeNext);
+
+      expect(makeNext).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Authentication Error",
+        message: "User not authenticated",
+      });
+    });
+  });
+
+  describe("isMunicipalityOrExternalMaintainer", () => {
+    it("allows municipality user to proceed", () => {
+      const req = makeReq({ id: 1 }, "MUNICIPALITY");
+      const res = makeRes();
+
+      isMunicipalityOrExternalMaintainer(req, res as Response, makeNext);
+
+      expect(makeNext).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it("allows external maintainer user to proceed", () => {
+      const req = makeReq({ id: 1 }, "EXTERNAL_MAINTAINER");
+      const res = makeRes();
+
+      isMunicipalityOrExternalMaintainer(req, res as Response, makeNext);
+
+      expect(makeNext).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it("denies citizen user", () => {
+      const req = makeReq({ id: 1 }, "CITIZEN");
+      const res = makeRes();
+
+      isMunicipalityOrExternalMaintainer(req, res as Response, makeNext);
+
+      expect(makeNext).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Authorization Error",
+        message:
+          "Access denied. Municipality or External Maintainer role required.",
+      });
+    });
+
+    it("denies admin user", () => {
+      const req = makeReq({ id: 1 }, "ADMIN");
+      const res = makeRes();
+
+      isMunicipalityOrExternalMaintainer(req, res as Response, makeNext);
+
+      expect(makeNext).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Authorization Error",
+        message:
+          "Access denied. Municipality or External Maintainer role required.",
+      });
+    });
+
+    it("denies when user is not authenticated", () => {
+      const req = makeReq(undefined);
+      const res = makeRes();
+
+      isMunicipalityOrExternalMaintainer(req, res as Response, makeNext);
 
       expect(makeNext).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(401);

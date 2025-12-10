@@ -5,7 +5,7 @@ import {
   getReportById,
 } from "../../services/api";
 import type { Comment, CommentRequest } from "../../services/api";
-import { ReportModel } from "../../services/models";
+import { ReportModel, ReportStatus } from "../../services/models";
 import { useAuth } from "../../contexts/AuthContext";
 
 interface CommentsSectionProps {
@@ -152,14 +152,21 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ reportId }) => {
           >
             Add Comment <span className="text-red-500">*</span>
           </label>
+          {report.status === ReportStatus.RESOLVED && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg mb-2">
+              <p className="text-sm text-amber-800">
+                💤 This report is resolved. Comments cannot be added to completed reports.
+              </p>
+            </div>
+          )}
           <textarea
             id="new-comment"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Write an internal comment..."
-            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition resize-none"
+            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition resize-none disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
             rows={4}
-            disabled={submitting}
+            disabled={submitting || report.status === ReportStatus.RESOLVED}
           />
           <p className="text-xs text-slate-500 mt-1">
             Comments help track progress and communicate with team members.
@@ -167,8 +174,8 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ reportId }) => {
           <div className="flex justify-end mt-2">
             <button
               type="submit"
-              disabled={submitting || !newComment.trim()}
-              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:bg-indigo-300 transition-colors"
+              disabled={submitting || !newComment.trim() || report.status === ReportStatus.RESOLVED}
+              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-colors"
             >
               {submitting ? "Posting..." : "Post Comment"}
             </button>
