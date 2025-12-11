@@ -640,7 +640,8 @@ export const TechnicalReportsPage: React.FC = () => {
                       <div className="flex flex-col sm:flex-row gap-3">
                         <button
                           onClick={() => handleStatusChange(report)}
-                          className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                          disabled={report.status === "Resolved" || !!report.externalMaintainerId}
+                          className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Edit3 className="h-5 w-5" />
                           Update Status
