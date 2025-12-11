@@ -24,7 +24,7 @@ const DEFAULT_MUNICIPALITY_ROLES = [
 
 async function waitForDatabaseConnection(
   retries = 10,
-  delay = 2000,
+  delay = 2000
 ): Promise<boolean> {
   for (let i = 0; i < retries; i++) {
     try {
@@ -33,7 +33,7 @@ async function waitForDatabaseConnection(
       return true;
     } catch (err) {
       logWarn(
-        `Database not ready (${i + 1}/${retries}), retrying in ${delay}ms...`,
+        `Database not ready (${i + 1}/${retries}), retrying in ${delay}ms...`
       );
       await new Promise((res) => setTimeout(res, delay));
     }
@@ -44,14 +44,13 @@ async function waitForDatabaseConnection(
 }
 
 async function seedMunicipalityRoles(
-  municipality_roles: string[] = DEFAULT_MUNICIPALITY_ROLES,
+  municipality_roles: string[] = DEFAULT_MUNICIPALITY_ROLES
 ) {
   try {
     // ensure uniqueness and deterministic order
     Array.from(new Set(municipality_roles))
       .map((r) => r.trim())
       .filter((r) => r.length > 0)
-      .sort()
       .forEach(async (role) => {
         try {
           // create role via repository (repository should skip/handle existing entries or throw)
@@ -85,11 +84,10 @@ async function createAdminUserIfMissing(adminUser = DEFAULT_ADMIN) {
       adminUser.username,
       adminUser.passwordPlain,
       roleType.ADMIN,
-      { firstName: adminUser.firstName,
-         lastName: adminUser.lastName }
+      { firstName: adminUser.firstName, lastName: adminUser.lastName }
     );
     logInfo(
-      `Admin user created (username="${adminUser.username}", email="${adminUser.email}").`,
+      `Admin user created (username="${adminUser.username}", email="${adminUser.email}").`
     );
   } catch (err: any) {
     logError("Error creating admin user:", err?.message || err);

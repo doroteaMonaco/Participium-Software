@@ -1,0 +1,654 @@
+{
+  "municipality_role": [
+    {
+      "id": 1,
+      "name": "municipal public relations officer"
+    },
+    {
+      "id": 1,
+      "name": "municipal administrator"
+    },
+    {
+      "id": 1,
+      "name": "public works project manager"
+    },
+    {
+      "id": 1,
+      "name": "sanitation and waste management officer"
+    },
+    {
+      "id": 1,
+      "name": "environmental protection officer"
+    },
+    {
+      "id": 1,
+      "name": "traffic and mobility coordinator"
+    },
+    {
+      "id": 1,
+      "name": "parks and green spaces officer"
+    },
+    {
+      "id": 1,
+      "name": "urban planning specialist}"
+    }
+  ],
+  "admin_user": {
+    "username": "admin",
+    "email": "admin@participium.com",
+    "firstName": "Admin",
+    "lastName": "User",
+    "password": "admin"
+  },
+  "municipality_user": [
+    {
+      "username": "mario.rossi",
+      "email": "mario.rossi@comune.torino.it",
+      "firstName": "Mario",
+      "lastName": "Rossi",
+      "password": "password123",
+      "createdAt": "2025-04-18T19:46:17.375253Z",
+      "municipality_role_id": 1
+    },
+    {
+      "username": "luca.bianchi",
+      "email": "luca.bianchi@comune.torino.it",
+      "firstName": "Luca",
+      "lastName": "Bianchi",
+      "password": "password123",
+      "createdAt": "2025-06-25T19:46:17.375267Z",
+      "municipality_role_id": 2
+    },
+    {
+      "username": "giulia.verdi",
+      "email": "giulia.verdi@comune.torino.it",
+      "firstName": "Giulia",
+      "lastName": "Verdi",
+      "password": "password123",
+      "createdAt": "2025-06-25T19:46:17.375276Z",
+      "municipality_role_id": 3
+    },
+    {
+      "username": "anna.neri",
+      "email": "anna.neri@comune.torino.it",
+      "firstName": "Anna",
+      "lastName": "Neri",
+      "password": "password123",
+      "createdAt": "2025-08-01T19:46:17.375284Z",
+      "municipality_role_id": 4
+    },
+    {
+      "username": "paolo.gialli",
+      "email": "paolo.gialli@comune.torino.it",
+      "firstName": "Paolo",
+      "lastName": "Gialli",
+      "password": "password123",
+      "createdAt": "2025-06-03T19:46:17.375293Z",
+      "municipality_role_id": 5
+    },
+    {
+      "username": "elena.blu",
+      "email": "elena.blu@comune.torino.it",
+      "firstName": "Elena",
+      "lastName": "Blu",
+      "password": "password123",
+      "createdAt": "2025-07-31T19:46:17.375301Z",
+      "municipality_role_id": 6
+    },
+    {
+      "username": "davide.marroni",
+      "email": "davide.marroni@comune.torino.it",
+      "firstName": "Davide",
+      "lastName": "Marroni",
+      "password": "password123",
+      "createdAt": "2025-07-27T19:46:17.375309Z",
+      "municipality_role_id": 7
+    },
+    {
+      "username": "sara.viola",
+      "email": "sara.viola@comune.torino.it",
+      "firstName": "Sara",
+      "lastName": "Viola",
+      "password": "password123",
+      "createdAt": "2025-09-02T19:46:17.375317Z",
+      "municipality_role_id": 8
+    }
+  ],
+  "external_maintainer": [
+    {
+      "username": "enel_x_ops",
+      "email": "ops@enelx.it",
+      "firstName": "Enel",
+      "lastName": "X Operations",
+      "password": "password123",
+      "companyName": "Enel X",
+      "createdAt": "2025-05-24T19:46:17.375336Z",
+      "category": "PUBLIC_LIGHTING"
+    },
+    {
+      "username": "torino_strade",
+      "email": "manutenzione@torinostrade.it",
+      "firstName": "Torino",
+      "lastName": "Strade",
+      "password": "password123",
+      "companyName": "Torino Strade Srl",
+      "createdAt": "2025-05-24T19:46:17.375344Z",
+      "category": "ROADS_URBAN_FURNISHINGS"
+    }
+  ],
+  "user": [
+    {
+      "username": "cittadino_uno",
+      "email": "uno@test.com",
+      "firstName": "Marco",
+      "lastName": "Polo",
+      "password": "password123",
+      "createdAt": "2025-03-03T19:46:17.375364Z",
+      "profilePhoto": null,
+      "telegramUsername": "@cittadino_uno",
+      "notifications": true
+    },
+    {
+      "username": "cittadino_due",
+      "email": "due@test.com",
+      "firstName": "Francesca",
+      "lastName": "Rimini",
+      "password": "password123",
+      "createdAt": "2025-01-20T19:46:17.375374Z",
+      "profilePhoto": null,
+      "telegramUsername": "@cittadino_due",
+      "notifications": true
+    },
+    {
+      "username": "cittadino_tre",
+      "email": "tre@test.com",
+      "firstName": "Giovanni",
+      "lastName": "Storti",
+      "password": "password123",
+      "createdAt": "2025-03-31T19:46:17.375381Z",
+      "profilePhoto": null,
+      "telegramUsername": "@cittadino_tre",
+      "notifications": true
+    },
+    {
+      "username": "cittadino_quattro",
+      "email": "quattro@test.com",
+      "firstName": "Aldo",
+      "lastName": "Baglio",
+      "password": "password123",
+      "createdAt": "2024-12-13T19:46:17.375388Z",
+      "profilePhoto": null,
+      "telegramUsername": "@cittadino_quattro",
+      "notifications": true
+    },
+    {
+      "username": "cittadino_cinque",
+      "email": "cinque@test.com",
+      "firstName": "Giacomo",
+      "lastName": "Poretti",
+      "password": "password123",
+      "createdAt": "2025-02-15T19:46:17.375396Z",
+      "profilePhoto": null,
+      "telegramUsername": "@cittadino_cinque",
+      "notifications": true
+    }
+  ],
+  "report": [
+    {
+      "createdAt": "2025-11-20T19:46:17.375496Z",
+      "latitude": 45.0677551,
+      "longitude": 7.6824892,
+      "title": "Streetlight off",
+      "category": "PUBLIC_LIGHTING",
+      "description": "Detailed description of the issue regarding PUBLIC_LIGHTING on the street...",
+      "photos": [
+        "image.png",
+        "image.png"
+      ],
+      "status": "IN_PROGRESS",
+      "rejectionReason": null,
+      "assignedOffice": "public works project manager",
+      "anonymous": false,
+      "user_id": 4,
+      "assignedOfficerId": 3,
+      "externalMaintainerId": 1
+    },
+    {
+      "createdAt": "2025-10-31T19:46:17.375539Z",
+      "latitude": 45.0677551,
+      "longitude": 7.6924892,
+      "title": "Tall grass",
+      "category": "PUBLIC_GREEN_AREAS_PLAYGROUNDS",
+      "description": "Detailed description of the issue regarding PUBLIC_GREEN_AREAS_PLAYGROUNDS on the street...",
+      "photos": [
+        "image.png",
+        "image.png",
+        "image.png"
+      ],
+      "status": "RESOLVED",
+      "rejectionReason": null,
+      "assignedOffice": "parks and green spaces officer",
+      "anonymous": true,
+      "user_id": 5,
+      "assignedOfficerId": 7,
+      "externalMaintainerId": null
+    },
+    {
+      "createdAt": "2025-11-04T19:46:17.375564Z",
+      "latitude": 45.0677551,
+      "longitude": 7.7024892,
+      "title": "Intermittent streetlight",
+      "category": "PUBLIC_LIGHTING",
+      "description": "Detailed description of the issue regarding PUBLIC_LIGHTING on the street...",
+      "photos": [
+        "image.png",
+        "image.png",
+        "image.png"
+      ],
+      "status": "RESOLVED",
+      "rejectionReason": null,
+      "assignedOffice": "public works project manager",
+      "anonymous": false,
+      "user_id": 3,
+      "assignedOfficerId": 3,
+      "externalMaintainerId": 1
+    },
+    {
+      "createdAt": "2025-12-07T19:46:17.375586Z",
+      "latitude": 45.0677551,
+      "longitude": 7.7124892,
+      "title": "Water leak in the street",
+      "category": "WATER_SUPPLY_DRINKING_WATER",
+      "description": "Detailed description of the issue regarding WATER_SUPPLY_DRINKING_WATER on the street...",
+      "photos": [
+        "water_leak.png"
+      ],
+      "status": "REJECTED",
+      "rejectionReason": "Report not relevant or duplicate.",
+      "anonymous": false,
+      "user_id": 4
+    },
+    {
+      "createdAt": "2025-12-09T19:46:17.375608Z",
+      "latitude": 45.0677551,
+      "longitude": 7.7224892,
+      "title": "Unmarked step",
+      "category": "ARCHITECTURAL_BARRIERS",
+      "description": "Detailed description of the issue regarding ARCHITECTURAL_BARRIERS on the street...",
+      "photos": [
+        "image.png",
+        "image.png",
+        "image.png"
+      ],
+      "status": "ASSIGNED",
+      "rejectionReason": null,
+      "anonymous": true,
+      "user_id": 2,
+      "externalMaintainerId": null
+    },
+    {
+      "createdAt": "2025-12-04T19:46:17.375629Z",
+      "latitude": 45.0677551,
+      "longitude": 7.7324892,
+      "title": "Road surface damage",
+      "category": "ROADS_URBAN_FURNISHINGS",
+      "description": "Detailed description of the issue regarding ROADS_URBAN_FURNISHINGS on the street...",
+      "photos": [
+        "image.png",
+        "image.png"
+      ],
+      "status": "ASSIGNED",
+      "rejectionReason": null,
+      "anonymous": false,
+      "user_id": 3,
+      "externalMaintainerId": 2
+    },
+    {
+      "createdAt": "2025-12-06T19:46:17.375654Z",
+      "latitude": 45.0677551,
+      "longitude": 7.7424892,
+      "title": "Cloudy water",
+      "category": "WATER_SUPPLY_DRINKING_WATER",
+      "description": "Detailed description of the issue regarding WATER_SUPPLY_DRINKING_WATER on the street...",
+      "photos": [
+        "image.png"
+      ],
+      "status": "PENDING_APPROVAL",
+      "anonymous": false,
+      "user_id": 2
+    },
+    {
+      "createdAt": "2025-12-10T19:46:17.375674Z",
+      "latitude": 45.0677551,
+      "longitude": 7.7524892,
+      "title": "Deep pothole",
+      "category": "ROADS_URBAN_FURNISHINGS",
+      "description": "Detailed description of the issue regarding ROADS_URBAN_FURNISHINGS on the street...",
+      "photos": [
+        "deep_pothole_1.png",
+        "deep_pothole_2.png"
+      ],
+      "status": "PENDING_APPROVAL",
+      "anonymous": true,
+      "user_id": 3
+    },
+    {
+      "createdAt": "2025-10-30T19:46:17.375695Z",
+      "latitude": 45.0677551,
+      "longitude": 7.7624892,
+      "title": "Deep pothole",
+      "category": "ROADS_URBAN_FURNISHINGS",
+      "description": "Detailed description of the issue regarding ROADS_URBAN_FURNISHINGS on the street...",
+      "photos": [
+        "deep_pothole_1.png",
+        "deep_pothole_2.png"
+      ],
+      "status": "RESOLVED",
+      "rejectionReason": null,
+      "assignedOffice": "public works project manager",
+      "anonymous": false,
+      "user_id": 4,
+      "assignedOfficerId": 3,
+      "externalMaintainerId": 2
+    },
+    {
+      "createdAt": "2025-10-18T19:46:17.375718Z",
+      "latitude": 45.0677551,
+      "longitude": 7.7724892,
+      "title": "Missing disabled ramp",
+      "category": "ARCHITECTURAL_BARRIERS",
+      "description": "Detailed description of the issue regarding ARCHITECTURAL_BARRIERS on the street...",
+      "photos": [
+        "image.png",
+        "image.png"
+      ],
+      "status": "RESOLVED",
+      "rejectionReason": null,
+      "assignedOffice": "urban planning specialist",
+      "anonymous": false,
+      "user_id": 5,
+      "assignedOfficerId": 8,
+      "externalMaintainerId": null
+    },
+    {
+      "createdAt": "2025-12-05T19:46:17.375740Z",
+      "latitude": 45.0677551,
+      "longitude": 7.7824892,
+      "title": "Cloudy water",
+      "category": "WATER_SUPPLY_DRINKING_WATER",
+      "description": "Detailed description of the issue regarding WATER_SUPPLY_DRINKING_WATER on the street...",
+      "photos": [
+        "image.png",
+        "image.png"
+      ],
+      "status": "PENDING_APPROVAL",
+      "anonymous": true,
+      "user_id": 1
+    },
+    {
+      "createdAt": "2025-10-19T19:46:17.375759Z",
+      "latitude": 45.0677551,
+      "longitude": 7.7924892,
+      "title": "Nighttime noise disturbance",
+      "category": "OTHER",
+      "description": "Detailed description of the issue regarding OTHER on the street...",
+      "photos": [
+        "image.png",
+        "image.png"
+      ],
+      "status": "RESOLVED",
+      "rejectionReason": null,
+      "assignedOffice": "municipal administrator",
+      "anonymous": true,
+      "user_id": 2,
+      "assignedOfficerId": 2,
+      "externalMaintainerId": null
+    },
+    {
+      "createdAt": "2025-12-10T19:46:17.375780Z",
+      "latitude": 45.0677551,
+      "longitude": 7.8024892,
+      "title": "Cloudy water",
+      "category": "WATER_SUPPLY_DRINKING_WATER",
+      "description": "Detailed description of the issue regarding WATER_SUPPLY_DRINKING_WATER on the street...",
+      "photos": [
+        "image.png",
+        "image.png",
+        "image.png"
+      ],
+      "status": "SUSPENDED",
+      "rejectionReason": null,
+      "assignedOffice": "environmental protection officer",
+      "anonymous": true,
+      "user_id": 4,
+      "assignedOfficerId": 5,
+      "externalMaintainerId": null
+    },
+    {
+      "createdAt": "2025-12-10T19:46:17.375800Z",
+      "latitude": 45.0777551,
+      "longitude": 7.6824892,
+      "title": "Broken traffic light",
+      "category": "ROAD_SIGNS_TRAFFIC_LIGHTS",
+      "description": "Detailed description of the issue regarding ROAD_SIGNS_TRAFFIC_LIGHTS on the street...",
+      "photos": [
+        "image.png"
+      ],
+      "status": "SUSPENDED",
+      "rejectionReason": null,
+      "assignedOffice": "traffic and mobility coordinator",
+      "anonymous": true,
+      "user_id": 2,
+      "assignedOfficerId": 6,
+      "externalMaintainerId": null
+    },
+    {
+      "createdAt": "2025-12-07T19:46:17.375822Z",
+      "latitude": 45.0877551,
+      "longitude": 7.6824892,
+      "title": "Bad smell from the sewers",
+      "category": "SEWER_SYSTEM",
+      "description": "Detailed description of the issue regarding SEWER_SYSTEM on the street...",
+      "photos": [
+        "image.png"
+      ],
+      "status": "REJECTED",
+      "rejectionReason": "Segnalazione non pertinente o duplicata.",
+      "anonymous": true,
+      "user_id": 2
+    },
+    {
+      "createdAt": "2025-12-07T19:46:17.375842Z",
+      "latitude": 45.0977551,
+      "longitude": 7.6824892,
+      "title": "Detached sign",
+      "category": "ROAD_SIGNS_TRAFFIC_LIGHTS",
+      "description": "Detailed description of the issue regarding ROAD_SIGNS_TRAFFIC_LIGHTS on the street...",
+      "photos": [
+        "image.png"
+      ],
+      "status": "REJECTED",
+      "rejectionReason": "Segnalazione non pertinente o duplicata.",
+      "anonymous": true,
+      "user_id": 1
+    },
+    {
+      "createdAt": "2025-12-03T19:46:17.375865Z",
+      "latitude": 45.1077551,
+      "longitude": 7.6824892,
+      "title": "Abandoned bulky waste",
+      "category": "WASTE",
+      "description": "Detailed description of the issue regarding WASTE on the street...",
+      "photos": [
+        "image.png"
+      ],
+      "status": "REJECTED",
+      "rejectionReason": "Segnalazione non pertinente o duplicata.",
+      "anonymous": true,
+      "user_id": 4
+    },
+    {
+      "createdAt": "2025-11-23T19:46:17.375886Z",
+      "latitude": 45.1177551,
+      "longitude": 7.6824892,
+      "title": "Broken bench",
+      "category": "ROADS_URBAN_FURNISHINGS",
+      "description": "Detailed description of the issue regarding ROADS_URBAN_FURNISHINGS on the street...",
+      "photos": [
+        "image.png",
+        "image.png",
+        "image.png"
+      ],
+      "status": "IN_PROGRESS",
+      "rejectionReason": null,
+      "assignedOffice": "public works project manager",
+      "anonymous": true,
+      "user_id": 4,
+      "assignedOfficerId": 3,
+      "externalMaintainerId": 2
+    },
+    {
+      "createdAt": "2025-12-06T19:46:17.375909Z",
+      "latitude": 45.1277551,
+      "longitude": 7.6824892,
+      "title": "Missing bin",
+      "category": "WASTE",
+      "description": "Detailed description of the issue regarding WASTE on the street...",
+      "photos": [
+        "image.png"
+      ],
+      "status": "PENDING_APPROVAL",
+      "anonymous": false,
+      "user_id": 2
+    },
+    {
+      "createdAt": "2025-12-07T19:46:17.375932Z",
+      "latitude": 45.1377551,
+      "longitude": 7.6824892,
+      "title": "Abandoned bulky waste",
+      "category": "WASTE",
+      "description": "Detailed description of the issue regarding WASTE on the street...",
+      "photos": [
+        "image.png",
+        "image.png"
+      ],
+      "status": "ASSIGNED",
+      "rejectionReason": null,
+      "anonymous": true,
+      "user_id": 4,
+      "externalMaintainerId": null
+    }
+  ],
+  "comment": [
+    {
+      "reportId": 1,
+      "municipality_user_id": 3,
+      "external_maintainer_id": null,
+      "content": "Presa in carico, inviata squadra.",
+      "createdAt": "2025-11-18T19:46:17.375949Z",
+      "updatedAt": null
+    },
+    {
+      "reportId": 2,
+      "municipality_user_id": 7,
+      "external_maintainer_id": null,
+      "content": "Presa in carico, inviata squadra.",
+      "createdAt": "2025-10-29T19:46:17.375955Z",
+      "updatedAt": null
+    },
+    {
+      "reportId": 3,
+      "municipality_user_id": 3,
+      "external_maintainer_id": null,
+      "content": "Presa in carico, inviata squadra.",
+      "createdAt": "2025-11-02T19:46:17.375960Z",
+      "updatedAt": null
+    },
+    {
+      "reportId": 3,
+      "municipality_user_id": null,
+      "external_maintainer_id": 1,
+      "content": "Lavoro completato.",
+      "createdAt": "2025-10-31T19:46:17.375965Z",
+      "updatedAt": null
+    },
+    {
+      "reportId": 9,
+      "municipality_user_id": 3,
+      "external_maintainer_id": null,
+      "content": "Presa in carico, inviata squadra.",
+      "createdAt": "2025-10-28T19:46:17.375969Z",
+      "updatedAt": null
+    },
+    {
+      "reportId": 9,
+      "municipality_user_id": null,
+      "external_maintainer_id": 2,
+      "content": "Lavoro completato.",
+      "createdAt": "2025-10-26T19:46:17.375973Z",
+      "updatedAt": null
+    },
+    {
+      "reportId": 10,
+      "municipality_user_id": 8,
+      "external_maintainer_id": null,
+      "content": "Presa in carico, inviata squadra.",
+      "createdAt": "2025-10-16T19:46:17.375978Z",
+      "updatedAt": null
+    },
+    {
+      "reportId": 12,
+      "municipality_user_id": 2,
+      "external_maintainer_id": null,
+      "content": "Presa in carico, inviata squadra.",
+      "createdAt": "2025-10-17T19:46:17.375982Z",
+      "updatedAt": null
+    },
+    {
+      "reportId": 18,
+      "municipality_user_id": 3,
+      "external_maintainer_id": null,
+      "content": "Presa in carico, inviata squadra.",
+      "createdAt": "2025-11-21T19:46:17.375986Z",
+      "updatedAt": null
+    }
+  ],
+  "message": [
+    {
+      "title": "Segnalazione Rifiutata",
+      "content": "La tua segnalazione 'WATER_SUPPLY_DRINKING_WATER' è stata rifiutata.",
+      "sentAt": "2025-12-06T19:46:17.375596Z",
+      "readAt": null,
+      "user_id": 4,
+      "municipality_user_id": 1,
+      "sent_by_municipality": true
+    },
+    {
+      "title": "Segnalazione Rifiutata",
+      "content": "La tua segnalazione 'SEWER_SYSTEM' è stata rifiutata.",
+      "sentAt": "2025-12-06T19:46:17.375831Z",
+      "readAt": null,
+      "user_id": 2,
+      "municipality_user_id": 1,
+      "sent_by_municipality": true
+    },
+    {
+      "title": "Segnalazione Rifiutata",
+      "content": "La tua segnalazione 'ROAD_SIGNS_TRAFFIC_LIGHTS' è stata rifiutata.",
+      "sentAt": "2025-12-06T19:46:17.375852Z",
+      "readAt": null,
+      "user_id": 1,
+      "municipality_user_id": 1,
+      "sent_by_municipality": true
+    },
+    {
+      "title": "Segnalazione Rifiutata",
+      "content": "La tua segnalazione 'WASTE' è stata rifiutata.",
+      "sentAt": "2025-12-02T19:46:17.375874Z",
+      "readAt": null,
+      "user_id": 4,
+      "municipality_user_id": 1,
+      "sent_by_municipality": true
+    }
+  ]
+}
