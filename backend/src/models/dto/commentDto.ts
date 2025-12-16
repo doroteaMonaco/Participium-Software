@@ -1,6 +1,6 @@
 export type commentAuthorType = "MUNICIPALITY" | "EXTERNAL_MAINTAINER";
 
-export interface createCommentDto {
+export interface CreateCommentDto {
   reportId: number;
   authorId: number;
   authorType: commentAuthorType;

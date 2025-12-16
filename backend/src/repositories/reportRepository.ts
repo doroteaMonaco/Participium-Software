@@ -1,8 +1,6 @@
 import { prisma } from "@database";
 import { Report } from "@models/entities/report";
 import { ReportStatus } from "@models/enums";
-import { createCommentDto } from "@models/dto/commentDto";
-import { add } from "winston";
 
 type ReportStatusFilter = "ASSIGNED";
 
