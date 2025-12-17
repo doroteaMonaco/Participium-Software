@@ -1,10 +1,9 @@
 import reportRepository from "@repositories/reportRepository";
 import { userRepository } from "@repositories/userRepository";
 import { CreateReportDto, ReportDto } from "@dto/reportDto";
-import { createCommentDto, CommentDto } from "@models/dto/commentDto";
+import { CreateCommentDto, CommentDto } from "@models/dto/commentDto";
 import imageService from "@services/imageService";
-import { ReportStatus, roleType, Category } from "@models/enums";
-import { instanceOfExternalMaintainerUserDto } from "@models/dto/userDto";
+import { ReportStatus, Category } from "@models/enums";
 
 // Helper function to hide user info for anonymous reports
 const sanitizeReport = (report: any): ReportDto => {
@@ -272,16 +271,17 @@ const assignToExternalMaintainer = async (
   }
 
   // 2) Recupero tutti gli external maintainers con la stessa categoria
-  const allExternalMaintainers = await userRepository.findExternalMaintainersByCategory(
-    report.category as Category,
-  );
+  const allExternalMaintainers =
+    await userRepository.findExternalMaintainersByCategory(
+      report.category as Category,
+    );
 
   if (allExternalMaintainers.length === 0) {
     throw new Error(
       `No external maintainers available for category "${report.category}"`,
     );
   }
-  
+
   // 3) Per ognuno calcolo quanti report ha già assegnati
   const maintainersWithCounts = await Promise.all(
     allExternalMaintainers.map(async (em) => ({
@@ -291,17 +291,21 @@ const assignToExternalMaintainer = async (
   );
 
   // 4) Scelgo quello con meno report (in caso di parità, quello con id più basso – tie-breaker deterministico)
-  const chosen = maintainersWithCounts.reduce((best, current) => {
-    if (!best) return current;
-    if ((current.assignedReports ?? 0) < (best.assignedReports ?? 0)) return current;
-    if (
-      (current.assignedReports ?? 0) === (best.assignedReports ?? 0) &&
-      current.maintainer.id < best.maintainer.id
-    ) {
-      return current;
-    }
-    return best;
-  }, null as (typeof maintainersWithCounts)[number] | null);
+  const chosen = maintainersWithCounts.reduce(
+    (best, current) => {
+      if (!best) return current;
+      if ((current.assignedReports ?? 0) < (best.assignedReports ?? 0))
+        return current;
+      if (
+        (current.assignedReports ?? 0) === (best.assignedReports ?? 0) &&
+        current.maintainer.id < best.maintainer.id
+      ) {
+        return current;
+      }
+      return best;
+    },
+    null as (typeof maintainersWithCounts)[number] | null,
+  );
 
   if (!chosen) {
     throw new Error(
@@ -320,15 +324,14 @@ const assignToExternalMaintainer = async (
 const findReportsForExternalMaintainer = async (
   externalMaintainerId: number,
 ): Promise<ReportDto[]> => {
-  const reports = await reportRepository.findByExternalMaintainerId(
-    externalMaintainerId,
-  );
+  const reports =
+    await reportRepository.findByExternalMaintainerId(externalMaintainerId);
 
   return reports.map(sanitizeReport);
-}
+};
 
 const addCommentToReport = async (
-  dto: createCommentDto
+  dto: CreateCommentDto,
 ): Promise<CommentDto> => {
   const { reportId, authorId, authorType, content } = dto;
 
@@ -345,7 +348,10 @@ const addCommentToReport = async (
   // Check if external maintainer can comment on this report
   // External maintainers can only comment on reports assigned to them
   if (authorType === "EXTERNAL_MAINTAINER") {
-    if (report.externalMaintainerId === null || report.externalMaintainerId !== authorId) {
+    if (
+      report.externalMaintainerId === null ||
+      report.externalMaintainerId !== authorId
+    ) {
       throw new Error("You can only comment on reports assigned to yourself");
     }
   }
@@ -367,7 +373,7 @@ const addCommentToReport = async (
     content,
     municipality_user_id,
     external_maintainer_id,
-  })
+  });
 
   const result: CommentDto = {
     id: created.id,
@@ -377,13 +383,13 @@ const addCommentToReport = async (
     content: created.content,
     createdAt: created.createdAt,
     updatedAt: created.updatedAt,
-  }
+  };
 
   return result;
-}
+};
 
 const getCommentsOfAReportById = async (
-  reportId: number
+  reportId: number,
 ): Promise<CommentDto[]> => {
   const report = await reportRepository.findById(reportId);
   if (!report) {
@@ -401,7 +407,7 @@ const getCommentsOfAReportById = async (
     createdAt: comment.createdAt,
     updatedAt: comment.updatedAt,
   }));
-}
+};
 
 /**
  * Update the status of a report by an external maintainer.

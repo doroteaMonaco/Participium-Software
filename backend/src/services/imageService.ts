@@ -78,7 +78,9 @@ const persistImagesForReport = async (
     }
 
     let imageObject;
-    if (!imageDataString) {
+    if (imageDataString) {
+      imageObject = JSON.parse(imageDataString);
+    } else {
       // For testing or when Redis is not available, create dummy image
       console.warn(`Temporary image not found: ${tempKey}, creating dummy`);
       imageObject = {
@@ -86,8 +88,6 @@ const persistImagesForReport = async (
         mimetype: "image/jpeg",
         originalname: "dummy.jpg",
       };
-    } else {
-      imageObject = JSON.parse(imageDataString);
     }
     const buffer = Buffer.from(imageObject.buffer, "base64");
     const extension = imageObject.mimetype.split("/")[1] || "jpg";
@@ -283,6 +283,7 @@ const deleteImages = async (
       }
     } catch (err) {
       // La directory potrebbe non esistere o non essere vuota, ignora
+      console.warn(`Could not delete directory ${dirName}: ${err}`);
     }
   }
 };
