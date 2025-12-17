@@ -251,8 +251,6 @@ export const TechnicalReportsPage: React.FC = () => {
 
   const handleAddComment = (report: Report) => {
     setSelectedReport(report);
-    // setNewComment("");
-    // setShowCommentModal(true);
     setShowCommentsDrawer(true);
   };
 
@@ -710,7 +708,10 @@ export const TechnicalReportsPage: React.FC = () => {
       >
         {selectedReport && (
           <CommentsSection
-            reportId={parseInt(selectedReport.id.replace("RPT-", ""), 10)}
+            reportId={Number.parseInt(
+              selectedReport.id.replace("RPT-", ""),
+              10,
+            )}
           />
         )}
       </Drawer>

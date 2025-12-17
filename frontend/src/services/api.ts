@@ -90,8 +90,6 @@ export type ReportStatus =
   | "REJECTED"
   | "RESOLVED";
 
-export type ReportStatusFilter = ReportStatus;
-
 export interface ApproveReportRequest {
   status: Extract<ReportStatus, "ASSIGNED" | "REJECTED">;
   category?: string;
@@ -286,7 +284,7 @@ export const createReport = async (
  * @throws ApiError on failure
  */
 export const getReports = async (
-  statusFilter?: ReportStatusFilter,
+  statusFilter?: ReportStatus,
 ): Promise<Report[]> => {
   const response = await api.get("/reports", {
     params: statusFilter ? { status: statusFilter } : undefined,
