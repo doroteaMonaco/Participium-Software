@@ -15,4 +15,5 @@ export interface CommentDto {
   content: string;
   createdAt: Date;
   updatedAt: Date | null;
+  read: boolean;
 }

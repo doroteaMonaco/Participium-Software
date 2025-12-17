@@ -462,6 +462,13 @@ export const getCommentOfAReportById = async (req: Request, res: Response) => {
       });
     }
 
+    if (!req.role) {
+      return res.status(403).json({
+        error: "Authorization Error",
+        message: "User role not found",
+      });
+    }
+
     const reportId = Number.parseInt(req.params.report_id);
     if (Number.isNaN(reportId)) {
       return res.status(400).json({
@@ -470,7 +477,52 @@ export const getCommentOfAReportById = async (req: Request, res: Response) => {
       });
     }
 
-    const response = await reportService.getCommentsOfAReportById(reportId);
+    const response = await reportService.getCommentsOfAReportById(reportId, req.user.id, req.role);
+
+    if (!response) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Report not found",
+      });
+    }
+
+    return res.status(200).json(response);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to retrieve comments";
+    const statusCode =
+      error instanceof Error && /not found/i.test(error.message) ? 404 : 500;
+    return res.status(statusCode).json({ error: errorMessage });
+  }
+};
+
+export const getUnreadCommentOfAReportById = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Authentication Error",
+        message: "User not authenticated",
+      });
+    }
+
+      if (!req.role) {
+      return res.status(403).json({
+        error: "Authorization Error",
+        message: "User role not found",
+      });
+    }
+
+    const reportId = Number.parseInt(req.params.report_id);
+    if (Number.isNaN(reportId)) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid report id",
+      });
+    }
+
+    const response = await reportService.getUnreadCommentsOfAReportById(reportId, req.user.id, req.role);
 
     if (!response) {
       return res.status(404).json({
