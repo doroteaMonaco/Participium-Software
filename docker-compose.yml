@@ -43,6 +43,7 @@ services:
     ports:
       - "${BACKEND_PORT}:4000"
       - "${PRISMA_PORT}:5555"
+      - "8080:8080"
     networks:
       - participium-net
     volumes:

@@ -6,6 +6,8 @@ import imageService from "@services/imageService";
 import { ReportStatus, roleType, Category } from "@models/enums";
 import { instanceOfExternalMaintainerUserDto } from "@models/dto/userDto";
 
+import { sendMessageToUser } from "@services/websocketService";
+
 // Helper function to hide user info for anonymous reports
 const sanitizeReport = (report: any): ReportDto => {
   const sanitized = {
@@ -378,6 +380,26 @@ const addCommentToReport = async (
     createdAt: created.createdAt,
     updatedAt: created.updatedAt,
     read: created.read,
+  }
+
+  // Notify the other party via WebSocket
+  let recipientId: number | null = null;
+  let recipientRole: string | null = null;
+
+  if (authorType === "MUNICIPALITY") {
+    recipientId = report.externalMaintainerId;
+    recipientRole = roleType.EXTERNAL_MAINTAINER;
+  } else if (authorType === "EXTERNAL_MAINTAINER") {
+    recipientId = report.assignedOfficerId;
+    recipientRole = roleType.MUNICIPALITY;
+  }
+
+  // Ensure we don't send notification to the author themselves
+  if (recipientId && recipientRole) {
+    sendMessageToUser(recipientId, recipientRole, {
+      type: "NEW_COMMENT",
+      payload: result,
+    });
   }
 
   return result;
