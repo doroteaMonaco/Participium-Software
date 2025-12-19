@@ -3,6 +3,7 @@ import { CONFIG } from "@config";
 import { logError, logInfo } from "@services/loggingService";
 import { closeDatabase, initializeDatabase } from "@database";
 import { closeRedis, initializeRedis } from "@redis";
+import { startWebSocketServer, stopWebSocketServer } from "@services/websocketService";
 import { Server } from "node:http";
 
 let server: Server;
@@ -11,6 +12,7 @@ async function startServer() {
   try {
     await initializeDatabase();
     await initializeRedis();
+    startWebSocketServer();
     server = app.listen(CONFIG.APP_PORT, () => {
       logInfo(`Server running on http://${CONFIG.APP_HOST}:${CONFIG.APP_PORT}`);
       logInfo(
@@ -37,6 +39,7 @@ async function shutdown() {
   logInfo("Shutting down server...");
 
   await closeServer();
+  stopWebSocketServer();
   await closeDatabase();
   await closeRedis();
 

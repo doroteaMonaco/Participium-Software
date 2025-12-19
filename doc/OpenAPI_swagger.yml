@@ -476,6 +476,70 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+            
+  /reports/{id}/comments/unread:
+    get:
+      tags: [Reports]
+      summary: Get internal comments for a report unread by the user
+      description: >
+        Get internal comments for a report unread by the user by report ID
+        **Requires role: MUNICIPALITY_USER or EXTERNAL_MAINTAINER**.
+        Comments are not visible to citizens.
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: Report ID
+      responses:
+        '200':
+          description: OK - Comments successfully retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+        '400':
+          description: Bad Request - Invalid report ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Bad Request"
+                message: "Invalid report ID"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - You don't have municipality or external maintainer permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found - Report not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Not Found"
+                message: "Report not found"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
 
   /users:
@@ -1449,6 +1513,9 @@ components:
           type: string
           format: date-time
           example: "2025-11-05T10:15:00Z"
+        read:
+          type: boolean
+          example: false
       description: >
         Internal comment on a report. Exactly one between municipalityUserId and
         externalMaintainerId is non-null (the author of the comment).

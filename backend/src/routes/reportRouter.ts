@@ -9,6 +9,7 @@ import {
   getReportsForExternalMaintainer,
   addCommentToReport,
   getCommentOfAReportById,
+  getUnreadCommentOfAReportById
 } from "@controllers/reportController";
 import { isAuthenticated } from "@middlewares/authMiddleware";
 import {
@@ -73,5 +74,7 @@ router.post(
 )
 
 router.get("/:report_id/comments", isAuthenticated, isMunicipalityOrExternalMaintainer, getCommentOfAReportById)
+
+router.get("/:report_id/comments/unread", isAuthenticated, isMunicipalityOrExternalMaintainer, getUnreadCommentOfAReportById)
 
 export default router;

@@ -1,0 +1,111 @@
+asyncapi: 2.6.0
+info:
+  title: Participium WebSocket API
+  version: 0.1.0
+  description: Real-time communication for internal comments between Municipality and External Maintainers.
+
+servers:
+  development:
+    url: ws://localhost:8080
+    protocol: ws
+    description: Local development server
+    security:
+      - queryParamAuth: []
+
+channels:
+  /:
+    publish:
+      summary: Messages sent by the client to the server
+      message:
+        $ref: '#/components/messages/MarkCommentsAsRead'
+    subscribe:
+      summary: Messages sent by the server to the client
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Connected'
+          - $ref: '#/components/messages/NewComment'
+
+components:
+  securitySchemes:
+    queryParamAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Pass the JWT token as a query parameter named `token`.
+        Example: `ws://localhost:8080?token=eyJ...`
+
+  messages:
+    MarkCommentsAsRead:
+      name: MarkCommentsAsRead
+      title: Mark Comments as Read
+      summary: Sent by the client to mark all comments of a specific report as read.
+      payload:
+        type: object
+        required:
+          - type
+          - reportId
+        properties:
+          type:
+            type: string
+            const: MARK_COMMENTS_AS_READ
+          reportId:
+            type: integer
+            description: The ID of the report whose comments are being read.
+
+    Connected:
+      name: Connected
+      title: Connection Established
+      summary: Sent by the server immediately after a successful connection.
+      payload:
+        type: object
+        required:
+          - type
+          - message
+        properties:
+          type:
+            type: string
+            const: CONNECTED
+          message:
+            type: string
+            example: "Welcome to the Participium WebSocket Server!"
+
+    NewComment:
+      name: NewComment
+      title: New Comment Notification
+      summary: Sent by the server when a new comment is added to a report relevant to the user.
+      payload:
+        type: object
+        required:
+          - type
+          - payload
+        properties:
+          type:
+            type: string
+            const: NEW_COMMENT
+          payload:
+            $ref: '#/components/schemas/CommentDto'
+
+  schemas:
+    CommentDto:
+      type: object
+      properties:
+        id:
+          type: integer
+        reportId:
+          type: integer
+        municipality_user_id:
+          type: integer
+          nullable: true
+        external_maintainer_id:
+          type: integer
+          nullable: true
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        read:
+          type: boolean
