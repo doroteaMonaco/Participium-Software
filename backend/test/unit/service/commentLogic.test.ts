@@ -291,7 +291,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
       (repo as any).findById.mockResolvedValue(report);
       (repo as any).getCommentsByReportId.mockResolvedValue(comments);
 
-      const result = await reportService.getCommentsOfAReportById(5);
+      const result = await reportService.getCommentsOfAReportById(5, 7, "MUNICIPALITY");
 
       expect(result).toHaveLength(2);
       expect(result[0]).toHaveProperty("municipality_user_id", 7);
@@ -305,7 +305,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
       (repo as any).findById.mockResolvedValue(report);
       (repo as any).getCommentsByReportId.mockResolvedValue([]);
 
-      const result = await reportService.getCommentsOfAReportById(5);
+      const result = await reportService.getCommentsOfAReportById(5, 7, "MUNICIPALITY");
 
       expect(result).toEqual([]);
     });
@@ -313,7 +313,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
     it("throws error when trying to retrieve comments for non-existent report", async () => {
       (repo as any).findById.mockResolvedValue(null);
 
-      await expect(reportService.getCommentsOfAReportById(999)).rejects.toThrow(
+      await expect(reportService.getCommentsOfAReportById(999, 7, "MUNICIPALITY")).rejects.toThrow(
         /Report not found/i,
       );
     });
@@ -450,7 +450,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
       const allComments = [muniComment, emComment];
       (repo as any).getCommentsByReportId.mockResolvedValue(allComments);
 
-      const comments = await reportService.getCommentsOfAReportById(5);
+      const comments = await reportService.getCommentsOfAReportById(5, 7, "MUNICIPALITY");
 
       expect(comments).toHaveLength(2);
       expect(comments[0]).toHaveProperty("municipality_user_id", 7);
@@ -492,7 +492,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
       (repo as any).findById.mockResolvedValue(report);
       (repo as any).getCommentsByReportId.mockResolvedValue(comments);
 
-      const result = await reportService.getCommentsOfAReportById(5);
+      const result = await reportService.getCommentsOfAReportById(5, 7, "MUNICIPALITY");
 
       // Verify we can identify who said what
       expect(result.filter((c) => c.municipality_user_id === 7)).toHaveLength(2);
