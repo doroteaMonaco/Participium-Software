@@ -36,10 +36,10 @@ const NewReportPage: React.FC = () => {
       }
     };
 
-    window.addEventListener("reports:changed", handleReportCreated);
+    globalThis.window.addEventListener("reports:changed", handleReportCreated);
 
     return () => {
-      window.removeEventListener("reports:changed", handleReportCreated);
+      globalThis.window.removeEventListener("reports:changed", handleReportCreated);
     };
   }, []);
 

@@ -158,6 +158,81 @@ export const AdminExternalMaintainersPage: React.FC = () => {
     return cat ? cat.label : value;
   };
 
+  // Render content based on state
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
+          <Loader className="h-8 w-8 text-orange-600 mx-auto mb-3 animate-spin" />
+          <p className="text-slate-600">Loading external maintainers...</p>
+        </div>
+      );
+    }
+
+    if (filteredUsers.length === 0) {
+      return (
+        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+          <Wrench className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-600">
+            {searchQuery || filterCategory
+              ? "No maintainers found matching your filters."
+              : "No external maintainers yet. Add your first maintainer to get started."}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+        {filteredUsers.map((user, index) => (
+          <motion.div
+            key={user.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className="rounded-xl border-2 border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-orange-200 transition-all"
+          >
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-white font-bold text-sm">
+                  {(user.firstName?.[0] || user.username[0] || "E").toUpperCase()}
+                  {(user.lastName?.[0] || user.username[1] || "M").toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900">
+                    {user.firstName && user.lastName
+                      ? `${user.firstName} ${user.lastName}`
+                      : user.username}
+                  </h3>
+                  <p className="text-sm text-slate-600">@{user.username}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              <p className="text-sm text-slate-600">
+                <strong>Company:</strong> {user.companyName}
+              </p>
+              <p className="text-sm text-slate-600">
+                <strong>Email:</strong> {user.email}
+              </p>
+              <p className="text-sm text-slate-600">
+                <strong>Category:</strong>{" "}
+                <span className="inline-flex items-center rounded-lg px-2 py-1 text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200">
+                  {getCategoryLabel(user.category)}
+                </span>
+              </p>
+              <p className="text-sm text-slate-600">
+                <strong>Created:</strong>{" "}
+                {new Date(user.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    );
+  };
+
   // Filter users
   const filteredUsers = users.filter((user: DisplayUser) => {
     const matchesSearch =
@@ -281,70 +356,8 @@ export const AdminExternalMaintainersPage: React.FC = () => {
           </select>
         </div>
 
-        {/* Loading State */}
-        {loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
-            <Loader className="h-8 w-8 text-orange-600 mx-auto mb-3 animate-spin" />
-            <p className="text-slate-600">Loading external maintainers...</p>
-          </div>
-        ) : filteredUsers.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-            <Wrench className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-600">
-              {searchQuery || filterCategory
-                ? "No maintainers found matching your filters."
-                : "No external maintainers yet. Add your first maintainer to get started."}
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-            {filteredUsers.map((user, index) => (
-              <motion.div
-                key={user.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="rounded-xl border-2 border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-orange-200 transition-all"
-              >
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-white font-bold text-sm">
-                      {(user.firstName?.[0] || user.username[0] || "E").toUpperCase()}
-                      {(user.lastName?.[0] || user.username[1] || "M").toUpperCase()}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900">
-                        {user.firstName && user.lastName
-                          ? `${user.firstName} ${user.lastName}`
-                          : user.username}
-                      </h3>
-                      <p className="text-sm text-slate-600">@{user.username}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 mb-4">
-                  <p className="text-sm text-slate-600">
-                    <strong>Company:</strong> {user.companyName}
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    <strong>Email:</strong> {user.email}
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    <strong>Category:</strong>{" "}
-                    <span className="inline-flex items-center rounded-lg px-2 py-1 text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200">
-                      {getCategoryLabel(user.category)}
-                    </span>
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    <strong>Created:</strong>{" "}
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
+        {/* Content */}
+        {renderContent()}
       </div>
 
       {/* Add User Modal */}

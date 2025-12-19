@@ -38,19 +38,20 @@ const MapPage: React.FC = () => {
           return;
         }
       } catch (err) {
-        // fallback to refetch
+        // Ignore error and fall back to full refetch
+        console.warn("Failed to parse report event detail, refetching all reports");
       }
 
       fetchReports();
     };
 
-    window.addEventListener(
+    globalThis.window.addEventListener(
       "reports:changed",
       onReportsChanged as EventListener,
     );
 
     return () => {
-      window.removeEventListener(
+      globalThis.window.removeEventListener(
         "reports:changed",
         onReportsChanged as EventListener,
       );
