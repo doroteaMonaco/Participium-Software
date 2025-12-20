@@ -95,6 +95,167 @@ paths:
               example:
                 error: "Authentication Error"
                 message: "You must be logged in to logout"
+
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a new user
+      description: Create a new pending verification user account. A verification code will be sent via email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+      responses:
+        '201':
+          description: Created - Registration successful, verification code sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Verification code sent to your email"
+                  email:
+                    type: string
+                    format: email
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict - Username or email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Conflict Error"
+                message: "Username or email already exists"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/verify:
+    post:
+      tags: [Authentication]
+      summary: Verify registration with code
+      description: Confirm user registration using the verification code sent to their email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyRegistrationRequest'
+      responses:
+        '200':
+          description: OK - Account verified successfully
+          headers:
+            Set-Cookie:
+              description: Authentication cookie
+              schema:
+                type: string
+                example: "authToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoibXJvc3NpIiwiaWF0IjoxNjk5MDAwMDAwLCJleHAiOjE2OTkwODY0MDB9"
+            Location:
+                description: URL of the reserved area for submitting reports
+                schema:
+                  type: string
+                  example: /reports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad Request - Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Bad Request"
+                message: "Verification code is invalid or expired"
+        '404':
+          description: Not Found - No pending registration found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Not Found"
+                message: "No pending registration found for this email"
+        '429':
+          description: Too Many Requests - Too many verification attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Too Many Requests"
+                message: "Too many failed attempts. Please request a new code."
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/resend-code:
+    post:
+      tags: [Authentication]
+      summary: Resend verification code
+      description: Generate and resend a new verification code. Rate limited to 3 resends per hour.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendCodeRequest'
+      responses:
+        '200':
+          description: OK - New verification code sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Verification code sent to your email"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found - No pending registration found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too Many Requests - Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Too Many Requests"
+                message: "Rate limit exceeded. Please wait before requesting a new code."
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /reports:
     # create report endpoint
     post:
@@ -1393,6 +1554,31 @@ components:
         name:
           type: string
           example: "VALIDATOR"
+
+    VerifyRegistrationRequest:
+      type: object
+      required:
+        - emailOrUsername
+        - code
+      properties:
+        emailOrUsername:
+          type: string
+          example: "mrossi@example.com"
+          description: Email or username of the pending user
+        code:
+          type: string
+          example: "123456"
+          description: 6-digit verification code sent to email
+
+    ResendCodeRequest:
+      type: object
+      required:
+        - emailOrUsername
+      properties:
+        emailOrUsername:
+          type: string
+          example: "mrossi@example.com"
+          description: Email or username of the pending user
 
     AdminUser:
       type: object
