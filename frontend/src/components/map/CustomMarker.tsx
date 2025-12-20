@@ -6,10 +6,10 @@ import * as turf from "@turf/turf";
 import ReportForm from "src/components/report/ReportForm";
 
 type Props = {
-  geoJsonData: GeoJSON.GeoJsonObject;
-  draggable?: boolean;
-  location?: boolean;
-  onOutOfBounds?: () => void;
+  readonly geoJsonData: GeoJSON.GeoJsonObject;
+  readonly draggable?: boolean;
+  readonly location?: boolean;
+  readonly onOutOfBounds?: () => void;
 };
 
 function CustomMarker({
@@ -37,7 +37,7 @@ function CustomMarker({
       return (geoJsonData as GeoJSON.FeatureCollection).features.some(
         (feature) => {
           try {
-            return turf.booleanPointInPolygon(point, feature as any);
+            return turf.booleanPointInPolygon(point, feature as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>);
           } catch (error) {
             console.error("Error checking feature:", error);
             return false;
@@ -167,7 +167,7 @@ function CustomMarker({
     setPosition(null);
     try {
       const ev = new CustomEvent("reports:changed", { detail: createdReport });
-      window.dispatchEvent(ev);
+      globalThis.dispatchEvent(ev);
     } catch {}
   };
 
