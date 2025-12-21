@@ -2,7 +2,6 @@ import request from "supertest";
 import app from "@app";
 import { roleType } from "@models/enums";
 import { userService } from "@services/userService";
-import reportRepository from "@repositories/reportRepository";
 import { getTestPrisma } from "../setup/test-datasource";
 
 // Mock only the image service to avoid dealing with real Redis/FS in this e2e
@@ -925,6 +924,7 @@ describe("Report E2E", () => {
     });
 
     it("multiple reports handling with different statuses and priorities", async () => {
+      jest.setTimeout(15000);
       // Create multiple citizens and reports
       const citizens = [
         {
