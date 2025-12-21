@@ -386,13 +386,16 @@ const addCommentToReport = async (
     content: created.content,
     createdAt: created.createdAt,
     updatedAt: created.updatedAt,
+    read: created.read,
   }
 
   return result;
 };
 
 const getCommentsOfAReportById = async (
-  reportId: number
+  reportId: number,
+  userId: number,
+  role: string
 ): Promise<CommentDto[]> => {
   const report = await reportRepository.findById(reportId);
   if (!report) {

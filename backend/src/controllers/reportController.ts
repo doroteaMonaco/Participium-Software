@@ -46,6 +46,9 @@ export const getReports = async (_req: Request, res: Response) => {
       userId = _req.user.id;
       // If status=ASSIGNED is passed, also filter by ASSIGNED (which findAll already does with userId)
       // If no status is passed, show all their reports + ASSIGNED from others
+      if (status === "ASSIGNED") {
+        statusFilter = "ASSIGNED";
+      }
     }
     // ADMIN/MUNICIPALITY: Can see all reports, optionally filtered by status
     else if (
