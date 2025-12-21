@@ -647,13 +647,13 @@ describe("Report E2E", () => {
         .send({})
         .expect(200);
 
-      // Start work (IN_PROGRESS)
+      // Start work (IN_PROGRESS) - external maintainer updates status
       await emAgent
         .post(`/api/reports/${created.id}`)
         .send({ status: "IN_PROGRESS" })
         .expect(204);
 
-      // Resolve
+      // Resolve - external maintainer resolves
       await emAgent
         .post(`/api/reports/${created.id}`)
         .send({ status: "RESOLVED" })
