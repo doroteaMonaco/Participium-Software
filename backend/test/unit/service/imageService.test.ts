@@ -351,6 +351,7 @@ describe("ImageService", () => {
       );
       (require("fs").promises.readdir as jest.Mock).mockResolvedValue([
         "user_42.png",
+        "other_file.txt",
       ]);
       (require("fs").promises.unlink as jest.Mock).mockResolvedValue(undefined);
       (require("fs").promises.writeFile as jest.Mock).mockResolvedValue(
@@ -362,7 +363,9 @@ describe("ImageService", () => {
 
       await imageService.persistUserImage("temp:image:uuid", 42);
 
-      expect(require("fs").promises.unlink).toHaveBeenCalled();
+      expect(require("fs").promises.unlink).toHaveBeenCalledWith(
+        expect.stringContaining("user_42.png"),
+      );
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining("Deleted old profile image"),
       );
@@ -375,6 +378,30 @@ describe("ImageService", () => {
       await expect(
         imageService.persistUserImage("temp:image:uuid", 42),
       ).rejects.toThrow("Temporary image not found");
+    });
+
+    it("should handle readdir error gracefully", async () => {
+      (require("@redis").redisClient.get as jest.Mock).mockResolvedValue(
+        JSON.stringify({
+          buffer: "dGVzdF9kYXRh",
+          mimetype: "image/jpeg",
+          originalname: "test.jpg",
+        }),
+      );
+      (require("fs").promises.readdir as jest.Mock).mockRejectedValue(
+        new Error("Permission denied"),
+      );
+      (require("fs").promises.writeFile as jest.Mock).mockResolvedValue(
+        undefined,
+      );
+      (require("@redis").redisClient.set as jest.Mock).mockResolvedValue("OK");
+      (require("@redis").redisClient.del as jest.Mock).mockResolvedValue(1);
+
+      const result = await imageService.persistUserImage("temp:image:uuid", 42);
+
+      expect(result).toBe("user_42.jpeg");
+      expect(require("fs").promises.writeFile).toHaveBeenCalled();
+      // Old image file deletion is skipped when readdir fails
     });
   });
 

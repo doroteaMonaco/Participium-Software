@@ -52,6 +52,15 @@ jest.mock("@controllers/reportController", () => ({
       reportId: req.params.report_id,
     }),
   ),
+  getUnreadCommentOfAReportById: jest.fn((req: Request, res: Response) =>
+    res.json({
+      route: "getUnreadCommentOfAReportById",
+      reportId: req.params.report_id,
+    }),
+  ),
+  deleteReport: jest.fn((req: Request, res: Response) =>
+    res.status(204).send(),
+  ),
 }));
 
 jest.mock("@middlewares/authMiddleware", () => ({

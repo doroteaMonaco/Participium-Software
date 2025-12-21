@@ -8,6 +8,8 @@ jest.mock("@repositories/reportRepository", () => {
     findById: jest.fn(),
     addCommentToReport: jest.fn(),
     getCommentsByReportId: jest.fn(),
+    markExternalMaintainerCommentsAsRead: jest.fn(),
+    markMunicipalityCommentsAsRead: jest.fn(),
   };
   return { __esModule: true, default: mRepo };
 });
@@ -266,7 +268,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
 
   describe("Retrieving Comments", () => {
     it("retrieves all comments for a report regardless of author type", async () => {
-      const report = { id: 5 };
+      const report = { id: 5, assignedOfficerId: 7, externalMaintainerId: 3 };
       const comments = [
         {
           id: 1,
@@ -300,7 +302,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
     });
 
     it("returns empty array when report has no comments", async () => {
-      const report = { id: 5 };
+      const report = { id: 5, assignedOfficerId: 7, externalMaintainerId: 3 };
 
       (repo as any).findById.mockResolvedValue(report);
       (repo as any).getCommentsByReportId.mockResolvedValue([]);
@@ -398,6 +400,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
       const report = {
         id: 5,
         status: ReportStatus.IN_PROGRESS,
+        assignedOfficerId: 7,
         externalMaintainerId: 3,
       };
 
@@ -458,7 +461,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
     });
 
     it("tracks who commented in comments history", async () => {
-      const report = { id: 5, status: ReportStatus.IN_PROGRESS };
+      const report = { id: 5, status: ReportStatus.IN_PROGRESS, assignedOfficerId: 7, externalMaintainerId: 3 };
       const comments = [
         {
           id: 1,

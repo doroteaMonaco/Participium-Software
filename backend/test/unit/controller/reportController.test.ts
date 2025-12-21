@@ -50,12 +50,14 @@ type ServiceMock = {
   findByStatus: jest.Mock;
   submitReport: jest.Mock;
   updateReportStatus: jest.Mock;
+  updateReportStatusByExternalMaintainer: jest.Mock;
   deleteReport: jest.Mock;
   findAssignedReportsForOfficer: jest.Mock;
   assignToExternalMaintainer: jest.Mock;
   findReportsForExternalMaintainer: jest.Mock;
   addCommentToReport: jest.Mock;
   getCommentsOfAReportById: jest.Mock;
+  getUnreadCommentsOfAReportById: jest.Mock;
 };
 type ImageMock = {
   storeTemporaryImages: jest.Mock;
@@ -98,6 +100,24 @@ describe("reportController", () => {
 
   // -------- getReports --------
   describe("getReports", () => {
+    it("returns 401 when user is not authenticated", async () => {
+      const req = {
+        query: {},
+        user: null,
+        role: "CITIZEN",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getReports(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Authentication Error",
+        message: "User not authenticated",
+      });
+      expect(svc.findAll).not.toHaveBeenCalled();
+    });
+
     it("returns all reports (200 by default) via res.json", async () => {
       const reports = [makeReport({ id: 2 }), makeReport({ id: 1 })];
       svc.findAll.mockResolvedValue(reports);
@@ -296,6 +316,17 @@ describe("reportController", () => {
 
   // -------- getReportById --------
   describe("getReportById", () => {
+    it("returns 400 when report ID is invalid", async () => {
+      const req = { params: { id: "invalid" } } as unknown as Request;
+      const res = makeRes();
+
+      await getReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: "Invalid report ID" });
+      expect(svc.findById).not.toHaveBeenCalled();
+    });
+
     it("returns the report when found", async () => {
       const report = makeReport({ id: 42 });
       svc.findById.mockResolvedValue(report);

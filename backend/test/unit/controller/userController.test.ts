@@ -31,6 +31,7 @@ import { Request } from "express";
 import { userController } from "@controllers/userController";
 import { roleType } from "@models/enums";
 import { NotFoundError } from "@errors/NotFoundError";
+import { BadRequestError } from "@errors/BadRequestError";
 import { userService } from "@services/userService";
 import { authService } from "@services/authService";
 import imageService from "@services/imageService";
@@ -219,6 +220,24 @@ describe("userController", () => {
       expect(userService.createMunicipalityUser).not.toHaveBeenCalled();
     });
 
+    it("returns 400 when service throws BadRequestError", async () => {
+      const payload = makeUser();
+      const req: any = { body: { ...payload, municipality_role_id } };
+      const res = makeRes();
+
+      (userService.createMunicipalityUser as jest.Mock).mockRejectedValue(
+        new BadRequestError("Invalid data"),
+      );
+
+      await userController.createMunicipalityUser(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Bad Request",
+        message: "Invalid data",
+      });
+    });
+
     it("returns 409 when email or username is already in use", async () => {
       const payload = makeUser();
       const req: any = { body: { ...payload, municipality_role_id } };
@@ -348,6 +367,26 @@ describe("userController", () => {
       );
     });
 
+    it("returns 400 when service throws BadRequestError", async () => {
+      const req = {
+        params: { id: "7" },
+        body: { role: roleType.CITIZEN },
+      } as any;
+      const res = makeRes();
+
+      (userService.getUserById as jest.Mock).mockRejectedValue(
+        new BadRequestError("Invalid role"),
+      );
+
+      await userController.getUserById(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Bad Request",
+        message: "Invalid role",
+      });
+    });
+
     it("returns 200 with user when found", async () => {
       const req = {
         params: { id: "7" },
@@ -416,6 +455,46 @@ describe("userController", () => {
       expect(userService.deleteUser).toHaveBeenCalledWith(3, roleType.CITIZEN);
       expect(res.status).toHaveBeenCalledWith(204);
       expect(res.send).toHaveBeenCalled();
+    });
+
+    it("returns 400 when service throws BadRequestError", async () => {
+      const req = {
+        params: { id: "9" },
+        body: { role: roleType.CITIZEN },
+      } as any;
+      const res = makeRes();
+
+      (userService.deleteUser as jest.Mock).mockRejectedValue(
+        new BadRequestError("Invalid role"),
+      );
+
+      await userController.deleteUser(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Bad Request",
+        message: "Invalid role",
+      });
+    });
+
+    it("returns 404 when service throws NotFoundError", async () => {
+      const req = {
+        params: { id: "9" },
+        body: { role: roleType.CITIZEN },
+      } as any;
+      const res = makeRes();
+
+      (userService.deleteUser as jest.Mock).mockRejectedValue(
+        new NotFoundError("User not found"),
+      );
+
+      await userController.deleteUser(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Not Found",
+        message: "User not found",
+      });
     });
 
     it('returns 404 when service throws "User not found"', async () => {
@@ -543,6 +622,22 @@ describe("userController", () => {
           error: "Bad Request",
         }),
       );
+      expect(
+        userService.updateCitizenProfile as jest.Mock,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("returns 401 when user is not authenticated", async () => {
+      const req: any = { user: null, body: { telegramUsername: "test" }, file: undefined };
+      const res = makeRes();
+
+      await userController.updateCitizenProfile(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Authentication Error",
+        message: "User not authenticated",
+      });
       expect(
         userService.updateCitizenProfile as jest.Mock,
       ).not.toHaveBeenCalled();

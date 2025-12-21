@@ -11,6 +11,8 @@ jest.mock("@repositories/reportRepository", () => {
     deleteById: jest.fn(),
     addCommentToReport: jest.fn(),
     getCommentsByReportId: jest.fn(),
+    markMunicipalityCommentsAsRead: jest.fn(),
+    markExternalMaintainerCommentsAsRead: jest.fn(),
   };
   return { __esModule: true, default: mRepo };
 });
@@ -786,17 +788,145 @@ describe("reportService", () => {
           updatedAt: new Date(),
         },
       ];
-      (repo as any).findById.mockResolvedValue({ id: 5 });
+      (repo as any).findById.mockResolvedValue({ id: 5, assignedOfficerId: 2 });
       (repo as any).getCommentsByReportId.mockResolvedValue(rawComments);
+      (repo as any).markMunicipalityCommentsAsRead.mockResolvedValue(undefined);
 
       const res =
         await require("@services/reportService").default.getCommentsOfAReportById(
           5,
+          2,
+          "MUNICIPALITY",
         );
 
       expect((repo as any).getCommentsByReportId).toHaveBeenCalledWith(5);
       expect(Array.isArray(res)).toBe(true);
       expect(res[0]).toHaveProperty("content", "c1");
+    });
+
+    it("getCommentsOfAReportById throws for invalid role", async () => {
+      (repo as any).findById.mockResolvedValue({ id: 5, assignedOfficerId: 2 });
+
+      await expect(
+        require("@services/reportService").default.getCommentsOfAReportById(
+          5,
+          2,
+          "INVALID_ROLE",
+        ),
+      ).rejects.toThrow("Invalid user role");
+    });
+
+    it("getCommentsOfAReportById throws for unauthorized MUNICIPALITY user", async () => {
+      (repo as any).findById.mockResolvedValue({ id: 5, assignedOfficerId: 2 });
+
+      await expect(
+        require("@services/reportService").default.getCommentsOfAReportById(
+          5,
+          999,
+          "MUNICIPALITY",
+        ),
+      ).rejects.toThrow("not authorized");
+    });
+
+    it("getCommentsOfAReportById throws for unauthorized EXTERNAL_MAINTAINER", async () => {
+      (repo as any).findById.mockResolvedValue({ id: 5, externalMaintainerId: 10 });
+
+      await expect(
+        require("@services/reportService").default.getCommentsOfAReportById(
+          5,
+          999,
+          "EXTERNAL_MAINTAINER",
+        ),
+      ).rejects.toThrow("not authorized");
+    });
+
+    it("getUnreadCommentsOfAReportById returns unread comments for MUNICIPALITY", async () => {
+      const unreadComments = [
+        {
+          id: 1,
+          reportId: 5,
+          content: "em comment",
+          municipality_user_id: null,
+          external_maintainer_id: 10,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+      (repo as any).findById.mockResolvedValue({ id: 5, assignedOfficerId: 2 });
+      (repo as any).getMunicipalityUserUnreadCommentsByReportId = jest.fn().mockResolvedValue(unreadComments);
+      (repo as any).markExternalMaintainerCommentsAsRead = jest.fn().mockResolvedValue(undefined);
+
+      const res = await require("@services/reportService").default.getUnreadCommentsOfAReportById(
+        5,
+        2,
+        "MUNICIPALITY",
+      );
+
+      expect((repo as any).getMunicipalityUserUnreadCommentsByReportId).toHaveBeenCalledWith(5);
+      expect(Array.isArray(res)).toBe(true);
+      expect(res.length).toBeGreaterThan(0);
+    });
+
+    it("getUnreadCommentsOfAReportById returns unread comments for EXTERNAL_MAINTAINER", async () => {
+      const unreadComments = [
+        {
+          id: 2,
+          reportId: 5,
+          content: "muni comment",
+          municipality_user_id: 3,
+          external_maintainer_id: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+      (repo as any).findById.mockResolvedValue({ id: 5, externalMaintainerId: 10 });
+      (repo as any).getExternalMaintainerUnreadCommentsByReportId = jest.fn().mockResolvedValue(unreadComments);
+      (repo as any).markMunicipalityCommentsAsRead = jest.fn().mockResolvedValue(undefined);
+
+      const res = await require("@services/reportService").default.getUnreadCommentsOfAReportById(
+        5,
+        10,
+        "EXTERNAL_MAINTAINER",
+      );
+
+      expect((repo as any).getExternalMaintainerUnreadCommentsByReportId).toHaveBeenCalledWith(5);
+      expect(Array.isArray(res)).toBe(true);
+    });
+
+    it("getUnreadCommentsOfAReportById throws for unauthorized MUNICIPALITY user", async () => {
+      (repo as any).findById.mockResolvedValue({ id: 5, assignedOfficerId: 2 });
+
+      await expect(
+        require("@services/reportService").default.getUnreadCommentsOfAReportById(
+          5,
+          999,
+          "MUNICIPALITY",
+        ),
+      ).rejects.toThrow("not authorized");
+    });
+
+    it("getUnreadCommentsOfAReportById throws for unauthorized EXTERNAL_MAINTAINER", async () => {
+      (repo as any).findById.mockResolvedValue({ id: 5, externalMaintainerId: 10 });
+
+      await expect(
+        require("@services/reportService").default.getUnreadCommentsOfAReportById(
+          5,
+          999,
+          "EXTERNAL_MAINTAINER",
+        ),
+      ).rejects.toThrow("not authorized");
+    });
+
+    it("getUnreadCommentsOfAReportById throws for invalid role", async () => {
+      (repo as any).findById.mockResolvedValue({ id: 5, assignedOfficerId: 2 });
+
+      await expect(
+        require("@services/reportService").default.getUnreadCommentsOfAReportById(
+          5,
+          2,
+          "INVALID_ROLE",
+        ),
+      ).rejects.toThrow("Invalid user role");
     });
   });
 

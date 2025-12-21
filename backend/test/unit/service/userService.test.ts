@@ -80,9 +80,7 @@ describe("userService", () => {
     };
 
     it("throws if email is already in use", async () => {
-      repo.findUserByEmail.mockRejectedValue(
-        new Error("Email is already in use"),
-      );
+      repo.findUserByEmail.mockResolvedValue(makeUser());
 
       await expect(userService.registerUser(mockUserData)).rejects.toThrow(
         "Email is already in use",
@@ -148,6 +146,31 @@ describe("userService", () => {
           firstName: mockUserData.firstName,
           lastName: mockUserData.lastName,
         },
+      );
+      expect(res).toBe(created);
+    });
+
+    it("creates user without firstName and lastName", async () => {
+      const userDataNoNames: CreateBaseUserDto = {
+        email: "nonames@example.com",
+        username: "nonames",
+        password: "p",
+      };
+      repo.findUserByEmail.mockResolvedValue(null);
+      repo.findUserByUsername.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue("h-pass");
+
+      const created = makeUser({ email: "nonames@example.com", username: "nonames", password: "h-pass", id: 10 });
+      repo.createUser.mockResolvedValue(created);
+
+      const res = await userService.registerUser(userDataNoNames);
+
+      expect(repo.createUser).toHaveBeenCalledWith(
+        userDataNoNames.email,
+        userDataNoNames.username,
+        "h-pass",
+        roleType.CITIZEN,
+        {},
       );
       expect(res).toBe(created);
     });
