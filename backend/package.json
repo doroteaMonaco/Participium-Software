@@ -15,6 +15,7 @@
     "init-db": "npm run prisma && ts-node-dev -r tsconfig-paths/register scripts/init-db.ts",
     "test-unit": "jest --runInBand --selectProjects unit",
     "test-integration": "dotenv -e .env.test -- jest --runInBand --selectProjects integration",
+    "test-e2e": "dotenv -e .env.test -- jest --runInBand --selectProjects e2e",
     "test": "dotenv -e .env.test -- jest --runInBand",
     "test-coverage": "npm run test -- --coverage"
   },

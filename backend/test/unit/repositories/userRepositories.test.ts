@@ -306,6 +306,7 @@ describe("userRepository", () => {
         }),
       );
       expect(res).toBeDefined();
+      expect(res.length).toBe(2);
     });
 
     it("returns empty array if no user", async () => {

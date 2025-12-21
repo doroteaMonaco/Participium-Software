@@ -48,10 +48,21 @@ const integration = {
   ...base_config,
   displayName: "integration",
   testMatch: ["**/integration/**/*.integration.test.ts"],
+  globalSetup: "<rootDir>/test/setup/globalSetup.ts",
+  globalTeardown: "<rootDir>/test/setup/globalTeardown.ts",
+};
+
+const e2e = {
+  ...base_config,
+  displayName: "e2e",
+  testMatch: ["**/e2e/**/*.e2e.test.ts"],
+  globalSetup: "<rootDir>/test/setup/globalSetup.ts",
+  globalTeardown: "<rootDir>/test/setup/globalTeardown.ts",
 };
 
 const config = {
-  projects: [unit, integration],
+  projects: [unit, integration, e2e],
+  maxWorkers: 1,
 };
 
 export default config;
