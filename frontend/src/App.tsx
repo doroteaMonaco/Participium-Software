@@ -15,6 +15,7 @@ import MaintainerReportsPage from "./pages/MaintainerDashboard/MaintainerReports
 import { NavBar } from "src/components/Navbar";
 import { Footer } from "src/components/Footer";
 import { AuthProvider } from "src/contexts/AuthContext";
+import { NotificationProvider } from "src/contexts/NotificationContext";
 import { ProtectedRoute } from "src/components/ProtectedRoute";
 
 import LandingPage from "src/pages/LandingPage";
@@ -31,9 +32,10 @@ import { ExternalMaintainerDashboardLayout } from "./components/dashboard/Extern
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="min-h-screen bg-white">
-          <Routes>
+      <NotificationProvider>
+        <Router>
+          <div className="min-h-screen bg-white">
+            <Routes>
             {/* User Dashboard routes - protected, CITIZEN role */}
             <Route
               path="/dashboard"
@@ -188,6 +190,7 @@ function App() {
           </Routes>
         </div>
       </Router>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

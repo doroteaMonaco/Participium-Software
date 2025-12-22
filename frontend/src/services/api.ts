@@ -526,4 +526,28 @@ export const addReportComment = async (
   return response.data;
 };
 
+/**
+ * Get unread comments for a report
+ * Requires: MUNICIPALITY_USER or EXTERNAL_MAINTAINER role
+ * @param reportId Report ID
+ * @returns List of unread comments
+ * @throws ApiError on failure
+ */
+export const getUnreadComments = async (
+  reportId: number,
+): Promise<Comment[]> => {
+  const response = await api.get(`/reports/${reportId}/comments/unread`);
+  return response.data;
+};
+
+/**
+ * Mark comments as read for a report
+ * Requires: MUNICIPALITY_USER or EXTERNAL_MAINTAINER role
+ * @param reportId Report ID
+ * @throws ApiError on failure
+ */
+export const markCommentsAsRead = async (reportId: number): Promise<void> => {
+  await api.patch(`/reports/${reportId}/comments/read`);
+};
+
 export default api;
