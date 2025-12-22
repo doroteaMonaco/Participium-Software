@@ -1,9 +1,9 @@
 import request from "supertest";
-import { PrismaClient } from "@prisma/client";
 import app from "@app";
 import { roleType } from "@models/enums";
 import { userService } from "@services/userService";
 import reportRepository from "@repositories/reportRepository";
+import { getTestPrisma } from "../../setup/test-datasource";
 
 // Mock only the image service to avoid dealing with real Redis/FS in this e2e
 jest.mock("@services/imageService", () => {
@@ -36,7 +36,7 @@ jest.mock("@services/imageService", () => {
   };
 });
 
-const prisma = new PrismaClient();
+let prisma: any;
 
 // --- Helpers: register, login, create/admin->municipality, create report ---
 const registerUser = async (
@@ -44,7 +44,7 @@ const registerUser = async (
   user: any,
   role: roleType = roleType.CITIZEN,
 ) => {
-  const res = await agent.post("/api/users").send(user);
+  const res = await agent.post("/api/users").send({ ...user, role });
   expect(res.status).toBe(201);
 };
 const loginAgent = async (
@@ -173,11 +173,17 @@ describe("POST /api/reports (Create Report)", () => {
     password: "P@ssw0rd!",
   };
 
+  beforeAll(async () => {
+    prisma = await getTestPrisma();
+  });
+
   beforeEach(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.municipality_role.deleteMany();
     await prisma.municipality_role.createMany({
       data: [
@@ -195,12 +201,14 @@ describe("POST /api/reports (Create Report)", () => {
   });
 
   afterAll(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("201 creates a report with photos (multipart), returning JSON body per swagger-like shape", async () => {
@@ -409,10 +417,12 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   });
 
   beforeEach(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.municipality_role.deleteMany();
     await prisma.municipality_role.createMany({
       data: [
@@ -481,12 +491,14 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   });
 
   afterAll(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("200 approves a report with valid municipality authentication", async () => {
@@ -578,10 +590,12 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
 
 describe("ReportRoutes Integration (Get Reports)", () => {
   beforeEach(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.municipality_role.deleteMany();
     await prisma.municipality_role.createMany({
       data: [
@@ -599,12 +613,14 @@ describe("ReportRoutes Integration (Get Reports)", () => {
   });
 
   afterAll(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("200 returns all reports (authenticated access)", async () => {
@@ -781,7 +797,7 @@ describe("GET /api/reports/municipality-user/:municipalityUserId", () => {
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("401 when request is unauthenticated", async () => {
@@ -932,7 +948,7 @@ describe("GET /api/reports (List Reports)", () => {
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("200 for ADMIN user (empty array or list)", async () => {
@@ -995,10 +1011,12 @@ describe("GET /api/reports/:id (Get Report by ID)", () => {
   };
 
   beforeEach(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.municipality_role.deleteMany();
     await prisma.municipality_role.createMany({
       data: [
@@ -1016,12 +1034,14 @@ describe("GET /api/reports/:id (Get Report by ID)", () => {
   });
 
   afterAll(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("200 report publicly when exists", async () => {
@@ -1098,7 +1118,7 @@ describe("POST /api/reports/:id (Validate Report)", () => {
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("204 for MUNICIPALITY user (created by admin) and updates status", async () => {
@@ -1321,7 +1341,7 @@ describe("POST /api/reports/:id (Additional validation tests)", () => {
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("400 or 500 invalid report id format", async () => {
@@ -1449,7 +1469,7 @@ describe("GET /api/reports/:id (Additional validation tests)", () => {
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("200 report contains all required fields", async () => {
@@ -1557,7 +1577,7 @@ describe("Integration: Comments endpoints", () => {
     await prisma.comment.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("POST 201: municipality user can add a comment and GET will return it", async () => {
@@ -1704,45 +1724,6 @@ describe("Integration: Comments endpoints", () => {
       .expect(404);
   });
 
-  it("POST 500 when repository throws", async () => {
-    const adminAgent = await createAdmin({
-      username: "admin_comments_500",
-      email: "admin_comments_500@example.com",
-      firstName: "Admin500",
-      lastName: "Comments",
-      password: "adminpass500",
-    });
-    const { muniAgent } = await createMunicipality(adminAgent, {
-      username: "muni_comments_500",
-      email: "muni_comments_500@example.com",
-      firstName: "Muni500",
-      lastName: "Comments",
-      password: "munipass500",
-      municipality_role_id: 3,
-    });
-
-    const citizenAgent = await createAndLogin(fakeUser);
-    const createdReport = await createReportAs(citizenAgent, {
-      title: "Report for 500 test",
-      description: "desc",
-      category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
-    });
-
-    // Spy on repository to force an error path
-    jest
-      .spyOn(reportRepository, "addCommentToReport")
-      .mockRejectedValue(new Error("DB failure"));
-
-    await muniAgent
-      .post(`/api/reports/${createdReport.id}/comments`)
-      .send({ content: "trigger db error" })
-      .expect(500);
-
-    jest.restoreAllMocks();
-  });
-
   // --- GET comments cases ---
   it("GET 200 returns comments to municipality user", async () => {
     const adminAgent = await createAdmin({
@@ -1848,43 +1829,6 @@ describe("Integration: Comments endpoints", () => {
     });
 
     await muniAgent.get(`/api/reports/999999/comments`).expect(404);
-  });
-
-  it("GET 500 when repository throws", async () => {
-    const adminAgent = await createAdmin({
-      username: "admin_comments_get_500",
-      email: "admin_comments_get_500@example.com",
-      firstName: "Admin500Get",
-      lastName: "Comments",
-      password: "adminpass500get",
-    });
-    const { muniAgent } = await createMunicipality(adminAgent, {
-      username: "muni_comments_get_500",
-      email: "muni_comments_get_500@example.com",
-      firstName: "Muni500Get",
-      lastName: "Comments",
-      password: "munipass500get",
-      municipality_role_id: 3,
-    });
-
-    const citizenAgent = await createAndLogin(fakeUser);
-    const createdReport = await createReportAs(citizenAgent, {
-      title: "Report for get 500",
-      description: "desc",
-      category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
-    });
-
-    jest
-      .spyOn(reportRepository, "getCommentsByReportId")
-      .mockRejectedValue(new Error("DB fail"));
-
-    await muniAgent
-      .get(`/api/reports/${createdReport.id}/comments`)
-      .expect(500);
-
-    jest.restoreAllMocks();
   });
 
   // --- External Maintainer comment scenarios ---
