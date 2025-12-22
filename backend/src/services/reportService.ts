@@ -343,29 +343,34 @@ const addCommentToReport = async (
     throw new Error("Report not found");
   }
 
-  // Check if report is RESOLVED - cannot add comments to resolved reports
-  if (report.status === ReportStatus.RESOLVED) {
-    throw new Error("Cannot add comments to resolved reports");
+  // Check if report is RESOLVED or REJECTED - cannot add comments to resolved or rejected reports
+  if (
+    report.status === ReportStatus.RESOLVED ||
+    report.status === ReportStatus.REJECTED
+  ) {
+    throw new Error("Cannot add comments to resolved or rejected reports");
   }
 
-  // Check if external maintainer can comment on this report
-  // External maintainers can only comment on reports assigned to them
-  if (authorType === "EXTERNAL_MAINTAINER") {
+  let municipality_user_id: number | null = null;
+  let external_maintainer_id: number | null = null;
+
+  // Check if the author can comment on this report
+  // Authors can only comment on reports assigned to them
+  if (authorType === roleType.MUNICIPALITY) {
+    if (
+      report.assignedOfficerId === null ||
+      report.assignedOfficerId !== authorId
+    ) {
+      throw new Error("You can only comment on reports assigned to yourself");
+    }
+    municipality_user_id = authorId;
+  } else if (authorType === roleType.EXTERNAL_MAINTAINER) {
     if (
       report.externalMaintainerId === null ||
       report.externalMaintainerId !== authorId
     ) {
       throw new Error("You can only comment on reports assigned to yourself");
     }
-  }
-  // Municipality users can always comment on reports they manage
-
-  let municipality_user_id: number | null = null;
-  let external_maintainer_id: number | null = null;
-
-  if (authorType === "MUNICIPALITY") {
-    municipality_user_id = authorId;
-  } else if (authorType === "EXTERNAL_MAINTAINER") {
     external_maintainer_id = authorId;
   } else {
     throw new Error("Invalid author type");
@@ -387,7 +392,7 @@ const addCommentToReport = async (
     createdAt: created.createdAt,
     updatedAt: created.updatedAt,
     read: created.read,
-  }
+  };
 
   return result;
 };
@@ -395,33 +400,36 @@ const addCommentToReport = async (
 const getCommentsOfAReportById = async (
   reportId: number,
   userId: number,
-  role: string
+  role: string,
 ): Promise<CommentDto[]> => {
   const report = await reportRepository.findById(reportId);
   if (!report) {
     throw new Error("Report not found");
   }
 
-    if(role === roleType.MUNICIPALITY) {
+  if (role === roleType.MUNICIPALITY) {
     // Check if the municipality user is assigned to this report
     if (report.assignedOfficerId !== userId) {
-      throw new Error("You are not authorized to view comments for this report");
+      throw new Error(
+        "You are not authorized to view comments for this report",
+      );
     }
-  } else if(role === roleType.EXTERNAL_MAINTAINER) {
+  } else if (role === roleType.EXTERNAL_MAINTAINER) {
     // Check if the external maintainer is assigned to this report
     if (report.externalMaintainerId !== userId) {
-      throw new Error("You are not authorized to view comments for this report");
+      throw new Error(
+        "You are not authorized to view comments for this report",
+      );
     }
-  }
-  else{
+  } else {
     throw new Error("Invalid user role");
   }
 
   const comments = await reportRepository.getCommentsByReportId(reportId);
 
-  role === roleType.MUNICIPALITY ? 
-  await reportRepository.markExternalMaintainerCommentsAsRead(reportId) :
-  await reportRepository.markMunicipalityCommentsAsRead(reportId);
+  role === roleType.MUNICIPALITY
+    ? await reportRepository.markExternalMaintainerCommentsAsRead(reportId)
+    : await reportRepository.markMunicipalityCommentsAsRead(reportId);
 
   return comments.map((comment: CommentDto) => ({
     id: comment.id,
@@ -433,7 +441,7 @@ const getCommentsOfAReportById = async (
     updatedAt: comment.updatedAt,
     read: comment.read,
   }));
-}
+};
 
 const getUnreadCommentsOfAReportById = async (
   reportId: number,
@@ -445,27 +453,33 @@ const getUnreadCommentsOfAReportById = async (
     throw new Error("Report not found");
   }
   let comments: CommentDto[] = [];
-  if(role === roleType.MUNICIPALITY) {
+  if (role === roleType.MUNICIPALITY) {
     // Check if the municipality user is assigned to this report
     if (report.assignedOfficerId !== userId) {
-      throw new Error("You are not authorized to view comments for this report");
+      throw new Error(
+        "You are not authorized to view comments for this report",
+      );
     }
 
-    comments = await reportRepository.getMunicipalityUserUnreadCommentsByReportId(reportId);
-
-  } else if(role === roleType.EXTERNAL_MAINTAINER) {
+    comments =
+      await reportRepository.getMunicipalityUserUnreadCommentsByReportId(
+        reportId,
+      );
+  } else if (role === roleType.EXTERNAL_MAINTAINER) {
     // Check if the external maintainer is assigned to this report
     if (report.externalMaintainerId !== userId) {
-      throw new Error("You are not authorized to view comments for this report");
+      throw new Error(
+        "You are not authorized to view comments for this report",
+      );
     }
 
-    comments = await reportRepository.getExternalMaintainerUnreadCommentsByReportId(reportId);
-
-  }
-  else{
+    comments =
+      await reportRepository.getExternalMaintainerUnreadCommentsByReportId(
+        reportId,
+      );
+  } else {
     throw new Error("Invalid user role");
   }
-  
 
   return comments.map((comment: CommentDto) => ({
     id: comment.id,

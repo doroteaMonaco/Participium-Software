@@ -664,6 +664,9 @@ describe("Report E2E", () => {
 
       expect(muniCommentRes.body).toHaveProperty("municipality_user_id");
 
+      // Citizen cannot view comments (requires municipality or external maintainer role)
+      await citizenAgent.get(`/api/reports/${reportId}/comments`).expect(403);
+
       // Step 6: Admin creates external maintainer
       const emData = {
         username: "e2e_em",
@@ -827,19 +830,7 @@ describe("Report E2E", () => {
           content:
             "The report was rejected because it lacks sufficient detail for our teams to act on it.",
         })
-        .expect(201);
-
-      // Citizen cannot view comments (requires municipality or external maintainer role)
-      await citizenAgent
-        .get(`/api/reports/${reportId}/comments`)
         .expect(403);
-
-      // Verify municipality can see the comment
-      const muniCommentsRes = await muniAgent
-        .get(`/api/reports/${reportId}/comments`)
-        .expect(200);
-
-      expect(muniCommentsRes.body.length).toBeGreaterThanOrEqual(1);
     });
 
     it("multiple reports handling with different statuses and priorities", async () => {
@@ -940,7 +931,9 @@ describe("Report E2E", () => {
 
       // Verify reports have correct status
       for (const { report, agent } of reports) {
-        const viewRes = await agent.get(`/api/reports/${report.id}`).expect(200);
+        const viewRes = await agent
+          .get(`/api/reports/${report.id}`)
+          .expect(200);
         expect(viewRes.body.status).toBe("ASSIGNED");
       }
 
@@ -948,4 +941,5 @@ describe("Report E2E", () => {
       const allReportsRes = await adminAgent.get("/api/reports").expect(200);
       expect(allReportsRes.body.length).toBeGreaterThanOrEqual(reports.length);
     });
-  });});
+  });
+});
