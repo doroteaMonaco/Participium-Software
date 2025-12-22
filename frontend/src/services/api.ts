@@ -21,6 +21,11 @@ export interface UserRegistration {
   password: string;
 }
 
+export interface ConfirmRegistrationRequest {
+  email: string;
+  code: string;
+}
+
 export interface User {
   id?: number;
   firstName?: string;
@@ -188,6 +193,19 @@ const api = axios.create({
  */
 export const register = async (userData: UserRegistration): Promise<User> => {
   const response = await api.post("/users", userData);
+  return response.data;
+};
+
+/**
+ * Confirm user registration with email code
+ * @param confirmData - Object containing email and 6-digit code
+ * @returns Success message
+ * @throws ApiError on failure
+ */
+export const confirmRegistration = async (
+  confirmData: ConfirmRegistrationRequest
+): Promise<{ message: string }> => {
+  const response = await api.post("/users/confirm", confirmData);
   return response.data;
 };
 

@@ -9,8 +9,6 @@ import { useAuth } from "src/contexts/AuthContext";
 export const Register: React.FC = () => {
   const navigate = useNavigate();
   const {
-    login: setAuthUser,
-    checkAuth,
     isAuthenticated,
     user,
     isLoading,
@@ -91,13 +89,10 @@ export const Register: React.FC = () => {
         password: formData.password,
       };
 
-      const user = await register(userData);
-      // Save user to context (registration auto-logs in)
-      setAuthUser({ ...user, role: "CITIZEN" });
-      // Refresh auth state
-      await checkAuth();
-
-      navigate("/dashboard");
+      await register(userData);
+      
+      // Redirect to confirmation page with email parameter
+      navigate(`/confirm-registration?email=${encodeURIComponent(formData.email)}`);
     } catch (err) {
       console.error("Registration error:", err);
       setError("Registration failed. Please try again.");
