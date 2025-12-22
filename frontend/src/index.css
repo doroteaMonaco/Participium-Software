@@ -37,3 +37,29 @@
 .leaflet-popup {
   z-index: 1001 !important;
 }
+
+/* Custom scrollbar styles */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #6366f1;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #4f46e5;
+}
+
+/* Firefox scrollbar support */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #6366f1 #f1f5f9;
+}

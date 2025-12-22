@@ -14,7 +14,7 @@ const HOME_LINKS = [
 
 const NAV_LINKS = [
   { to: "/users", label: "Users" },
-  //   { to: "/map", label: "Map" },
+  { to: "/map", label: "Map" },
 ];
 
 const AUTH_BUTTONS = [
