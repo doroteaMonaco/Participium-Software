@@ -1,8 +1,6 @@
 import { prisma } from "@database";
 import { Report } from "@models/entities/report";
 import { ReportStatus, roleType } from "@models/enums";
-import { CreateCommentDto } from "@models/dto/commentDto";
-import { add } from "winston";
 
 type ReportStatusFilter = "ASSIGNED";
 
@@ -219,7 +217,7 @@ const findByExternalMaintainerId = async (externalMaintainerId: number) => {
   return prisma.report.findMany({
     where: { externalMaintainerId },
   });
-}
+};
 
 const addCommentToReport = async (data: AddCommentPersistenceData) => {
   return prisma.comment.create({
@@ -230,36 +228,40 @@ const addCommentToReport = async (data: AddCommentPersistenceData) => {
       external_maintainer_id: data.external_maintainer_id,
     },
   });
-}
+};
 
 const getCommentsByReportId = async (reportId: number) => {
   return prisma.comment.findMany({
     where: { reportId },
     orderBy: { createdAt: "asc" },
   });
-}
+};
 
-const getMunicipalityUserUnreadCommentsByReportId = async (reportId: number) => {
+const getMunicipalityUserUnreadCommentsByReportId = async (
+  reportId: number,
+) => {
   return prisma.comment.findMany({
-    where: { 
+    where: {
       reportId,
       read: false,
       municipality_user_id: null,
     },
     orderBy: { createdAt: "asc" },
   });
-}
+};
 
-const getExternalMaintainerUnreadCommentsByReportId = async (reportId: number) => {
+const getExternalMaintainerUnreadCommentsByReportId = async (
+  reportId: number,
+) => {
   return prisma.comment.findMany({
-    where: { 
+    where: {
       reportId,
       read: false,
       external_maintainer_id: null,
     },
     orderBy: { createdAt: "asc" },
   });
-}
+};
 
 const markExternalMaintainerCommentsAsRead = async (reportId: number) => {
   return prisma.comment.updateMany({
@@ -272,7 +274,7 @@ const markExternalMaintainerCommentsAsRead = async (reportId: number) => {
       read: true,
     },
   });
-}
+};
 
 const markMunicipalityCommentsAsRead = async (reportId: number) => {
   return prisma.comment.updateMany({
@@ -285,7 +287,7 @@ const markMunicipalityCommentsAsRead = async (reportId: number) => {
       read: true,
     },
   });
-}
+};
 
 export default {
   findAll,

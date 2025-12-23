@@ -107,7 +107,7 @@ describe("emailVerificationService", () => {
       (bcrypt.hash as jest.Mock).mockRejectedValue(new Error("Hash failed"));
 
       await expect(emailVerificationService.hashCode("123456")).rejects.toThrow(
-        "Hash failed"
+        "Hash failed",
       );
     });
   });
@@ -118,11 +118,14 @@ describe("emailVerificationService", () => {
 
       const result = await emailVerificationService.verifyCodeHash(
         "123456",
-        "hashed-code-abc123"
+        "hashed-code-abc123",
       );
 
       expect(result).toBe(true);
-      expect(bcrypt.compare).toHaveBeenCalledWith("123456", "hashed-code-abc123");
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        "123456",
+        "hashed-code-abc123",
+      );
     });
 
     it("returns false when code does not match hash", async () => {
@@ -130,7 +133,7 @@ describe("emailVerificationService", () => {
 
       const result = await emailVerificationService.verifyCodeHash(
         "654321",
-        "hashed-code-abc123"
+        "hashed-code-abc123",
       );
 
       expect(result).toBe(false);
@@ -138,11 +141,11 @@ describe("emailVerificationService", () => {
 
     it("throws if bcrypt.compare fails", async () => {
       (bcrypt.compare as jest.Mock).mockRejectedValue(
-        new Error("Compare failed")
+        new Error("Compare failed"),
       );
 
       await expect(
-        emailVerificationService.verifyCodeHash("123456", "hashed-code-abc123")
+        emailVerificationService.verifyCodeHash("123456", "hashed-code-abc123"),
       ).rejects.toThrow("Compare failed");
     });
   });
@@ -167,12 +170,12 @@ describe("emailVerificationService", () => {
         "testuser",
         "Test",
         "User",
-        "hashed-password"
+        "hashed-password",
       );
 
       expect(result.code).toBe(mockCode);
       expect(result.expiresIn).toBe(
-        CONFIG.VERIFICATION_CODE_EXPIRY_MINUTES * 60
+        CONFIG.VERIFICATION_CODE_EXPIRY_MINUTES * 60,
       );
 
       expect(db.pending_verification_user.create).toHaveBeenCalledWith({
@@ -183,7 +186,6 @@ describe("emailVerificationService", () => {
           lastName: "User",
           password: "hashed-password",
           verificationCodeHash: mockCodeHash,
-          verificationAttempts: 0,
         }),
       });
     });
@@ -207,7 +209,7 @@ describe("emailVerificationService", () => {
         "testuser",
         "Test",
         "User",
-        "hashed-password"
+        "hashed-password",
       );
 
       expect(db.pending_verification_user.deleteMany).toHaveBeenCalledWith({
@@ -235,17 +237,18 @@ describe("emailVerificationService", () => {
         "testuser",
         "Test",
         "User",
-        "hashed-password"
+        "hashed-password",
       );
       const afterTime = Date.now();
 
-      const callArgs = (db.pending_verification_user.create as jest.Mock)
-        .mock.calls[0][0];
+      const callArgs = (db.pending_verification_user.create as jest.Mock).mock
+        .calls[0][0];
       const expiryTime = callArgs.data.verificationCodeExpiry.getTime();
-      const expectedExpiry = CONFIG.VERIFICATION_CODE_EXPIRY_MINUTES * 60 * 1000;
+      const expectedExpiry =
+        CONFIG.VERIFICATION_CODE_EXPIRY_MINUTES * 60 * 1000;
 
       expect(expiryTime).toBeGreaterThanOrEqual(
-        beforeTime + expectedExpiry - 1000
+        beforeTime + expectedExpiry - 1000,
       );
       expect(expiryTime).toBeLessThanOrEqual(afterTime + expectedExpiry + 1000);
     });
@@ -256,17 +259,15 @@ describe("emailVerificationService", () => {
       const pending = makePendingUser();
       db.pending_verification_user.findFirst.mockResolvedValue(pending);
 
-      const result = await emailVerificationService.getPendingVerification(
-        "test@example.com"
-      );
+      const result =
+        await emailVerificationService.getPendingVerification(
+          "test@example.com",
+        );
 
       expect(result).toEqual(pending);
       expect(db.pending_verification_user.findFirst).toHaveBeenCalledWith({
         where: {
-          OR: [
-            { email: "test@example.com" },
-            { username: "test@example.com" },
-          ],
+          OR: [{ email: "test@example.com" }, { username: "test@example.com" }],
         },
       });
     });
@@ -275,9 +276,8 @@ describe("emailVerificationService", () => {
       const pending = makePendingUser();
       db.pending_verification_user.findFirst.mockResolvedValue(pending);
 
-      const result = await emailVerificationService.getPendingVerification(
-        "testuser"
-      );
+      const result =
+        await emailVerificationService.getPendingVerification("testuser");
 
       expect(result).toEqual(pending);
       expect(db.pending_verification_user.findFirst).toHaveBeenCalledWith({
@@ -291,7 +291,7 @@ describe("emailVerificationService", () => {
       db.pending_verification_user.findFirst.mockResolvedValue(null);
 
       const result = await emailVerificationService.getPendingVerification(
-        "nonexistent@example.com"
+        "nonexistent@example.com",
       );
 
       expect(result).toBeNull();
@@ -299,7 +299,7 @@ describe("emailVerificationService", () => {
   });
 
   describe("verifyCode", () => {
-    it("returns true for valid non-expired code", async () => {
+    it("resolves for valid non-expired code", async () => {
       const pending = makePendingUser();
       db.pending_verification_user.findFirst.mockResolvedValue(pending);
 
@@ -307,71 +307,65 @@ describe("emailVerificationService", () => {
         .spyOn(emailVerificationService, "verifyCodeHash")
         .mockResolvedValue(true);
 
-      const result = await emailVerificationService.verifyCode(
-        "test@example.com",
-        "123456"
-      );
-
-      expect(result).toBe(true);
+      await expect(
+        emailVerificationService.verifyCode("test@example.com", "123456"),
+      ).resolves.toBeUndefined();
     });
 
-    it("returns false when pending verification not found", async () => {
+    it("rejects when pending verification not found", async () => {
       db.pending_verification_user.findFirst.mockResolvedValue(null);
 
-      const result = await emailVerificationService.verifyCode(
-        "nonexistent@example.com",
-        "123456"
-      );
+      await expect(
+        emailVerificationService.verifyCode(
+          "nonexistent@example.com",
+          "123456",
+        ),
+      ).rejects.toThrow("No pending verification found");
 
-      expect(result).toBe(false);
       expect(logger.warn).toHaveBeenCalledWith(
-        "No pending verification found for nonexistent@example.com"
+        "No pending verification found for nonexistent@example.com",
       );
     });
 
-    it("returns false and deletes expired code", async () => {
+    it("rejects and deletes expired code", async () => {
       const expiredPending = makePendingUser({
         verificationCodeExpiry: new Date(Date.now() - 1000), // Expired 1 second ago
       });
       db.pending_verification_user.findFirst.mockResolvedValue(expiredPending);
 
-      const result = await emailVerificationService.verifyCode(
-        "test@example.com",
-        "123456"
-      );
+      await expect(
+        emailVerificationService.verifyCode("test@example.com", "123456"),
+      ).rejects.toThrow("Verification code has expired");
 
-      expect(result).toBe(false);
       expect(logger.warn).toHaveBeenCalledWith(
-        "Verification code expired for test@example.com"
+        "Verification code expired for test@example.com",
       );
       expect(db.pending_verification_user.delete).toHaveBeenCalledWith({
         where: { id: expiredPending.id },
       });
     });
 
-    it("returns false and deletes when max attempts exceeded", async () => {
+    it("rejects and deletes when max attempts exceeded", async () => {
       const maxAttemptsPending = makePendingUser({
         verificationAttempts: CONFIG.MAX_VERIFICATION_ATTEMPTS,
       });
       db.pending_verification_user.findFirst.mockResolvedValue(
-        maxAttemptsPending
+        maxAttemptsPending,
       );
 
-      const result = await emailVerificationService.verifyCode(
-        "test@example.com",
-        "123456"
-      );
+      await expect(
+        emailVerificationService.verifyCode("test@example.com", "123456"),
+      ).rejects.toThrow("Too many verification attempts");
 
-      expect(result).toBe(false);
       expect(logger.warn).toHaveBeenCalledWith(
-        "Too many verification attempts for test@example.com"
+        "Too many verification attempts for test@example.com",
       );
       expect(db.pending_verification_user.delete).toHaveBeenCalledWith({
         where: { id: maxAttemptsPending.id },
       });
     });
 
-    it("returns false and increments attempts when code is invalid", async () => {
+    it("rejects and increments attempts when code is invalid", async () => {
       const pending = makePendingUser({ verificationAttempts: 1 });
       db.pending_verification_user.findFirst.mockResolvedValue(pending);
 
@@ -379,18 +373,16 @@ describe("emailVerificationService", () => {
         .spyOn(emailVerificationService, "verifyCodeHash")
         .mockResolvedValue(false);
 
-      const result = await emailVerificationService.verifyCode(
-        "test@example.com",
-        "wrong-code"
-      );
+      await expect(
+        emailVerificationService.verifyCode("test@example.com", "wrong-code"),
+      ).rejects.toThrow("Invalid verification code");
 
-      expect(result).toBe(false);
       expect(db.pending_verification_user.update).toHaveBeenCalledWith({
         where: { id: pending.id },
         data: { verificationAttempts: 2 },
       });
       expect(logger.warn).toHaveBeenCalledWith(
-        "Invalid code attempt for test@example.com"
+        "Invalid code attempt for test@example.com",
       );
     });
 
@@ -402,13 +394,10 @@ describe("emailVerificationService", () => {
         .spyOn(emailVerificationService, "verifyCodeHash")
         .mockResolvedValue(true);
 
-      await emailVerificationService.verifyCode(
-        "test@example.com",
-        "123456"
-      );
+      await emailVerificationService.verifyCode("test@example.com", "123456");
 
       expect(logger.info).toHaveBeenCalledWith(
-        "Code verified for test@example.com"
+        "Code verified for test@example.com",
       );
     });
 
@@ -418,10 +407,9 @@ describe("emailVerificationService", () => {
       });
       db.pending_verification_user.findFirst.mockResolvedValue(expiredPending);
 
-      await emailVerificationService.verifyCode(
-        "test@example.com",
-        "123456"
-      );
+      await expect(
+        emailVerificationService.verifyCode("test@example.com", "123456"),
+      ).rejects.toThrow("Verification code has expired");
 
       expect(db.pending_verification_user.update).not.toHaveBeenCalled();
     });
@@ -433,9 +421,10 @@ describe("emailVerificationService", () => {
       db.pending_verification_user.findFirst.mockResolvedValue(pending);
       db.pending_verification_user.delete.mockResolvedValue(pending);
 
-      const result = await emailVerificationService.completePendingVerification(
-        "test@example.com"
-      );
+      const result =
+        await emailVerificationService.completePendingVerification(
+          "test@example.com",
+        );
 
       expect(result).toEqual(pending);
       expect(db.pending_verification_user.delete).toHaveBeenCalledWith({
@@ -447,7 +436,7 @@ describe("emailVerificationService", () => {
       db.pending_verification_user.findFirst.mockResolvedValue(null);
 
       const result = await emailVerificationService.completePendingVerification(
-        "nonexistent@example.com"
+        "nonexistent@example.com",
       );
 
       expect(result).toBeNull();
@@ -489,27 +478,24 @@ describe("emailVerificationService", () => {
       const newPending = makePendingUser({ id: 2 });
       db.pending_verification_user.create.mockResolvedValue(newPending);
 
-      const result = await emailVerificationService.resendCode(
-        "test@example.com"
-      );
+      const result =
+        await emailVerificationService.resendCode("test@example.com");
 
       expect(result).not.toBeNull();
       expect(result?.code).toBe(mockCode);
-      expect(result?.expiresIn).toBe(
-        CONFIG.VERIFICATION_CODE_EXPIRY_MINUTES * 60
-      );
+      expect(result?.email).toBe(pending.email);
+      expect(result?.firstName).toBe(pending.firstName);
     });
 
-    it("returns null when pending verification not found", async () => {
+    it("rejects when pending verification not found", async () => {
       db.pending_verification_user.findFirst.mockResolvedValue(null);
 
-      const result = await emailVerificationService.resendCode(
-        "nonexistent@example.com"
-      );
+      await expect(
+        emailVerificationService.resendCode("nonexistent@example.com"),
+      ).rejects.toThrow("No pending verification found");
 
-      expect(result).toBeNull();
       expect(logger.warn).toHaveBeenCalledWith(
-        "No pending verification found for resend: nonexistent@example.com"
+        "No pending verification found for resend: nonexistent@example.com",
       );
     });
 
@@ -554,8 +540,8 @@ describe("emailVerificationService", () => {
 
       await emailVerificationService.resendCode("test@example.com");
 
-      const createCall = (db.pending_verification_user.create as jest.Mock)
-        .mock.calls[0];
+      const createCall = (db.pending_verification_user.create as jest.Mock).mock
+        .calls[0];
       expect(createCall[0].data).toMatchObject({
         email: pending.email,
         username: pending.username,
@@ -565,19 +551,18 @@ describe("emailVerificationService", () => {
       });
     });
 
-    it("returns null when rate limit exceeded (resend within 1 hour)", async () => {
+    it("rejects when rate limit exceeded (resend within 1 hour)", async () => {
       const recentPending = makePendingUser({
         createdAt: new Date(Date.now() - 10 * 60 * 1000), // 10 minutes ago
       });
       db.pending_verification_user.findFirst.mockResolvedValue(recentPending);
 
-      const result = await emailVerificationService.resendCode(
-        "test@example.com"
-      );
+      await expect(
+        emailVerificationService.resendCode("test@example.com"),
+      ).rejects.toThrow("Too many verification attempts");
 
-      expect(result).toBeNull();
       expect(logger.warn).toHaveBeenCalledWith(
-        "Rate limit exceeded for test@example.com"
+        "Rate limit exceeded for test@example.com",
       );
       expect(db.pending_verification_user.create).not.toHaveBeenCalled();
     });
@@ -598,13 +583,14 @@ describe("emailVerificationService", () => {
       const createdPending = makePendingUser();
       db.pending_verification_user.create.mockResolvedValue(createdPending);
 
-      const createResult = await emailVerificationService.createPendingVerification(
-        "newuser@example.com",
-        "newuser",
-        "New",
-        "User",
-        "hashed-password"
-      );
+      const createResult =
+        await emailVerificationService.createPendingVerification(
+          "newuser@example.com",
+          "newuser",
+          "New",
+          "User",
+          "hashed-password",
+        );
 
       expect(createResult.code).toBe(mockCode);
 
@@ -615,16 +601,17 @@ describe("emailVerificationService", () => {
 
       const verifyResult = await emailVerificationService.verifyCode(
         "newuser@example.com",
-        mockCode
+        mockCode,
       );
 
-      expect(verifyResult).toBe(true);
+      expect(verifyResult).resolves;
 
       db.pending_verification_user.delete.mockResolvedValue(createdPending);
 
-      const completeResult = await emailVerificationService.completePendingVerification(
-        "newuser@example.com"
-      );
+      const completeResult =
+        await emailVerificationService.completePendingVerification(
+          "newuser@example.com",
+        );
 
       expect(completeResult).toEqual(createdPending);
     });
@@ -637,29 +624,27 @@ describe("emailVerificationService", () => {
         .spyOn(emailVerificationService, "verifyCodeHash")
         .mockResolvedValue(false);
 
-      let result = await emailVerificationService.verifyCode(
-        "test@example.com",
-        "wrong1"
-      );
-      expect(result).toBe(false);
+      await expect(
+        emailVerificationService.verifyCode("test@example.com", "wrong1"),
+      ).rejects.toThrow("Invalid verification code");
 
       pending = { ...pending, verificationAttempts: 1 };
       db.pending_verification_user.findFirst.mockResolvedValue(pending);
 
-      result = await emailVerificationService.verifyCode(
-        "test@example.com",
-        "wrong2"
-      );
-      expect(result).toBe(false);
+      await expect(
+        emailVerificationService.verifyCode("test@example.com", "wrong2"),
+      ).rejects.toThrow("Invalid verification code");
 
-      pending = { ...pending, verificationAttempts: CONFIG.MAX_VERIFICATION_ATTEMPTS };
+      pending = {
+        ...pending,
+        verificationAttempts: CONFIG.MAX_VERIFICATION_ATTEMPTS,
+      };
       db.pending_verification_user.findFirst.mockResolvedValue(pending);
 
-      result = await emailVerificationService.verifyCode(
-        "test@example.com",
-        "wrong5"
-      );
-      expect(result).toBe(false);
+      await expect(
+        emailVerificationService.verifyCode("test@example.com", "wrong5"),
+      ).rejects.toThrow("Too many verification attempts");
+
       expect(db.pending_verification_user.delete).toHaveBeenCalled();
     });
   });

@@ -1,5 +1,6 @@
 jest.mock("@services/userService", () => ({
   userService: {
+    registerUserWithVerification: jest.fn(),
     registerUser: jest.fn(),
     createMunicipalityUser: jest.fn(),
     getAllUsers: jest.fn(),
@@ -35,6 +36,7 @@ import { BadRequestError } from "@errors/BadRequestError";
 import { userService } from "@services/userService";
 import { authService } from "@services/authService";
 import imageService from "@services/imageService";
+import { ConflictError } from "@models/errors/ConflictError";
 
 type MockRes = {
   status: jest.Mock;
@@ -198,6 +200,143 @@ describe("userController", () => {
         error: "Bad Request",
         message: "boom",
       });
+    });
+  });
+  // ---------- registerWithVerification ----------
+  describe("registerWithVerification", () => {
+    it("returns 201 and sends verification email on successful registration", async () => {
+      const req = {
+        body: {
+          username: "newuser",
+          email: "newuser@example.com",
+          firstName: "New",
+          lastName: "User",
+          password: "password123",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (userService.registerUserWithVerification as jest.Mock).mockResolvedValue(
+        req.body.email,
+      );
+
+      await userController.registerWithVerification(req as any, res as any);
+
+      expect(userService.registerUserWithVerification).toHaveBeenCalledWith(
+        expect.any(Object),
+        roleType.CITIZEN,
+      );
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Verification code sent to your email",
+        email: req.body.email,
+      });
+    });
+
+    it("returns 409 if service throws ConflictError (email exists)", async () => {
+      const req = {
+        body: {
+          username: "newuser",
+          email: "existing@example.com",
+          firstName: "New",
+          lastName: "User",
+          password: "p",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (userService.registerUserWithVerification as jest.Mock).mockRejectedValue(
+        new ConflictError("Email is already in use"),
+      );
+
+      await userController.registerWithVerification(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Conflict Error",
+        message: "Email is already in use",
+      });
+    });
+
+    it("returns 409 if service throws ConflictError (username exists)", async () => {
+      const req = {
+        body: {
+          username: "existinguser",
+          email: "new@example.com",
+          firstName: "New",
+          lastName: "User",
+          password: "p",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (userService.registerUserWithVerification as jest.Mock).mockRejectedValue(
+        new ConflictError("Username is already in use"),
+      );
+
+      await userController.registerWithVerification(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Conflict Error",
+        message: "Username is already in use",
+      });
+    });
+
+    it("returns 409 if registration already pending verification", async () => {
+      const req = {
+        body: {
+          username: "newuser",
+          email: "pending@example.com",
+          firstName: "New",
+          lastName: "User",
+          password: "p",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (userService.registerUserWithVerification as jest.Mock).mockRejectedValue(
+        new ConflictError(
+          "Registration already pending verification. Check your email or request a new code.",
+        ),
+      );
+
+      await userController.registerWithVerification(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+    });
+
+    it("returns 400 if service fails (code generation or email sending)", async () => {
+      const req = {
+        body: {
+          username: "newuser",
+          email: "newuser@example.com",
+          firstName: "New",
+          lastName: "User",
+          password: "password123",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (userService.registerUserWithVerification as jest.Mock).mockRejectedValue(
+        new Error("Code generation failed"),
+      );
+
+      await userController.registerWithVerification(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it("returns 400 if required fields are missing", async () => {
+      const req = {
+        body: { username: "newuser", email: "newuser@example.com" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await userController.registerWithVerification(req as any, res as any);
+
+      expect(res.status).toHaveBeenCalledWith(400);
     });
   });
 
@@ -628,7 +767,11 @@ describe("userController", () => {
     });
 
     it("returns 401 when user is not authenticated", async () => {
-      const req: any = { user: null, body: { telegramUsername: "test" }, file: undefined };
+      const req: any = {
+        user: null,
+        body: { telegramUsername: "test" },
+        file: undefined,
+      };
       const res = makeRes();
 
       await userController.updateCitizenProfile(req, res);

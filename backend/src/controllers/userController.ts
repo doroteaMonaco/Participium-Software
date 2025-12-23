@@ -8,13 +8,12 @@ import { userService } from "@services/userService";
 import imageService from "@services/imageService";
 import { BadRequestError } from "@errors/BadRequestError";
 import { NotFoundError } from "@errors/NotFoundError";
+import logger from "@config/logger";
+import { ConflictError } from "@models/errors/ConflictError";
 
 const normalizeCategoryInput = (value?: string): Category | null => {
   if (!value || typeof value !== "string") return null;
-  const normalized = value
-    .trim()
-    .toUpperCase()
-    .replaceAll(/\s+/g, "_");
+  const normalized = value.trim().toUpperCase().replaceAll(/\s+/g, "_");
   return Object.values(Category).includes(normalized as Category)
     ? (normalized as Category)
     : null;
@@ -36,8 +35,7 @@ export const userController = {
       const user = await userService.registerUser(
         UserFromJSON(req.body) as CreateBaseUserDto,
         roleType.CITIZEN,
-        {firstName,
-        lastName}
+        { firstName, lastName },
       );
 
       const { token } = await authService.login(
@@ -58,6 +56,43 @@ export const userController = {
         return res
           .status(409)
           .json({ error: "Conflict Error", message: error.message });
+      }
+      return res.status(400).json({
+        error: "Bad Request",
+        message: error?.message || "Registration failed",
+      });
+    }
+  },
+
+  async registerWithVerification(req: Request, res: Response) {
+    try {
+      const { email, username, firstName, lastName, password } = req.body || {};
+
+      throwBadRequestIfMissingObject({
+        email,
+        username,
+        firstName,
+        lastName,
+        password,
+      });
+
+      const verifyEmail = await userService.registerUserWithVerification(
+        UserFromJSON(req.body) as CreateBaseUserDto,
+        roleType.CITIZEN,
+      );
+
+      return res.status(201).json({
+        success: true,
+        message: "Verification code sent to your email",
+        email: verifyEmail,
+      });
+    } catch (error: any) {
+      logger.error("Registration with verification error:", error);
+      if (error instanceof ConflictError) {
+        return res.status(409).json({
+          error: "Conflict Error",
+          message: error.message,
+        });
       }
       return res.status(400).json({
         error: "Bad Request",
@@ -117,7 +152,7 @@ export const userController = {
     }
   },
 
-    async createExternalMaintainerUser(req: Request, res: Response) {
+  async createExternalMaintainerUser(req: Request, res: Response) {
     try {
       const {
         email,
@@ -136,7 +171,7 @@ export const userController = {
         lastName,
         companyName,
         category,
-        password
+        password,
       });
 
       const normalizedCategory = normalizeCategoryInput(category);
@@ -147,7 +182,6 @@ export const userController = {
           message: "Invalid category provided",
         });
       }
-      
 
       const user = await userService.createExternalMaintainerUser(
         UserFromJSON(req.body) as CreateBaseUserDto,
@@ -297,7 +331,7 @@ export const userController = {
     }
   },
 
-    async getExternalMaintainerUsers(req: Request, res: Response) {
+  async getExternalMaintainerUsers(req: Request, res: Response) {
     try {
       const users = await userService.getExternalMaintainerUsers();
       return res.status(200).json(users);

@@ -33,6 +33,18 @@ jest.mock("@services/imageService", () => ({
   },
 }));
 
+jest.mock("@services/emailVerificationService", () => ({
+  emailVerificationService: {
+    getPendingVerification: jest.fn(),
+    createPendingVerification: jest.fn(),
+  },
+}));
+
+jest.mock("@services/emailService", () => ({
+  __esModule: true,
+  sendVerificationEmail: jest.fn(),
+}));
+
 import { userService } from "@services/userService";
 import { userRepository } from "@repositories/userRepository";
 import { roleRepository } from "@repositories/roleRepository";
@@ -40,6 +52,8 @@ import { roleType } from "@models/enums";
 import bcrypt from "bcrypt";
 import imageService from "@services/imageService";
 import { CreateBaseUserDto } from "@dto/userDto";
+import { emailVerificationService } from "@services/emailVerificationService";
+import { sendVerificationEmail } from "@services/emailService";
 
 type RepoMock = {
   findUserByEmail: jest.Mock;
@@ -160,7 +174,12 @@ describe("userService", () => {
       repo.findUserByUsername.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue("h-pass");
 
-      const created = makeUser({ email: "nonames@example.com", username: "nonames", password: "h-pass", id: 10 });
+      const created = makeUser({
+        email: "nonames@example.com",
+        username: "nonames",
+        password: "h-pass",
+        id: 10,
+      });
       repo.createUser.mockResolvedValue(created);
 
       const res = await userService.registerUser(userDataNoNames);
@@ -173,6 +192,96 @@ describe("userService", () => {
         {},
       );
       expect(res).toBe(created);
+    });
+  });
+
+  describe("registerUserWithVerification", () => {
+    const payload = {
+      email: "v@example.com",
+      username: "verify_user",
+      password: "plain",
+    };
+
+    const evs = emailVerificationService as any;
+    const sendEmail = sendVerificationEmail as any;
+
+    beforeEach(() => {
+      evs.getPendingVerification.mockReset();
+      evs.createPendingVerification.mockReset();
+      sendEmail.mockReset();
+    });
+
+    it("throws if email already in use", async () => {
+      repo.findUserByEmail.mockResolvedValue(makeUser());
+
+      await expect(
+        userService.registerUserWithVerification(payload as any),
+      ).rejects.toThrow("Email is already in use");
+
+      expect(repo.findUserByEmail).toHaveBeenCalledWith(
+        payload.email,
+        roleType.CITIZEN,
+      );
+      expect(repo.findUserByUsername).not.toHaveBeenCalled();
+    });
+
+    it("throws if username already in use", async () => {
+      repo.findUserByEmail.mockResolvedValue(null);
+      repo.findUserByUsername.mockResolvedValue(makeUser());
+
+      await expect(
+        userService.registerUserWithVerification(payload as any),
+      ).rejects.toThrow("Username is already in use");
+
+      expect(repo.findUserByEmail).toHaveBeenCalledWith(
+        payload.email,
+        roleType.CITIZEN,
+      );
+      expect(repo.findUserByUsername).toHaveBeenCalledWith(
+        payload.username,
+        roleType.CITIZEN,
+      );
+    });
+
+    it("throws if registration already pending", async () => {
+      repo.findUserByEmail.mockResolvedValue(null);
+      repo.findUserByUsername.mockResolvedValue(null);
+      evs.getPendingVerification.mockResolvedValue({ id: 1 });
+
+      await expect(
+        userService.registerUserWithVerification(payload as any),
+      ).rejects.toThrow("Registration already pending verification");
+
+      expect(evs.getPendingVerification).toHaveBeenCalledWith(payload.email);
+    });
+
+    it("creates pending verification, sends email and returns email", async () => {
+      repo.findUserByEmail.mockResolvedValue(null);
+      repo.findUserByUsername.mockResolvedValue(null);
+      evs.getPendingVerification.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue("h-pass");
+      evs.createPendingVerification.mockResolvedValue({ code: "123456" });
+      sendEmail.mockResolvedValue(undefined);
+
+      const res = await userService.registerUserWithVerification(
+        payload as any,
+      );
+
+      expect(bcrypt.hash).toHaveBeenCalledWith(payload.password, 10);
+      expect(evs.createPendingVerification).toHaveBeenCalledWith(
+        payload.email,
+        payload.username,
+        "",
+        "",
+        "h-pass",
+      );
+      expect(sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: payload.email,
+          code: "123456",
+        }),
+      );
+      expect(res).toBe(payload.email);
     });
   });
 

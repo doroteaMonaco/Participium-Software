@@ -2,7 +2,6 @@ import request from "supertest";
 import app from "@app";
 import { roleType } from "@models/enums";
 import { userService } from "@services/userService";
-import reportRepository from "@repositories/reportRepository";
 import { getTestPrisma } from "../../setup/test-datasource";
 
 // Mock only the image service to avoid dealing with real Redis/FS in this e2e
@@ -46,6 +45,11 @@ const registerUser = async (
 ) => {
   const res = await agent.post("/api/users").send({ ...user, role });
   expect(res.status).toBe(201);
+
+  const ver = await agent.post("/api/auth/verify").send({
+    emailOrUsername: user.email,
+    code: (global as any).__lastSentVerificationCode,
+  });
 };
 const loginAgent = async (
   agent: request.SuperAgentTest,
@@ -184,6 +188,7 @@ describe("POST /api/reports (Create Report)", () => {
     await prisma.municipality_user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.municipality_role.deleteMany();
     await prisma.municipality_role.createMany({
       data: [
@@ -207,6 +212,7 @@ describe("POST /api/reports (Create Report)", () => {
     await prisma.municipality_user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.municipality_role.deleteMany();
     // DO NOT disconnect - singleton is managed by test setup
   });
@@ -632,10 +638,8 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       lastName: "User",
       password: "password123",
     };
+    const agent = await createAndLogin(user);
 
-    await request(app).post("/api/users").send(user).expect(201);
-
-    const agent = request.agent(app);
     await agent
       .post("/api/auth/session")
       .send({
@@ -672,18 +676,7 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       lastName: "Viewer",
       password: "password123",
     };
-
-    await request(app).post("/api/users").send(citizen).expect(201);
-
-    const citizenAgent = request.agent(app);
-    await citizenAgent
-      .post("/api/auth/session")
-      .send({
-        identifier: citizen.username,
-        password: citizen.password,
-        role: roleType.CITIZEN,
-      })
-      .expect(200);
+    const citizenAgent = await createAndLogin(citizen);
 
     // Citizen tries to get approved reports (should succeed with status filter)
     const response = await citizenAgent
@@ -701,18 +694,7 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       lastName: "Invalid",
       password: "password123",
     };
-
-    await request(app).post("/api/users").send(citizen).expect(201);
-
-    const citizenAgent = request.agent(app);
-    await citizenAgent
-      .post("/api/auth/session")
-      .send({
-        identifier: citizen.username,
-        password: citizen.password,
-        role: roleType.CITIZEN,
-      })
-      .expect(200);
+    const citizenAgent = await createAndLogin(citizen);
 
     const response = await citizenAgent
       .get("/api/reports?status=INVALID")

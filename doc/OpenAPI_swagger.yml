@@ -96,53 +96,6 @@ paths:
                 error: "Authentication Error"
                 message: "You must be logged in to logout"
 
-  /auth/register:
-    post:
-      tags: [Authentication]
-      summary: Register a new user
-      description: Create a new pending verification user account. A verification code will be sent via email.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserRegistration'
-      responses:
-        '201':
-          description: Created - Registration successful, verification code sent
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Verification code sent to your email"
-                  email:
-                    type: string
-                    format: email
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '409':
-          description: Conflict - Username or email already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error: "Conflict Error"
-                message: "Username or email already exists"
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
   /auth/verify:
     post:
       tags: [Authentication]
@@ -255,6 +208,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
+  /email/send-verification:
+    post:
+      tags: [Authentication]
+      summary: Send verification email
+      description: Send a verification email containing a code used to complete registration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendVerificationRequest'
+      responses:
+        '200':
+          description: OK - Verification email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendVerificationResponse'
+        '400':
+          description: Bad Request - Missing or invalid fields
+        '500':
+          description: Internal Server Error - Email service error
 
   /reports:
     # create report endpoint
@@ -706,8 +682,9 @@ paths:
   /users:
     # registration endpoint
     post:
-      tags: [Users]
-      summary: Registration
+      tags: [Authentication]
+      summary: Register a new user
+      description: Create a new pending verification user account. A verification code will be sent via email.
       requestBody:
         required: true
         content:
@@ -716,22 +693,18 @@ paths:
               $ref: '#/components/schemas/UserRegistration'
       responses:
         '201':
-          description: Created
-          headers:
-            Set-Cookie:
-              description: Authentication cookie
-              schema:
-                type: string
-                example: "authToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoibXJvc3NpIiwiaWF0IjoxNjk5MDAwMDAwLCJleHAiOjE2OTkwODY0MDB9"
-            Location:
-                description: URL of the reserved area for submitting reports
-                schema:
-                  type: string
-                  example: /reports
+          description: Created - Registration successful, verification code sent
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Verification code sent to your email"
+                  email:
+                    type: string
+                    format: email
         '400':
           description: Bad Request
           content:
@@ -739,7 +712,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: Conflict
+          description: Conflict - Username or email already exists
           content:
             application/json:
               schema:
@@ -1579,6 +1552,42 @@ components:
           type: string
           example: "mrossi@example.com"
           description: Email or username of the pending user
+
+    SendVerificationRequest:
+      type: object
+      required:
+        - email
+        - firstName
+        - code
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        firstName:
+          type: string
+          example: "Mario"
+        code:
+          type: string
+          example: "123456"
+        resendUrl:
+          type: string
+          format: uri
+          description: Optional URL used to allow the user to request a new code
+          example: "https://example.com/verify"
+
+    SendVerificationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Verification email sent successfully"
+        data:
+          type: object
+          description: Service-specific response payload (if any)
 
     AdminUser:
       type: object

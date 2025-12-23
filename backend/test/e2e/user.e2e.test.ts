@@ -34,6 +34,7 @@ describe("User E2E", () => {
     // ensure clean DB between tests
     await prisma.report.deleteMany();
     await prisma.external_maintainer.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
@@ -70,6 +71,7 @@ describe("User E2E", () => {
   afterAll(async () => {
     await prisma.report.deleteMany();
     await prisma.external_maintainer.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
@@ -80,6 +82,11 @@ describe("User E2E", () => {
   const makeNormalAgent = async () => {
     const agent = request.agent(app);
     await agent.post("/api/users").send(normalUser).expect(201);
+    await agent.post("/api/auth/verify").send({
+      emailOrUsername: normalUser.email,
+      code: (global as any).__lastSentVerificationCode,
+    });
+
     const loginRes = await agent.post("/api/auth/session").send({
       identifier: normalUser.email,
       password: normalUser.password,
@@ -90,23 +97,47 @@ describe("User E2E", () => {
   };
 
   describe("Citizen Registration Flow", () => {
+    it("creates pending verification and denies session before verification", async () => {
+      const agent = request.agent(app);
+      const testUser = {
+        username: "pending_citizen",
+        email: "pending_citizen@example.com",
+        firstName: "Pending",
+        lastName: "Citizen",
+        password: "pwd",
+      };
+
+      await agent.post("/api/users").send(testUser).expect(201);
+
+      // should not be authenticated until verification completes
+      await agent.get("/api/auth/session").expect(401);
+    });
+
     it("User can register, login, and be retrieved by admin", async () => {
       const agent = request.agent(app);
-      const testUser = { ...normalUser, username: "testcit", email: "testcit@example.com" };
+      const testUser = {
+        ...normalUser,
+        username: "testcit",
+        email: "testcit@example.com",
+      };
 
       // Register
-      const registerRes = await agent
+      await agent
         .post("/api/users")
         .set("Accept", "application/json")
         .send(testUser)
         .expect(201);
+      const registerRes = await agent.post("/api/auth/verify").send({
+        emailOrUsername: testUser.email,
+        code: (global as any).__lastSentVerificationCode,
+      });
 
       expect(registerRes.headers["set-cookie"]).toBeDefined();
       expect(registerRes.headers.location).toBe("/reports");
       expect(registerRes.body).toBeDefined();
 
       // Login as admin to verify user exists
-      const userId = registerRes.body.id;
+      const userId = registerRes.body.user.id;
 
       const getUserRes = await adminAgent
         .get(`${base}/${userId}`)
@@ -129,6 +160,12 @@ describe("User E2E", () => {
           password: "p",
         })
         .expect(201);
+      await request(app)
+        .post("/api/auth/verify")
+        .send({
+          emailOrUsername: "u1@example.com",
+          code: (global as any).__lastSentVerificationCode,
+        });
 
       await request(app)
         .post(`${base}`)
@@ -140,6 +177,12 @@ describe("User E2E", () => {
           password: "p",
         })
         .expect(201);
+      await request(app)
+        .post("/api/auth/verify")
+        .send({
+          emailOrUsername: "u2@example.com",
+          code: (global as any).__lastSentVerificationCode,
+        });
 
       // Get all users
       const res = await adminAgent.get(`${base}`).expect(200);
@@ -230,7 +273,10 @@ describe("User E2E", () => {
         })
         .expect(201);
 
-      expect(createRes.body).toHaveProperty("municipality_role_id", validRole.id);
+      expect(createRes.body).toHaveProperty(
+        "municipality_role_id",
+        validRole.id,
+      );
     });
 
     it("Admin can list all municipality users", async () => {
@@ -260,7 +306,9 @@ describe("User E2E", () => {
         .expect(201);
 
       // Get all municipality users
-      const res = await adminAgent.get(`${base}/municipality-users`).expect(200);
+      const res = await adminAgent
+        .get(`${base}/municipality-users`)
+        .expect(200);
       expect(Array.isArray(res.body)).toBeTruthy();
       expect(res.body.length).toBeGreaterThanOrEqual(2);
     });
@@ -268,7 +316,6 @@ describe("User E2E", () => {
 
   describe("External Users Management", () => {
     it("Admin can create external maintainer users", async () => {
-
       const payload = {
         email: "ext-1@example.com",
         username: "ext-user-1",
@@ -353,12 +400,15 @@ describe("User E2E", () => {
         password: "WorkflowPass123!",
       };
 
+      await request(app).post(`${base}`).send(citizenUser).expect(201);
       const citizenCreateRes = await request(app)
-        .post(`${base}`)
-        .send(citizenUser)
-        .expect(201);
+        .post("/api/auth/verify")
+        .send({
+          emailOrUsername: citizenUser.email,
+          code: (global as any).__lastSentVerificationCode,
+        });
 
-      const citizenId = citizenCreateRes.body.id;
+      const citizenId = citizenCreateRes.body.user.id;
 
       // Admin can retrieve each user
       const muniDetailRes = await adminAgent
@@ -413,9 +463,17 @@ describe("User E2E", () => {
       // Register 2 citizens
       const agent1 = request.agent(app);
       await agent1.post(`${base}`).send(citizen1).expect(201);
+      await agent1.post("/api/auth/verify").send({
+        emailOrUsername: citizen1.email,
+        code: (global as any).__lastSentVerificationCode,
+      });
 
       const agent2 = request.agent(app);
       await agent2.post(`${base}`).send(citizen2).expect(201);
+      await agent2.post("/api/auth/verify").send({
+        emailOrUsername: citizen2.email,
+        code: (global as any).__lastSentVerificationCode,
+      });
 
       // Get all users (returns citizens only)
       const allUsersRes = await adminAgent.get(`${base}`).expect(200);
@@ -496,9 +554,7 @@ describe("User E2E", () => {
       expect(loginRes.headers["set-cookie"]).toBeDefined();
 
       // Verify municipality session
-      const sessionRes = await muniAgent
-        .get("/api/auth/session")
-        .expect(200);
+      const sessionRes = await muniAgent.get("/api/auth/session").expect(200);
 
       expect(sessionRes.body.email).toBe(muniUser.email);
       expect(sessionRes.body.username).toBe(muniUser.username);
@@ -516,10 +572,7 @@ describe("User E2E", () => {
         category: "WASTE",
       };
 
-      await adminAgent
-        .post(`${base}/external-users`)
-        .send(extUser)
-        .expect(201);
+      await adminAgent.post(`${base}/external-users`).send(extUser).expect(201);
 
       // External maintainer logs in
       const extAgent = request.agent(app);
@@ -535,9 +588,7 @@ describe("User E2E", () => {
       expect(loginRes.headers["set-cookie"]).toBeDefined();
 
       // Verify external maintainer session
-      const sessionRes = await extAgent
-        .get("/api/auth/session")
-        .expect(200);
+      const sessionRes = await extAgent.get("/api/auth/session").expect(200);
 
       expect(sessionRes.body.email).toBe(extUser.email);
       expect(sessionRes.body.username).toBe(extUser.username);

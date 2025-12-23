@@ -19,6 +19,7 @@ describe("Municipality E2E", () => {
     await prisma.report.deleteMany();
     await prisma.comment.deleteMany();
     await prisma.external_maintainer.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
@@ -67,6 +68,7 @@ describe("Municipality E2E", () => {
     await prisma.report.deleteMany();
     await prisma.comment.deleteMany();
     await prisma.external_maintainer.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
@@ -75,6 +77,24 @@ describe("Municipality E2E", () => {
   });
 
   describe("Complete Municipality User Lifecycle", () => {
+    it("registration creates pending verification (global mock captured code)", async () => {
+      const u = {
+        username: "muni_pending",
+        email: "muni_pending@example.com",
+        firstName: "Muni",
+        lastName: "Pending",
+        password: "pwd",
+      };
+
+      const agent = request.agent(app);
+      await agent
+        .post("/api/users")
+        .send({ ...u, role: "CITIZEN" })
+        .expect(201);
+
+      expect((global as any).__lastSentVerificationCode).toBeDefined();
+    });
+
     it("Admin can create municipality user with valid role and retrieve it", async () => {
       const validPayload = {
         email: "municipality1@test.com",
@@ -95,7 +115,7 @@ describe("Municipality E2E", () => {
       expect(createResponse.body.email).toBe(validPayload.email);
       expect(createResponse.body.username).toBe(validPayload.username);
       expect(createResponse.body.municipality_role_id).toBe(
-        validPayload.municipality_role_id
+        validPayload.municipality_role_id,
       );
 
       // Admin can retrieve the municipality user
@@ -308,6 +328,10 @@ describe("Municipality E2E", () => {
 
       const citizenAgent = request.agent(app);
       await citizenAgent.post("/api/users").send(citizenUser).expect(201);
+      await citizenAgent.post("/api/auth/verify").send({
+        emailOrUsername: citizenUser.email,
+        code: (global as any).__lastSentVerificationCode,
+      });
 
       const muniPayload = {
         email: "new_muni@test.com",
@@ -337,6 +361,10 @@ describe("Municipality E2E", () => {
 
       const citizenAgent = request.agent(app);
       await citizenAgent.post("/api/users").send(citizenUser).expect(201);
+      await citizenAgent.post("/api/auth/verify").send({
+        emailOrUsername: citizenUser.email,
+        code: (global as any).__lastSentVerificationCode,
+      });
 
       // Citizen tries to access roles (should be forbidden)
       await citizenAgent.get(`${base}/municipality-users/roles`).expect(403);
@@ -382,6 +410,10 @@ describe("Municipality E2E", () => {
 
       const citizenAgent = request.agent(app);
       await citizenAgent.post("/api/users").send(citizenUser).expect(201);
+      await citizenAgent.post("/api/auth/verify").send({
+        emailOrUsername: citizenUser.email,
+        code: (global as any).__lastSentVerificationCode,
+      });
 
       // Citizen is already authenticated from registration
       const reportRes = await citizenAgent
@@ -492,6 +524,10 @@ describe("Municipality E2E", () => {
 
       const citizenAgent = request.agent(app);
       await citizenAgent.post("/api/users").send(citizenUser).expect(201);
+      await citizenAgent.post("/api/auth/verify").send({
+        emailOrUsername: citizenUser.email,
+        code: (global as any).__lastSentVerificationCode,
+      });
 
       await citizenAgent
         .post("/api/auth/session")
@@ -592,6 +628,10 @@ describe("Municipality E2E", () => {
 
       const citizenAgent = request.agent(app);
       await citizenAgent.post("/api/users").send(citizenUser).expect(201);
+      await citizenAgent.post("/api/auth/verify").send({
+        emailOrUsername: citizenUser.email,
+        code: (global as any).__lastSentVerificationCode,
+      });
 
       await citizenAgent
         .post("/api/auth/session")

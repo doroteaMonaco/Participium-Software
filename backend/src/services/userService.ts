@@ -1,5 +1,9 @@
 import { userRepository } from "@repositories/userRepository";
+import { emailVerificationService } from "@services/emailVerificationService";
+import { sendVerificationEmail } from "@services/emailService";
 import bcrypt from "bcrypt";
+import { CONFIG } from "@config";
+import logger from "@config/logger";
 import imageService from "./imageService";
 import { Category, roleType } from "@models/enums";
 import { roleRepository } from "@repositories/roleRepository";
@@ -10,7 +14,8 @@ import {
   ExternalMaintainerUserDto,
   MunicipalityUserDto,
 } from "@dto/userDto";
-import { NotFoundError } from "@models/errors/NotFoundError";
+import { NotFoundError } from "@errors/NotFoundError";
+import { ConflictError } from "@errors/ConflictError";
 
 export const userService = {
   async registerUser(
@@ -41,9 +46,13 @@ export const userService = {
 
     // Extract firstName and lastName from newUser if not in override
     const mergedOverride = {
-      ...((newUser as any).firstName && { firstName: (newUser as any).firstName }),
+      ...((newUser as any).firstName && {
+        firstName: (newUser as any).firstName,
+      }),
       ...((newUser as any).lastName && { lastName: (newUser as any).lastName }),
-      ...((newUser as any).companyName && { companyName: (newUser as any).companyName }),
+      ...((newUser as any).companyName && {
+        companyName: (newUser as any).companyName,
+      }),
       ...((newUser as any).category && { category: (newUser as any).category }),
       ...override,
     };
@@ -51,13 +60,67 @@ export const userService = {
     // Create the user
     const user = await userRepository.createUser(
       newUser.email,
-      newUser.username, 
+      newUser.username,
       hashedPassword,
       role,
       mergedOverride,
     );
 
     return buildUserDto(user)!;
+  },
+
+  async registerUserWithVerification(
+    newUser: CreateBaseUserDto,
+    role: roleType = roleType.CITIZEN,
+    override: object = {},
+  ): Promise<string> {
+    // Check if email is already in use
+    const existingEmail = await userRepository.findUserByEmail(
+      newUser.email,
+      role,
+    );
+    if (existingEmail) {
+      throw new ConflictError("Email is already in use");
+    }
+
+    // Check if username is already in use
+    const existingUsername = await userRepository.findUserByUsername(
+      newUser.username,
+      role,
+    );
+    if (existingUsername) {
+      throw new ConflictError("Username is already in use");
+    }
+
+    const existingPending =
+      await emailVerificationService.getPendingVerification(newUser.email);
+    if (existingPending) {
+      throw new ConflictError(
+        "Registration already pending verification. Check your email or request a new code.",
+      );
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(newUser.password, 10);
+
+    const { code } = await emailVerificationService.createPendingVerification(
+      newUser.email,
+      newUser.username,
+      newUser?.firstName || "",
+      newUser?.lastName || "",
+      hashedPassword,
+    );
+
+    await sendVerificationEmail({
+      email: newUser.email,
+      firstName: newUser?.firstName || "",
+      code,
+      resendUrl: `${CONFIG.FRONTEND_URL}/verify-email?email=${encodeURIComponent(newUser.email)}`,
+    });
+
+    logger.info(`Registration verification email sent to ${newUser.email}`);
+
+    return newUser.email;
   },
 
   async createMunicipalityUser(
@@ -78,10 +141,14 @@ export const userService = {
     companyName?: string,
     category?: Category,
   ): Promise<ExternalMaintainerUserDto> {
-    return this.registerUser(externalMaintainerUser, roleType.EXTERNAL_MAINTAINER, {
-      companyName: companyName,
-      category: category,
-    }) as unknown as ExternalMaintainerUserDto;
+    return this.registerUser(
+      externalMaintainerUser,
+      roleType.EXTERNAL_MAINTAINER,
+      {
+        companyName: companyName,
+        category: category,
+      },
+    ) as unknown as ExternalMaintainerUserDto;
   },
 
   async getAllUsers() {
@@ -108,7 +175,7 @@ export const userService = {
     return await userRepository.getUsersByRole(roleType.MUNICIPALITY);
   },
 
-   async getExternalMaintainerUsers() {
+  async getExternalMaintainerUsers() {
     return await userRepository.getUsersByRole(roleType.EXTERNAL_MAINTAINER);
   },
 

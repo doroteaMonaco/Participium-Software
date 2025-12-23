@@ -47,7 +47,7 @@ export const sendVerificationEmail = async (
                 
                 <div class="code">${code}</div>
                 
-                <p>This code will expire in 30 minutes.</p>
+                <p>This code will expire in ${CONFIG.VERIFICATION_CODE_EXPIRY_MINUTES} minutes.</p>
                 
                 ${
                   resendUrl

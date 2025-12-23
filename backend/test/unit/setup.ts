@@ -40,6 +40,13 @@ jest.mock("@database", () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
+    pending_verification_user: {
+      create: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      deleteMany: jest.fn(),
+      delete: jest.fn(),
+    },
     $disconnect: jest.fn(),
   };
   return {
