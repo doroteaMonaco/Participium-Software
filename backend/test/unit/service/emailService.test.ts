@@ -182,7 +182,7 @@ describe("emailService", () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         "Failed to send verification email:",
-        error
+        "{}"
       );
     });
 
