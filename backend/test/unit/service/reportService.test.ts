@@ -11,6 +11,8 @@ jest.mock("@repositories/reportRepository", () => {
     deleteById: jest.fn(),
     addCommentToReport: jest.fn(),
     getCommentsByReportId: jest.fn(),
+    markMunicipalityCommentsAsRead: jest.fn(),
+    markExternalMaintainerCommentsAsRead: jest.fn(),
   };
   return { __esModule: true, default: mRepo };
 });
@@ -721,6 +723,12 @@ describe("reportService", () => {
   // ---------- addCommentToReport / getCommentsOfAReportById ----------
   describe("comments service", () => {
     it("addCommentToReport creates comment and returns dto", async () => {
+      const report = {
+        id: 5,
+        status: ReportStatus.IN_PROGRESS,
+        assignedOfficerId: 3,
+        externalMaintainerId: null,
+      };
       const repoCreated = {
         id: 12,
         reportId: 5,
@@ -730,22 +738,17 @@ describe("reportService", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      repo.create = repo.create || jest.fn(); // guard when repo shape differs
-      repo.create = repo.create; // no-op to silence TS in snippet context
+      repo.findById.mockResolvedValue(report);
 
       // mock repository addCommentToReport
       (repo as any).addCommentToReport.mockResolvedValue(repoCreated);
-      const dto = {
+
+      const result = await reportService.addCommentToReport({
         reportId: 5,
         authorId: 3,
         authorType: "MUNICIPALITY",
         content: "hello",
-      };
-
-      const result =
-        await require("@services/reportService").default.addCommentToReport(
-          dto,
-        );
+      });
 
       expect((repo as any).addCommentToReport).toHaveBeenCalledWith({
         reportId: 5,
@@ -765,7 +768,7 @@ describe("reportService", () => {
       });
 
       await expect(
-        require("@services/reportService").default.addCommentToReport({
+        reportService.addCommentToReport({
           reportId: 999,
           authorId: 1,
           authorType: "MUNICIPALITY",
@@ -786,24 +789,152 @@ describe("reportService", () => {
           updatedAt: new Date(),
         },
       ];
-      (repo as any).findById.mockResolvedValue({ id: 5 });
+      (repo as any).findById.mockResolvedValue({ id: 5, assignedOfficerId: 2 });
       (repo as any).getCommentsByReportId.mockResolvedValue(rawComments);
+      (repo as any).markMunicipalityCommentsAsRead.mockResolvedValue(undefined);
 
-      const res =
-        await require("@services/reportService").default.getCommentsOfAReportById(
-          5,
-        );
+      const res = await reportService.getCommentsOfAReportById(
+        5,
+        2,
+        "MUNICIPALITY",
+      );
 
       expect((repo as any).getCommentsByReportId).toHaveBeenCalledWith(5);
       expect(Array.isArray(res)).toBe(true);
       expect(res[0]).toHaveProperty("content", "c1");
+    });
+
+    it("getCommentsOfAReportById throws for invalid role", async () => {
+      (repo as any).findById.mockResolvedValue({ id: 5, assignedOfficerId: 2 });
+
+      await expect(
+        reportService.getCommentsOfAReportById(5, 2, "INVALID_ROLE"),
+      ).rejects.toThrow("Invalid user role");
+    });
+
+    it("getCommentsOfAReportById throws for unauthorized MUNICIPALITY user", async () => {
+      (repo as any).findById.mockResolvedValue({ id: 5, assignedOfficerId: 2 });
+
+      await expect(
+        reportService.getCommentsOfAReportById(5, 999, "MUNICIPALITY"),
+      ).rejects.toThrow("not authorized");
+    });
+
+    it("getCommentsOfAReportById throws for unauthorized EXTERNAL_MAINTAINER", async () => {
+      (repo as any).findById.mockResolvedValue({
+        id: 5,
+        externalMaintainerId: 10,
+      });
+
+      await expect(
+        reportService.getCommentsOfAReportById(5, 999, "EXTERNAL_MAINTAINER"),
+      ).rejects.toThrow("not authorized");
+    });
+
+    it("getUnreadCommentsOfAReportById returns unread comments for MUNICIPALITY", async () => {
+      const unreadComments = [
+        {
+          id: 1,
+          reportId: 5,
+          content: "em comment",
+          municipality_user_id: null,
+          external_maintainer_id: 10,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+      (repo as any).findById.mockResolvedValue({ id: 5, assignedOfficerId: 2 });
+      (repo as any).getMunicipalityUserUnreadCommentsByReportId = jest
+        .fn()
+        .mockResolvedValue(unreadComments);
+      (repo as any).markExternalMaintainerCommentsAsRead = jest
+        .fn()
+        .mockResolvedValue(undefined);
+
+      const res = await reportService.getUnreadCommentsOfAReportById(
+        5,
+        2,
+        "MUNICIPALITY",
+      );
+
+      expect(
+        (repo as any).getMunicipalityUserUnreadCommentsByReportId,
+      ).toHaveBeenCalledWith(5);
+      expect(Array.isArray(res)).toBe(true);
+      expect(res.length).toBeGreaterThan(0);
+    });
+
+    it("getUnreadCommentsOfAReportById returns unread comments for EXTERNAL_MAINTAINER", async () => {
+      const unreadComments = [
+        {
+          id: 2,
+          reportId: 5,
+          content: "muni comment",
+          municipality_user_id: 3,
+          external_maintainer_id: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+      (repo as any).findById.mockResolvedValue({
+        id: 5,
+        externalMaintainerId: 10,
+      });
+      (repo as any).getExternalMaintainerUnreadCommentsByReportId = jest
+        .fn()
+        .mockResolvedValue(unreadComments);
+      (repo as any).markMunicipalityCommentsAsRead = jest
+        .fn()
+        .mockResolvedValue(undefined);
+
+      const res = await reportService.getUnreadCommentsOfAReportById(
+        5,
+        10,
+        "EXTERNAL_MAINTAINER",
+      );
+
+      expect(
+        (repo as any).getExternalMaintainerUnreadCommentsByReportId,
+      ).toHaveBeenCalledWith(5);
+      expect(Array.isArray(res)).toBe(true);
+    });
+
+    it("getUnreadCommentsOfAReportById throws for unauthorized MUNICIPALITY user", async () => {
+      (repo as any).findById.mockResolvedValue({ id: 5, assignedOfficerId: 2 });
+
+      await expect(
+        reportService.getUnreadCommentsOfAReportById(5, 999, "MUNICIPALITY"),
+      ).rejects.toThrow("not authorized");
+    });
+
+    it("getUnreadCommentsOfAReportById throws for unauthorized EXTERNAL_MAINTAINER", async () => {
+      (repo as any).findById.mockResolvedValue({
+        id: 5,
+        externalMaintainerId: 10,
+      });
+
+      await expect(
+        reportService.getUnreadCommentsOfAReportById(
+          5,
+          999,
+          "EXTERNAL_MAINTAINER",
+        ),
+      ).rejects.toThrow("not authorized");
+    });
+
+    it("getUnreadCommentsOfAReportById throws for invalid role", async () => {
+      (repo as any).findById.mockResolvedValue({ id: 5, assignedOfficerId: 2 });
+
+      await expect(
+        reportService.getUnreadCommentsOfAReportById(5, 2, "INVALID_ROLE"),
+      ).rejects.toThrow("Invalid user role");
     });
   });
 
   // ---------- updateReportStatusByExternalMaintainer ----------
   describe("updateReportStatusByExternalMaintainer", () => {
     it("updates status when report assigned to maintainer and valid transition", async () => {
-      const svc = require("@services/reportService").default;
+      const svc = reportService;
       const existing = { id: 7, externalMaintainerId: 3, status: "ASSIGNED" };
       (repo as any).findById.mockResolvedValue(existing);
       (repo as any).update.mockResolvedValue({
@@ -828,7 +959,7 @@ describe("reportService", () => {
       (repo as any).findById.mockResolvedValue(existing);
 
       await expect(
-        require("@services/reportService").default.updateReportStatusByExternalMaintainer(
+        reportService.updateReportStatusByExternalMaintainer(
           7,
           3,
           "IN_PROGRESS",
@@ -841,11 +972,7 @@ describe("reportService", () => {
       (repo as any).findById.mockResolvedValue(existing);
 
       await expect(
-        require("@services/reportService").default.updateReportStatusByExternalMaintainer(
-          7,
-          3,
-          "RESOLVED",
-        ),
+        reportService.updateReportStatusByExternalMaintainer(7, 3, "RESOLVED"),
       ).rejects.toThrow(/Invalid state transition/i);
     });
 
@@ -854,7 +981,7 @@ describe("reportService", () => {
       (repo as any).findById.mockResolvedValue(existing);
 
       await expect(
-        require("@services/reportService").default.updateReportStatusByExternalMaintainer(
+        reportService.updateReportStatusByExternalMaintainer(
           7,
           3,
           "INVALID_STATUS",
@@ -866,7 +993,7 @@ describe("reportService", () => {
       (repo as any).findById.mockResolvedValue(null);
 
       await expect(
-        require("@services/reportService").default.updateReportStatusByExternalMaintainer(
+        reportService.updateReportStatusByExternalMaintainer(
           999,
           3,
           "IN_PROGRESS",
@@ -875,18 +1002,23 @@ describe("reportService", () => {
     });
 
     it("allows IN_PROGRESS to SUSPENDED transition", async () => {
-      const existing = { id: 7, externalMaintainerId: 3, status: "IN_PROGRESS" };
+      const existing = {
+        id: 7,
+        externalMaintainerId: 3,
+        status: "IN_PROGRESS",
+      };
       (repo as any).findById.mockResolvedValue(existing);
       (repo as any).update.mockResolvedValue({
         ...existing,
         status: "SUSPENDED",
       });
 
-      const updated = await require("@services/reportService").default.updateReportStatusByExternalMaintainer(
-        7,
-        3,
-        "SUSPENDED",
-      );
+      const updated =
+        await reportService.updateReportStatusByExternalMaintainer(
+          7,
+          3,
+          "SUSPENDED",
+        );
       expect(updated).toHaveProperty("status", "SUSPENDED");
     });
 
@@ -898,11 +1030,12 @@ describe("reportService", () => {
         status: "IN_PROGRESS",
       });
 
-      const updated = await require("@services/reportService").default.updateReportStatusByExternalMaintainer(
-        7,
-        3,
-        "IN_PROGRESS",
-      );
+      const updated =
+        await reportService.updateReportStatusByExternalMaintainer(
+          7,
+          3,
+          "IN_PROGRESS",
+        );
       expect(updated).toHaveProperty("status", "IN_PROGRESS");
     });
   });
@@ -910,7 +1043,7 @@ describe("reportService", () => {
   // ---------- assignToExternalMaintainer ----------
   describe("assignToExternalMaintainer", () => {
     it("selects maintainer with least assigned reports", async () => {
-      const svc = require("@services/reportService").default;
+      const svc = reportService;
       const report = { id: 5, category: "WASTE" };
       const maintainers = [
         { id: 1, assignedReports: [{ id: 10 }, { id: 11 }] },
@@ -936,7 +1069,7 @@ describe("reportService", () => {
     });
 
     it("uses tie-breaker (lowest ID) when maintainers have same report count", async () => {
-      const svc = require("@services/reportService").default;
+      const svc = reportService;
       const report = { id: 5, category: "WASTE" };
       const maintainers = [
         { id: 5, assignedReports: [{ id: 10 }] },
@@ -963,7 +1096,7 @@ describe("reportService", () => {
     });
 
     it("throws when report not found", async () => {
-      const svc = require("@services/reportService").default;
+      const svc = reportService;
       (repo as any).findById.mockResolvedValue(null);
 
       await expect(svc.assignToExternalMaintainer(999)).rejects.toThrow(
@@ -972,7 +1105,7 @@ describe("reportService", () => {
     });
 
     it("throws when no maintainers available for category", async () => {
-      const svc = require("@services/reportService").default;
+      const svc = reportService;
       const report = { id: 5, category: "WASTE" };
 
       (repo as any).findById.mockResolvedValue(report);
@@ -989,26 +1122,25 @@ describe("reportService", () => {
   // ---------- addCommentToReport - additional coverage ----------
   describe("addCommentToReport - extended coverage", () => {
     it("throws on invalid author type", async () => {
-      const svc = require("@services/reportService").default;
       const report = { id: 5, status: ReportStatus.PENDING_APPROVAL };
       (repo as any).findById.mockResolvedValue(report);
 
       await expect(
-        svc.addCommentToReport({
+        reportService.addCommentToReport({
           reportId: 5,
           authorId: 1,
-          authorType: "INVALID_TYPE",
+          authorType: "INVALID_TYPE" as any,
           content: "test",
         }),
       ).rejects.toThrow(/Invalid author type/i);
     });
 
     it("throws when external maintainer tries to comment on unassigned report", async () => {
-      const svc = require("@services/reportService").default;
-      const report = { 
-        id: 5, 
+      const svc = reportService;
+      const report = {
+        id: 5,
         status: ReportStatus.PENDING_APPROVAL,
-        externalMaintainerId: null 
+        externalMaintainerId: null,
       };
       (repo as any).findById.mockResolvedValue(report);
 
@@ -1023,16 +1155,15 @@ describe("reportService", () => {
     });
 
     it("throws when external maintainer tries to comment on report assigned to different maintainer", async () => {
-      const svc = require("@services/reportService").default;
-      const report = { 
-        id: 5, 
+      const report = {
+        id: 5,
         status: ReportStatus.PENDING_APPROVAL,
-        externalMaintainerId: 5 
+        externalMaintainerId: 5,
       };
       (repo as any).findById.mockResolvedValue(report);
 
       await expect(
-        svc.addCommentToReport({
+        reportService.addCommentToReport({
           reportId: 5,
           authorId: 3, // Different ID from externalMaintainerId
           authorType: "EXTERNAL_MAINTAINER",
@@ -1042,11 +1173,10 @@ describe("reportService", () => {
     });
 
     it("allows external maintainer to comment on assigned report", async () => {
-      const svc = require("@services/reportService").default;
-      const report = { 
-        id: 5, 
+      const report = {
+        id: 5,
         status: ReportStatus.PENDING_APPROVAL,
-        externalMaintainerId: 3 
+        externalMaintainerId: 3,
       };
       const comment = {
         id: 99,
@@ -1060,7 +1190,7 @@ describe("reportService", () => {
       (repo as any).findById.mockResolvedValue(report);
       (repo as any).addCommentToReport.mockResolvedValue(comment);
 
-      const result = await svc.addCommentToReport({
+      const result = await reportService.addCommentToReport({
         reportId: 5,
         authorId: 3,
         authorType: "EXTERNAL_MAINTAINER",
@@ -1072,30 +1202,29 @@ describe("reportService", () => {
     });
 
     it("throws when trying to comment on RESOLVED report", async () => {
-      const svc = require("@services/reportService").default;
-      const report = { 
-        id: 5, 
+      const report = {
+        id: 5,
         status: ReportStatus.RESOLVED,
-        externalMaintainerId: 3 
+        externalMaintainerId: 3,
       };
       (repo as any).findById.mockResolvedValue(report);
 
       await expect(
-        svc.addCommentToReport({
+        reportService.addCommentToReport({
           reportId: 5,
           authorId: 3,
           authorType: "EXTERNAL_MAINTAINER",
           content: "test",
         }),
-      ).rejects.toThrow(/Cannot add comments to resolved reports/i);
+      ).rejects.toThrow("Cannot add comments to resolved or rejected reports");
     });
 
-    it("allows municipality user to comment without assignment check", async () => {
-      const svc = require("@services/reportService").default;
-      const report = { 
-        id: 5, 
+    it("throws error when municipality user try to comment without assignment", async () => {
+      const report = {
+        id: 5,
         status: ReportStatus.PENDING_APPROVAL,
-        externalMaintainerId: null 
+        assignedOfficerId: null,
+        externalMaintainerId: null,
       };
       const comment = {
         id: 100,
@@ -1107,16 +1236,15 @@ describe("reportService", () => {
         updatedAt: new Date(),
       };
       (repo as any).findById.mockResolvedValue(report);
-      (repo as any).addCommentToReport.mockResolvedValue(comment);
 
-      const result = await svc.addCommentToReport({
-        reportId: 5,
-        authorId: 7,
-        authorType: "MUNICIPALITY",
-        content: "muni comment",
-      });
-
-      expect(result).toHaveProperty("municipality_user_id", 7);
+      await expect(
+        reportService.addCommentToReport({
+          reportId: 5,
+          authorId: 7,
+          authorType: "MUNICIPALITY",
+          content: "muni comment",
+        }),
+      ).rejects.toThrow("You can only comment on reports assigned to yourself");
     });
   });
 });

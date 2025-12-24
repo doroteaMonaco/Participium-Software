@@ -274,58 +274,12 @@ export const AdminUsersPage: React.FC = () => {
             <Loader className="h-8 w-8 text-indigo-600 mx-auto mb-3 animate-spin" />
             <p className="text-slate-600">Loading municipality users...</p>
           </div>
-        ) : filteredUsers.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-            <UserCog className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-600">
-              {searchQuery || filterRole
-                ? "No users found matching your filters."
-                : "No municipality users yet. Add your first user to get started."}
-            </p>
-          </div>
         ) : (
-          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-            {filteredUsers.map((user, index) => (
-              <motion.div
-                key={user.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="rounded-xl border-2 border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all"
-              >
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-white font-bold text-sm">
-                      {user.firstName[0]}
-                      {user.lastName[0]}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900">
-                        {user.firstName} {user.lastName}
-                      </h3>
-                      <p className="text-sm text-slate-600">@{user.username}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 mb-4">
-                  <p className="text-sm text-slate-600">
-                    <strong>Email:</strong> {user.email}
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    <strong>Role:</strong>{" "}
-                    <span className="inline-flex items-center rounded-lg px-2 py-1 text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                      {user.roleName}
-                    </span>
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    <strong>Created:</strong>{" "}
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <MunicipalityUsers
+            users={filteredUsers}
+            searchQuery={searchQuery}
+            filterRole={filterRole}
+          />
         )}
       </div>
 
@@ -517,6 +471,75 @@ export const AdminUsersPage: React.FC = () => {
           document.body,
         )}
     </AdminDashboardLayout>
+  );
+};
+
+type MunicipalityUsersProps = {
+  users: DisplayUser[];
+  searchQuery: string;
+  filterRole: string;
+};
+
+const MunicipalityUsers: React.FC<MunicipalityUsersProps> = ({
+  users,
+  searchQuery,
+  filterRole,
+}) => {
+  if (users.length === 0)
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+        <UserCog className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+        <p className="text-slate-600">
+          {searchQuery || filterRole
+            ? "No users found matching your filters."
+            : "No municipality users yet. Add your first user to get started."}
+        </p>
+      </div>
+    );
+
+  return (
+    <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+      {users.map((user, index) => (
+        <motion.div
+          key={user.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.05 }}
+          className="rounded-xl border-2 border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all"
+        >
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-white font-bold text-sm">
+                {user.firstName[0]}
+                {user.lastName[0]}
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900">
+                  {user.firstName} {user.lastName}
+                </h3>
+                <p className="text-sm text-slate-600">@{user.username}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2 mb-4">
+            <p className="text-sm text-slate-600">
+              <strong>Email:</strong> {user.email}
+            </p>
+            <p className="text-sm text-slate-600">
+              <strong>Role:</strong>{" "}
+              <span className="inline-flex items-center rounded-lg px-2 py-1 text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                {user.roleName}
+              </span>
+            </p>
+            <p className="text-sm text-slate-600">
+              <strong>Created:</strong>{" "}
+              {new Date(user.createdAt).toLocaleDateString()}
+            </p>
+          </div>
+        </motion.div>
+      ))}
+    </div>
   );
 };
 

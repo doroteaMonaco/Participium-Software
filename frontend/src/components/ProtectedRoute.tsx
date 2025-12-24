@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
   requiredMunicipalityRole?: string;
 }
 
-const getDefaultDashboard = (role: UserRole | string): string => {
+const getDefaultDashboard = (role: UserRole): string => {
   if (role === "ADMIN") return "/admin";
   if (role === "MUNICIPALITY") return "/municipality/technical-reports";
   if (role === "EXTERNAL_MAINTAINER") return "/maintainer";
@@ -50,7 +50,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Not authenticated - redirect to login
-  if (!isAuthenticated || !user || !user.role) {
+  if (!isAuthenticated || !user?.role) {
     return <Navigate to="/login" replace />;
   }
 
@@ -58,7 +58,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check role if required
   if (requiredRole && userRole !== requiredRole) {
-    return <Navigate to={getDefaultDashboard(userRole)} replace />;
+    return <Navigate to={getDefaultDashboard(userRole as UserRole)} replace />;
   }
 
   // Check municipality role if required (for MUNICIPALITY users only)

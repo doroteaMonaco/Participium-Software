@@ -41,6 +41,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/dist ./
 
 EXPOSE 4000
+EXPOSE 8080
 
 # Start the application with migrations
 CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]

@@ -80,6 +80,12 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ reportId }) => {
     return new Date(dateString).toLocaleString();
   };
 
+  const getAuthorLabel = (c: Comment): string => {
+    if (c.municipality_user_id) return "Municipality Staff";
+    if (c.external_maintainer_id) return "External Maintainer";
+    return "Unknown User";
+  };
+
   if (!canViewComments) {
     return null;
   }
@@ -126,11 +132,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ reportId }) => {
             >
               <div className="flex justify-between items-start mb-2">
                 <span className="font-semibold text-sm text-slate-700">
-                  {comment.municipality_user_id
-                    ? `Municipality Staff`
-                    : comment.external_maintainer_id
-                      ? `External Maintainer`
-                      : "Unknown User"}
+                  {getAuthorLabel(comment)}
                 </span>
                 <span className="text-xs text-slate-400">
                   {formatDate(comment.createdAt)}
@@ -155,7 +157,8 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ reportId }) => {
           {report.status === ReportStatus.RESOLVED && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg mb-2">
               <p className="text-sm text-amber-800">
-                💤 This report is resolved. Comments cannot be added to completed reports.
+                💤 This report is resolved. Comments cannot be added to
+                completed reports.
               </p>
             </div>
           )}
@@ -174,7 +177,11 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ reportId }) => {
           <div className="flex justify-end mt-2">
             <button
               type="submit"
-              disabled={submitting || !newComment.trim() || report.status === ReportStatus.RESOLVED}
+              disabled={
+                submitting ||
+                !newComment.trim() ||
+                report.status === ReportStatus.RESOLVED
+              }
               className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-colors"
             >
               {submitting ? "Posting..." : "Post Comment"}

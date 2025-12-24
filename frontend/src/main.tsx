@@ -10,7 +10,7 @@ import marker from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
 // Ensure default Leaflet marker images are set (runs once in browser)
-if (typeof window !== "undefined") {
+if (typeof globalThis.window !== "undefined") {
   try {
     // Remove internal getter if present so mergeOptions works reliably across builds
     // (safe-guard for different Leaflet versions / TS defs)

@@ -50,6 +50,7 @@ const integration = {
   testMatch: ["**/integration/**/*.integration.test.ts"],
   globalSetup: "<rootDir>/test/setup/globalSetup.ts",
   globalTeardown: "<rootDir>/test/setup/globalTeardown.ts",
+  setupFiles: ["<rootDir>/test/setup/mockEmailService.ts"],
 };
 
 const e2e = {
@@ -58,6 +59,7 @@ const e2e = {
   testMatch: ["**/e2e/**/*.e2e.test.ts"],
   globalSetup: "<rootDir>/test/setup/globalSetup.ts",
   globalTeardown: "<rootDir>/test/setup/globalTeardown.ts",
+  setupFiles: ["<rootDir>/test/setup/mockEmailService.ts"],
 };
 
 const config = {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getReportById } from "src/services/api";
+import { getReportById, type Report } from "src/services/api";
 
 // Reverse map backend enum -> human-friendly labels (keep in sync with form)
 const ENUM_TO_LABEL: Record<string, string> = {
@@ -52,7 +52,7 @@ const LoadingView: React.FC = () => (
 const ReportDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [report, setReport] = useState<any | null>(null);
+  const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -76,16 +76,16 @@ const ReportDetailsPage: React.FC = () => {
     <main className="p-6 max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">{report.title}</h1>
       <p className="text-sm text-slate-500 mb-4">
-        Created: {new Date(report.createdAt).toLocaleString()}
+        Created: {new Date(report.createdAt!).toLocaleString()}
       </p>
 
       {/* Status Badge */}
       <div className="mb-4">
         <strong>Status:</strong>{" "}
         <span
-          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(report.status)}`}
+          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(report.status!)}`}
         >
-          {getStatusDisplayText(report.status)}
+          {getStatusDisplayText(report.status!)}
         </span>
       </div>
 
@@ -109,7 +109,7 @@ const ReportDetailsPage: React.FC = () => {
 
       <div className="mb-4">
         <strong>Category:</strong>{" "}
-        <span>{ENUM_TO_LABEL[report.category] ?? report.category}</span>
+        <span>{ENUM_TO_LABEL[report.category!] ?? report.category}</span>
       </div>
       <div className="mb-4">
         <strong>Description</strong>
@@ -124,7 +124,7 @@ const ReportDetailsPage: React.FC = () => {
               <img
                 key={p}
                 src={`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`}
-                alt={`Report photo`}
+                alt={`issue`}
                 className="w-full h-40 object-cover rounded"
               />
             ))}

@@ -14,6 +14,11 @@ jest.mock("@controllers/userController", () => ({
     register: jest.fn((req: Request, res: Response) =>
       res.status(201).json({ route: "register", body: req.body }),
     ),
+    registerWithVerification: jest.fn((req: Request, res: Response) =>
+      res
+        .status(201)
+        .json({ route: "registerWithVerification", body: req.body }),
+    ),
     // Admin endpoints
     createMunicipalityUser: jest.fn((req: Request, res: Response) =>
       res.status(201).json({ route: "createMunicipalityUser", body: req.body }),
@@ -72,8 +77,11 @@ describe("userRouter (public routes)", () => {
       const res = await request(app).post("/api/users").send(payload);
 
       expect(res.status).toBe(201);
-      expect(res.body).toEqual({ route: "register", body: payload });
-      expect(userController.register).toHaveBeenCalledTimes(1);
+      expect(res.body).toEqual({
+        route: "registerWithVerification",
+        body: payload,
+      });
+      expect(userController.registerWithVerification).toHaveBeenCalledTimes(1);
     });
   });
 });

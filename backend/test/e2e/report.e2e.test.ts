@@ -46,6 +46,11 @@ const registerUser = async (
   const userData = { ...user, role };
   const res = await agent.post("/api/users").send(userData);
   expect(res.status).toBe(201);
+  const verifyRes = await agent.post("/api/auth/verify").send({
+    emailOrUsername: user.email,
+    code: (global as any).__lastSentVerificationCode,
+  });
+  expect(verifyRes.status).toBe(201);
 };
 
 const loginAgent = async (
@@ -180,6 +185,7 @@ describe("Report E2E", () => {
 
   beforeEach(async () => {
     await prisma.report.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
@@ -201,6 +207,7 @@ describe("Report E2E", () => {
 
   afterAll(async () => {
     await prisma.report.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
@@ -209,6 +216,30 @@ describe("Report E2E", () => {
   });
 
   describe("Complete Report Lifecycle", () => {
+    it("prevents unverified users from creating reports", async () => {
+      const unverified = {
+        username: "unv_report",
+        email: "unv_report@example.com",
+        firstName: "Unv",
+        lastName: "Report",
+        password: "Pwd123!",
+      };
+
+      const agent = request.agent(app);
+      await agent.post("/api/users").send(unverified).expect(201);
+
+      // attempt to create a report without completing verification
+      await agent
+        .post("/api/reports")
+        .field("title", "Should not create")
+        .field("description", "No access")
+        .field("category", "PUBLIC_LIGHTING")
+        .field("latitude", "45.0")
+        .field("longitude", "9.0")
+        .attach("photos", Buffer.from("fake"), { filename: "p.jpg" })
+        .expect(401);
+    });
+
     it("Citizen can create, view, and municipality validates report", async () => {
       const citizen = { ...fakeUser, username: "c1", email: "c1@test.com" };
       const citizenAgent = await createAndLogin(citizen);
@@ -664,6 +695,9 @@ describe("Report E2E", () => {
 
       expect(muniCommentRes.body).toHaveProperty("municipality_user_id");
 
+      // Citizen cannot view comments (requires municipality or external maintainer role)
+      await citizenAgent.get(`/api/reports/${reportId}/comments`).expect(403);
+
       // Step 6: Admin creates external maintainer
       const emData = {
         username: "e2e_em",
@@ -827,19 +861,7 @@ describe("Report E2E", () => {
           content:
             "The report was rejected because it lacks sufficient detail for our teams to act on it.",
         })
-        .expect(201);
-
-      // Citizen cannot view comments (requires municipality or external maintainer role)
-      await citizenAgent
-        .get(`/api/reports/${reportId}/comments`)
         .expect(403);
-
-      // Verify municipality can see the comment
-      const muniCommentsRes = await muniAgent
-        .get(`/api/reports/${reportId}/comments`)
-        .expect(200);
-
-      expect(muniCommentsRes.body.length).toBeGreaterThanOrEqual(1);
     });
 
     it("multiple reports handling with different statuses and priorities", async () => {
@@ -940,7 +962,9 @@ describe("Report E2E", () => {
 
       // Verify reports have correct status
       for (const { report, agent } of reports) {
-        const viewRes = await agent.get(`/api/reports/${report.id}`).expect(200);
+        const viewRes = await agent
+          .get(`/api/reports/${report.id}`)
+          .expect(200);
         expect(viewRes.body.status).toBe("ASSIGNED");
       }
 
@@ -948,4 +972,5 @@ describe("Report E2E", () => {
       const allReportsRes = await adminAgent.get("/api/reports").expect(200);
       expect(allReportsRes.body.length).toBeGreaterThanOrEqual(reports.length);
     });
-  });});
+  });
+});

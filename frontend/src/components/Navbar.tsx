@@ -120,6 +120,7 @@ export const NavBar: React.FC = () => {
 
               {dropdownOpen && (
                 <div
+                  role="menu"
                   className="absolute left-0 top-full mt-2 w-48 rounded-xl border border-slate-200 bg-white shadow-lg py-2"
                   onMouseLeave={() => setDropdownOpen(false)}
                 >

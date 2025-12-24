@@ -12,6 +12,7 @@ import errorHandler from "@middlewares/errorMiddleware";
 import reportRouter from "@routes/reportRouter";
 import authRouter from "@routes/authRouter";
 import userRouter from "@routes/userRouter";
+import emailRouter from "@routes/emailRouter";
 
 const app = express();
 
@@ -71,6 +72,7 @@ if (Array.isArray(openApiValidator)) {
 
 // Mount other routers (after validator)
 app.use(CONFIG.ROUTES.AUTH, authRouter);
+app.use(CONFIG.ROUTES.EMAIL, emailRouter);
 
 // OpenAPI validation error handler
 app.use((err: any, _req: any, res: any, next: any) => {

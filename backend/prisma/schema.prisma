@@ -23,6 +23,19 @@ model user {
   messages         message[]          @relation("userMessages")
 }
 
+model pending_verification_user {
+  id                     Int       @id @default(autoincrement())
+  username               String    @unique
+  email                  String    @unique
+  firstName              String
+  lastName               String
+  password               String
+  verificationCodeHash   String
+  verificationCodeExpiry DateTime
+  verificationAttempts   Int       @default(0)
+  createdAt              DateTime  @default(now())
+}
+
 model municipality_user {
   id              Int      @id @default(autoincrement())
   username             String             @unique
@@ -113,6 +126,7 @@ model comment {
   content                String
   createdAt              DateTime  @default(now())
   updatedAt              DateTime?  @updatedAt
+  read                   Boolean   @default(false)
 
   report               report              @relation(fields: [reportId], references: [id], onDelete: Cascade)
   municipality_user    municipality_user?  @relation(fields: [municipality_user_id], references: [id], onDelete: SetNull)

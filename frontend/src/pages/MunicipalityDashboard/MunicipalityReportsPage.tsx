@@ -432,7 +432,7 @@ export const MunicipalityReportsPage: React.FC = () => {
                       <div className="flex gap-3 pl-3 overflow-x-auto pb-2">
                         {report.photos.map((p: string, idx: number) => (
                           <div
-                            key={`photo-${idx}`}
+                            key={`photo-${p}`}
                             className="relative group/photo flex-shrink-0"
                           >
                             <img
@@ -456,14 +456,14 @@ export const MunicipalityReportsPage: React.FC = () => {
                     </div>
                     <div className="pl-3 h-40 sm:h-48 w-full rounded-xl overflow-hidden border-2 border-slate-200 shadow-md">
                       <MapContainer
-                        center={[report.lat || 45.0, report.lng || 7.0]}
+                        center={[report.lat || 45, report.lng || 7]}
                         zoom={15}
                         style={{ height: "100%", width: "100%" }}
                         scrollWheelZoom={true}
                       >
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                         <Marker
-                          position={[report.lat || 45.0, report.lng || 7.0]}
+                          position={[report.lat || 45, report.lng || 7]}
                         />
                       </MapContainer>
                     </div>

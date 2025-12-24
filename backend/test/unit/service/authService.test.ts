@@ -108,6 +108,88 @@ describe("authService", () => {
         token: "token-xyz",
       });
     });
+
+    it("searches all roles when no role specified and finds user by email", async () => {
+      const user = makeUser({ id: 5 });
+      repo.findUserByEmail.mockResolvedValue(null);
+      (userRepository.findUserByEmail as jest.Mock).mockImplementation(
+        (identifier, role) => {
+          if (role === roleType.CITIZEN) {
+            return Promise.resolve(user);
+          }
+          return Promise.resolve(null);
+        },
+      );
+      repo.findUserById.mockResolvedValue(user);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (jwt.sign as jest.Mock).mockReturnValue("token-xyz");
+
+      const res = await authService.login(user.email, "password");
+
+      expect(res).toEqual({
+        user: { ...user, role: roleType.CITIZEN },
+        token: "token-xyz",
+      });
+      expect(jwt.sign).toHaveBeenCalledWith(
+        { id: user.id, email: user.email, role: roleType.CITIZEN },
+        expect.any(String),
+        expect.objectContaining({ expiresIn: "1h" }),
+      );
+    });
+
+    it("searches all roles when no role specified and finds user by username", async () => {
+      const user = makeUser({ id: 6 });
+      repo.findUserByEmail.mockResolvedValue(null);
+      (userRepository.findUserByEmail as jest.Mock).mockResolvedValue(null);
+      (userRepository.findUserByUsername as jest.Mock).mockImplementation(
+        (identifier, role) => {
+          if (role === roleType.MUNICIPALITY) {
+            return Promise.resolve(user);
+          }
+          return Promise.resolve(null);
+        },
+      );
+      repo.findUserById.mockResolvedValue(user);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (jwt.sign as jest.Mock).mockReturnValue("token-xyz");
+
+      const res = await authService.login(user.username, "password");
+
+      expect(res).toEqual({
+        user: { ...user, role: roleType.MUNICIPALITY },
+        token: "token-xyz",
+      });
+    });
+
+    it("throws when user is not found after re-fetch with foundRole", async () => {
+      const user = makeUser({ id: 8 });
+      repo.findUserByEmail.mockResolvedValue(user);
+      repo.findUserById.mockResolvedValue(null);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      await expect(authService.login(user.email, "password", roleType.ADMIN)).rejects.toThrow(
+        "User not found after authentication",
+      );
+
+      expect(repo.findUserById).toHaveBeenCalledWith(user.id, roleType.ADMIN);
+    });
+
+    it("finds user by username when email search returns null", async () => {
+      const user = makeUser({ id: 9 });
+      repo.findUserByEmail.mockResolvedValue(null);
+      (userRepository.findUserByUsername as jest.Mock).mockResolvedValue(user);
+      repo.findUserById.mockResolvedValue(user);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (jwt.sign as jest.Mock).mockReturnValue("token-xyz");
+
+      const res = await authService.login(user.username, "password", roleType.CITIZEN);
+
+      expect(res).toEqual({
+        user: { ...user, role: roleType.CITIZEN },
+        token: "token-xyz",
+      });
+      expect(userRepository.findUserByUsername).toHaveBeenCalledWith(user.username, roleType.CITIZEN);
+    });
   });
 
   // ---------------- verifyAuth ----------------
@@ -158,6 +240,20 @@ describe("authService", () => {
       expect(jwt.verify).toHaveBeenCalledWith("good-token", expect.any(String));
       expect(repo.findUserById).toHaveBeenCalledWith(7, roleType.CITIZEN);
       expect(res).toEqual({ ...user, role: roleType.CITIZEN });
+    });
+
+    it("returns null when token valid but user not found in database", async () => {
+      (jwt.verify as jest.Mock).mockReturnValue({
+        id: 99,
+        role: roleType.CITIZEN,
+      });
+      repo.findUserById.mockResolvedValue(null);
+
+      const res = await authService.verifyAuth("good-token");
+
+      expect(jwt.verify).toHaveBeenCalledWith("good-token", expect.any(String));
+      expect(repo.findUserById).toHaveBeenCalledWith(99, roleType.CITIZEN);
+      expect(res).toBeNull();
     });
   });
 });

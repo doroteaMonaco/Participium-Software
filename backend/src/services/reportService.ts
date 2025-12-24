@@ -1,10 +1,12 @@
 import reportRepository from "@repositories/reportRepository";
 import { userRepository } from "@repositories/userRepository";
 import { CreateReportDto, ReportDto } from "@dto/reportDto";
-import { createCommentDto, CommentDto } from "@models/dto/commentDto";
+import { CreateCommentDto, CommentDto } from "@models/dto/commentDto";
 import imageService from "@services/imageService";
 import { ReportStatus, roleType, Category } from "@models/enums";
 import { instanceOfExternalMaintainerUserDto } from "@models/dto/userDto";
+
+import { sendMessageToUser } from "@services/websocketService";
 
 // Helper function to hide user info for anonymous reports
 const sanitizeReport = (report: any): ReportDto => {
@@ -272,16 +274,17 @@ const assignToExternalMaintainer = async (
   }
 
   // 2) Recupero tutti gli external maintainers con la stessa categoria
-  const allExternalMaintainers = await userRepository.findExternalMaintainersByCategory(
-    report.category as Category,
-  );
+  const allExternalMaintainers =
+    await userRepository.findExternalMaintainersByCategory(
+      report.category as Category,
+    );
 
   if (allExternalMaintainers.length === 0) {
     throw new Error(
       `No external maintainers available for category "${report.category}"`,
     );
   }
-  
+
   // 3) Per ognuno calcolo quanti report ha già assegnati
   const maintainersWithCounts = await Promise.all(
     allExternalMaintainers.map(async (em) => ({
@@ -291,17 +294,21 @@ const assignToExternalMaintainer = async (
   );
 
   // 4) Scelgo quello con meno report (in caso di parità, quello con id più basso – tie-breaker deterministico)
-  const chosen = maintainersWithCounts.reduce((best, current) => {
-    if (!best) return current;
-    if ((current.assignedReports ?? 0) < (best.assignedReports ?? 0)) return current;
-    if (
-      (current.assignedReports ?? 0) === (best.assignedReports ?? 0) &&
-      current.maintainer.id < best.maintainer.id
-    ) {
-      return current;
-    }
-    return best;
-  }, null as (typeof maintainersWithCounts)[number] | null);
+  const chosen = maintainersWithCounts.reduce(
+    (best, current) => {
+      if (!best) return current;
+      if ((current.assignedReports ?? 0) < (best.assignedReports ?? 0))
+        return current;
+      if (
+        (current.assignedReports ?? 0) === (best.assignedReports ?? 0) &&
+        current.maintainer.id < best.maintainer.id
+      ) {
+        return current;
+      }
+      return best;
+    },
+    null as (typeof maintainersWithCounts)[number] | null,
+  );
 
   if (!chosen) {
     throw new Error(
@@ -320,15 +327,14 @@ const assignToExternalMaintainer = async (
 const findReportsForExternalMaintainer = async (
   externalMaintainerId: number,
 ): Promise<ReportDto[]> => {
-  const reports = await reportRepository.findByExternalMaintainerId(
-    externalMaintainerId,
-  );
+  const reports =
+    await reportRepository.findByExternalMaintainerId(externalMaintainerId);
 
   return reports.map(sanitizeReport);
-}
+};
 
 const addCommentToReport = async (
-  dto: createCommentDto
+  dto: CreateCommentDto,
 ): Promise<CommentDto> => {
   const { reportId, authorId, authorType, content } = dto;
 
@@ -337,26 +343,34 @@ const addCommentToReport = async (
     throw new Error("Report not found");
   }
 
-  // Check if report is RESOLVED - cannot add comments to resolved reports
-  if (report.status === ReportStatus.RESOLVED) {
-    throw new Error("Cannot add comments to resolved reports");
+  // Check if report is RESOLVED or REJECTED - cannot add comments to resolved or rejected reports
+  if (
+    report.status === ReportStatus.RESOLVED ||
+    report.status === ReportStatus.REJECTED
+  ) {
+    throw new Error("Cannot add comments to resolved or rejected reports");
   }
-
-  // Check if external maintainer can comment on this report
-  // External maintainers can only comment on reports assigned to them
-  if (authorType === "EXTERNAL_MAINTAINER") {
-    if (report.externalMaintainerId === null || report.externalMaintainerId !== authorId) {
-      throw new Error("You can only comment on reports assigned to yourself");
-    }
-  }
-  // Municipality users can always comment on reports they manage
 
   let municipality_user_id: number | null = null;
   let external_maintainer_id: number | null = null;
 
-  if (authorType === "MUNICIPALITY") {
+  // Check if the author can comment on this report
+  // Authors can only comment on reports assigned to them
+  if (authorType === roleType.MUNICIPALITY) {
+    if (
+      report.assignedOfficerId === null ||
+      report.assignedOfficerId !== authorId
+    ) {
+      throw new Error("You can only comment on reports assigned to yourself");
+    }
     municipality_user_id = authorId;
-  } else if (authorType === "EXTERNAL_MAINTAINER") {
+  } else if (authorType === roleType.EXTERNAL_MAINTAINER) {
+    if (
+      report.externalMaintainerId === null ||
+      report.externalMaintainerId !== authorId
+    ) {
+      throw new Error("You can only comment on reports assigned to yourself");
+    }
     external_maintainer_id = authorId;
   } else {
     throw new Error("Invalid author type");
@@ -367,7 +381,7 @@ const addCommentToReport = async (
     content,
     municipality_user_id,
     external_maintainer_id,
-  })
+  });
 
   const result: CommentDto = {
     id: created.id,
@@ -377,20 +391,45 @@ const addCommentToReport = async (
     content: created.content,
     createdAt: created.createdAt,
     updatedAt: created.updatedAt,
-  }
+    read: created.read,
+  };
 
   return result;
-}
+};
 
 const getCommentsOfAReportById = async (
-  reportId: number
+  reportId: number,
+  userId: number,
+  role: string,
 ): Promise<CommentDto[]> => {
   const report = await reportRepository.findById(reportId);
   if (!report) {
     throw new Error("Report not found");
   }
 
+  if (role === roleType.MUNICIPALITY) {
+    // Check if the municipality user is assigned to this report
+    if (report.assignedOfficerId !== userId) {
+      throw new Error(
+        "You are not authorized to view comments for this report",
+      );
+    }
+  } else if (role === roleType.EXTERNAL_MAINTAINER) {
+    // Check if the external maintainer is assigned to this report
+    if (report.externalMaintainerId !== userId) {
+      throw new Error(
+        "You are not authorized to view comments for this report",
+      );
+    }
+  } else {
+    throw new Error("Invalid user role");
+  }
+
   const comments = await reportRepository.getCommentsByReportId(reportId);
+
+  role === roleType.MUNICIPALITY
+    ? await reportRepository.markExternalMaintainerCommentsAsRead(reportId)
+    : await reportRepository.markMunicipalityCommentsAsRead(reportId);
 
   return comments.map((comment: CommentDto) => ({
     id: comment.id,
@@ -400,8 +439,59 @@ const getCommentsOfAReportById = async (
     content: comment.content,
     createdAt: comment.createdAt,
     updatedAt: comment.updatedAt,
+    read: comment.read,
   }));
-}
+};
+
+const getUnreadCommentsOfAReportById = async (
+  reportId: number,
+  userId: number,
+  role: string,
+): Promise<CommentDto[]> => {
+  const report = await reportRepository.findById(reportId);
+  if (!report) {
+    throw new Error("Report not found");
+  }
+  let comments: CommentDto[] = [];
+  if (role === roleType.MUNICIPALITY) {
+    // Check if the municipality user is assigned to this report
+    if (report.assignedOfficerId !== userId) {
+      throw new Error(
+        "You are not authorized to view comments for this report",
+      );
+    }
+
+    comments =
+      await reportRepository.getMunicipalityUserUnreadCommentsByReportId(
+        reportId,
+      );
+  } else if (role === roleType.EXTERNAL_MAINTAINER) {
+    // Check if the external maintainer is assigned to this report
+    if (report.externalMaintainerId !== userId) {
+      throw new Error(
+        "You are not authorized to view comments for this report",
+      );
+    }
+
+    comments =
+      await reportRepository.getExternalMaintainerUnreadCommentsByReportId(
+        reportId,
+      );
+  } else {
+    throw new Error("Invalid user role");
+  }
+
+  return comments.map((comment: CommentDto) => ({
+    id: comment.id,
+    reportId: comment.reportId,
+    municipality_user_id: comment.municipality_user_id,
+    external_maintainer_id: comment.external_maintainer_id,
+    content: comment.content,
+    createdAt: comment.createdAt,
+    updatedAt: comment.updatedAt,
+    read: comment.read,
+  }));
+};
 
 /**
  * Update the status of a report by an external maintainer.
@@ -481,4 +571,5 @@ export default {
   addCommentToReport,
   getCommentsOfAReportById,
   updateReportStatusByExternalMaintainer,
+  getUnreadCommentsOfAReportById,
 };

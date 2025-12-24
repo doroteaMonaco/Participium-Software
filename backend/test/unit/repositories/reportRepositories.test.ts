@@ -760,5 +760,89 @@ describe("reportRepository", () => {
       });
       expect(Array.isArray(res)).toBe(true);
     });
+
+    it("getMunicipalityUserUnreadCommentsByReportId calls prisma.comment.findMany with correct where clause", async () => {
+      const prismaMock = prisma as any;
+      prismaMock.comment = prismaMock.comment || {};
+      prismaMock.comment.findMany = jest.fn().mockResolvedValue([]);
+
+      const reportRepository =
+        require("@repositories/reportRepository").default;
+      const res = await reportRepository.getMunicipalityUserUnreadCommentsByReportId(5);
+
+      expect(prismaMock.comment.findMany).toHaveBeenCalledWith({
+        where: {
+          reportId: 5,
+          read: false,
+          municipality_user_id: null,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+      expect(Array.isArray(res)).toBe(true);
+    });
+
+    it("getExternalMaintainerUnreadCommentsByReportId calls prisma.comment.findMany with correct where clause", async () => {
+      const prismaMock = prisma as any;
+      prismaMock.comment = prismaMock.comment || {};
+      prismaMock.comment.findMany = jest.fn().mockResolvedValue([]);
+
+      const reportRepository =
+        require("@repositories/reportRepository").default;
+      const res = await reportRepository.getExternalMaintainerUnreadCommentsByReportId(5);
+
+      expect(prismaMock.comment.findMany).toHaveBeenCalledWith({
+        where: {
+          reportId: 5,
+          read: false,
+          external_maintainer_id: null,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+      expect(Array.isArray(res)).toBe(true);
+    });
+
+    it("markExternalMaintainerCommentsAsRead calls prisma.comment.updateMany", async () => {
+      const prismaMock = prisma as any;
+      prismaMock.comment = prismaMock.comment || {};
+      prismaMock.comment.updateMany = jest.fn().mockResolvedValue({ count: 2 });
+
+      const reportRepository =
+        require("@repositories/reportRepository").default;
+      const res = await reportRepository.markExternalMaintainerCommentsAsRead(5);
+
+      expect(prismaMock.comment.updateMany).toHaveBeenCalledWith({
+        where: {
+          reportId: 5,
+          read: false,
+          municipality_user_id: null,
+        },
+        data: {
+          read: true,
+        },
+      });
+      expect(res).toEqual({ count: 2 });
+    });
+
+    it("markMunicipalityCommentsAsRead calls prisma.comment.updateMany", async () => {
+      const prismaMock = prisma as any;
+      prismaMock.comment = prismaMock.comment || {};
+      prismaMock.comment.updateMany = jest.fn().mockResolvedValue({ count: 1 });
+
+      const reportRepository =
+        require("@repositories/reportRepository").default;
+      const res = await reportRepository.markMunicipalityCommentsAsRead(5);
+
+      expect(prismaMock.comment.updateMany).toHaveBeenCalledWith({
+        where: {
+          reportId: 5,
+          read: false,
+          external_maintainer_id: null,
+        },
+        data: {
+          read: true,
+        },
+      });
+      expect(res).toEqual({ count: 1 });
+    });
   });
 });

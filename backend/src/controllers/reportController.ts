@@ -2,9 +2,7 @@ import { Request, Response } from "express";
 import reportService from "@services/reportService";
 import imageService from "@services/imageService";
 import { roleType } from "@models/enums";
-import { report } from "process";
 import { commentAuthorType } from "@models/dto/commentDto";
-import { userService } from "@services/userService";
 
 const VALID_CATEGORIES = [
   "WATER_SUPPLY_DRINKING_WATER",
@@ -48,6 +46,9 @@ export const getReports = async (_req: Request, res: Response) => {
       userId = _req.user.id;
       // If status=ASSIGNED is passed, also filter by ASSIGNED (which findAll already does with userId)
       // If no status is passed, show all their reports + ASSIGNED from others
+      if (status === "ASSIGNED") {
+        statusFilter = "ASSIGNED";
+      }
     }
     // ADMIN/MUNICIPALITY: Can see all reports, optionally filtered by status
     else if (
@@ -97,7 +98,15 @@ export const getReportById = async (req: Request, res: Response) => {
 
     res.json(report);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch report" });
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to update report status";
+    let statusCode = 500;
+    if (error instanceof Error) {
+      if (error.message === "Report not found") statusCode = 404;
+      else if (/not authorized/i.test(error.message)) statusCode = 403;
+      else if (/invalid/i.test(error.message)) statusCode = 400;
+    }
+    res.status(statusCode).json({ error: errorMessage });
   }
 };
 
@@ -108,7 +117,15 @@ export const getReportByStatus = async (req: Request, res: Response) => {
 
     res.json(reports);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch report" });
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to update report status";
+    let statusCode = 500;
+    if (error instanceof Error) {
+      if (error.message === "Report not found") statusCode = 404;
+      else if (/not authorized/i.test(error.message)) statusCode = 403;
+      else if (/invalid/i.test(error.message)) statusCode = 400;
+    }
+    res.status(statusCode).json({ error: errorMessage });
   }
 };
 
@@ -290,10 +307,15 @@ export const getReportsForMunicipalityUser = async (
 
     return res.status(200).json(reports);
   } catch (error) {
-    return res.status(500).json({
-      error: "Internal Server Error",
-      message: "Unable to fetch assigned reports for municipality user",
-    });
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to update report status";
+    let statusCode = 500;
+    if (error instanceof Error) {
+      if (error.message === "Report not found") statusCode = 404;
+      else if (/not authorized/i.test(error.message)) statusCode = 403;
+      else if (/invalid/i.test(error.message)) statusCode = 400;
+    }
+    res.status(statusCode).json({ error: errorMessage });
   }
 };
 
@@ -303,8 +325,15 @@ export const deleteReport = async (req: Request, res: Response) => {
     const deletedReport = await reportService.deleteReport(Number.parseInt(id));
     res.json(deletedReport);
   } catch (error) {
-    // Generic error for delete failures
-    res.status(500).json({ error: "Failed to delete report" });
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to update report status";
+    let statusCode = 500;
+    if (error instanceof Error) {
+      if (error.message === "Report not found") statusCode = 404;
+      else if (/not authorized/i.test(error.message)) statusCode = 403;
+      else if (/invalid/i.test(error.message)) statusCode = 400;
+    }
+    res.status(statusCode).json({ error: errorMessage });
   }
 };
 
@@ -462,6 +491,13 @@ export const getCommentOfAReportById = async (req: Request, res: Response) => {
       });
     }
 
+    if (!req.role) {
+      return res.status(403).json({
+        error: "Authorization Error",
+        message: "User role not found",
+      });
+    }
+
     const reportId = Number.parseInt(req.params.report_id);
     if (Number.isNaN(reportId)) {
       return res.status(400).json({
@@ -470,7 +506,52 @@ export const getCommentOfAReportById = async (req: Request, res: Response) => {
       });
     }
 
-    const response = await reportService.getCommentsOfAReportById(reportId);
+    const response = await reportService.getCommentsOfAReportById(reportId, req.user.id, req.role);
+
+    if (!response) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Report not found",
+      });
+    }
+
+    return res.status(200).json(response);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to retrieve comments";
+    const statusCode =
+      error instanceof Error && /not found/i.test(error.message) ? 404 : 500;
+    return res.status(statusCode).json({ error: errorMessage });
+  }
+};
+
+export const getUnreadCommentOfAReportById = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Authentication Error",
+        message: "User not authenticated",
+      });
+    }
+
+      if (!req.role) {
+      return res.status(403).json({
+        error: "Authorization Error",
+        message: "User role not found",
+      });
+    }
+
+    const reportId = Number.parseInt(req.params.report_id);
+    if (Number.isNaN(reportId)) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid report id",
+      });
+    }
+
+    const response = await reportService.getUnreadCommentsOfAReportById(reportId, req.user.id, req.role);
 
     if (!response) {
       return res.status(404).json({

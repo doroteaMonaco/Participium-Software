@@ -187,8 +187,8 @@ export function UserFromJSON(json: any): AnyUserDto | null {
       lastName: resolvedLastName,
       municipality_role_id: json.municipality_role_id,
       municipality_role: json.municipality_role,
-      assignedReports: json.assignedReports as ReportDto[] | undefined,
-      messages: json.messages as MessageDto[] | undefined,
+      assignedReports: json.assignedReports ,
+      messages: json.messages,
     }) as MunicipalityUserDto;
   }
 
@@ -201,8 +201,8 @@ export function UserFromJSON(json: any): AnyUserDto | null {
       profilePhoto: json.profilePhoto,
       telegramUsername: json.telegramUsername,
       notifications: json.notifications,
-      reports: json.reports as ReportDto[] | undefined,
-      messages: json.messages as MessageDto[] | undefined,
+      reports: json.reports,
+      messages: json.messages,
       anonymous: json.anonymous,
     }) as CitizenDto;
   }
@@ -215,7 +215,7 @@ export function UserFromJSON(json: any): AnyUserDto | null {
       lastName: resolvedLastName,
       companyName: json.companyName,
       category: json.category,
-      assignedReports: json.assignedReports as ReportDto[] | undefined,
+      assignedReports: json.assignedReports,
     }) as ExternalMaintainerUserDto;
   }
 

@@ -21,6 +21,7 @@ describe("Municipality Integration Tests", () => {
     await prisma.comment.deleteMany();
     await prisma.external_maintainer.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
@@ -211,8 +212,6 @@ describe("Municipality Integration Tests", () => {
       expect(Array.isArray(response.body)).toBeTruthy();
       expect(response.body.length).toBe(0);
     });
-
-
   });
 
   describe("GET /api/users/municipality-users/roles", () => {
@@ -238,8 +237,6 @@ describe("Municipality Integration Tests", () => {
       expect(roleNames).toContain("municipal administrator");
     });
 
-
-
     it("403 when non-admin authenticated", async () => {
       // Create a citizen user and try to access roles
       const citizenUser = {
@@ -252,6 +249,16 @@ describe("Municipality Integration Tests", () => {
 
       const citizenAgent = request.agent(app);
       await citizenAgent.post("/api/users").send(citizenUser).expect(201);
+
+      // ensure mock was called and code recorded
+      expect((global as any).__lastSentVerificationCode).toBeDefined();
+      const code = (global as any).__lastSentVerificationCode as string;
+
+      await citizenAgent
+        .post("/api/auth/verify")
+        .send({ emailOrUsername: citizenUser.email, code })
+        .expect(201);
+
       await citizenAgent
         .post("/api/auth/session")
         .send({
@@ -263,9 +270,5 @@ describe("Municipality Integration Tests", () => {
 
       await citizenAgent.get(`${base}/municipality-users/roles`).expect(403);
     });
-
-
   });
-
-
 });

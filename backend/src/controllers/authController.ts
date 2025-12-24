@@ -2,6 +2,14 @@ import { Request, Response, NextFunction } from "express";
 import { authService } from "@services/authService";
 import { throwBadRequestIfMissingObject } from "@utils";
 import { BadRequestError } from "@errors/BadRequestError";
+import { NotFoundError } from "@errors/NotFoundError";
+import { TooManyRequestsError } from "@errors/TooManyRequestsError";
+import { emailVerificationService } from "@services/emailVerificationService";
+import { sendVerificationEmail } from "@services/emailService";
+import { prisma } from "@database";
+import logger from "@config/logger";
+import { CONFIG, SECRET_KEY } from "@config";
+import jwt from "jsonwebtoken";
 
 export const cookieOpts = {
   httpOnly: true,
@@ -73,5 +81,124 @@ export const authController = {
     }
     res.clearCookie("authToken", cookieOpts);
     return res.status(204).send();
+  },
+
+  async verifyEmailAndRegister(req: Request, res: Response) {
+    try {
+      const { emailOrUsername, code } = req.body || {};
+
+      throwBadRequestIfMissingObject({ emailOrUsername, code });
+
+      await emailVerificationService.verifyCode(emailOrUsername, code);
+
+      const pendingVerification =
+        await emailVerificationService.completePendingVerification(
+          emailOrUsername,
+        );
+      if (!pendingVerification) {
+        return res.status(400).json({
+          error: "Invalid Code",
+          message: "Verification code not found or expired",
+        });
+      }
+
+      const newUser = await prisma.user.create({
+        data: {
+          email: pendingVerification.email,
+          username: pendingVerification.username,
+          password: pendingVerification.password,
+          firstName: pendingVerification.firstName,
+          lastName: pendingVerification.lastName,
+        },
+      });
+
+      const token = jwt.sign(
+        { id: newUser.id, email: newUser.email, role: "CITIZEN" },
+        SECRET_KEY,
+        { expiresIn: "7d" },
+      );
+
+      res.cookie("authToken", token, cookieOpts);
+      res.setHeader("Location", "/reports");
+
+      logger.info(
+        `User ${pendingVerification.email} registered and verified successfully`,
+      );
+
+      return res.status(201).json({
+        success: true,
+        message: "Email verified and registration completed",
+        user: newUser,
+      });
+    } catch (error: any) {
+      logger.error("Email verification error:", error);
+      if (error instanceof BadRequestError) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message: error?.message || "Missing required fields",
+        });
+      }
+      if (error instanceof NotFoundError) {
+        return res.status(404).json({
+          error: "Not Found",
+          message: error?.message || "No pending verification found",
+        });
+      }
+      if (error instanceof TooManyRequestsError) {
+        return res.status(429).json({
+          error: "Too Many Attempts",
+          message: error?.message || "Too many verification attempts",
+        });
+      }
+
+      return res.status(400).json({
+        error: "Bad Request",
+        message: error?.message || "Verification failed",
+      });
+    }
+  },
+
+  async resendVerificationCode(req: Request, res: Response) {
+    try {
+      const { emailOrUsername } = req.body || {};
+
+      throwBadRequestIfMissingObject({ emailOrUsername });
+
+      const { email, firstName, code } =
+        await emailVerificationService.resendCode(emailOrUsername);
+
+      await sendVerificationEmail({
+        email,
+        firstName,
+        code,
+        resendUrl: `${CONFIG.FRONTEND_URL}/verify-email?email=${encodeURIComponent(email)}`,
+      });
+
+      logger.info(`Resent verification code to ${email}`);
+
+      return res.status(200).json({
+        success: true,
+        message: "Verification code resent to your email",
+      });
+    } catch (error: any) {
+      logger.error("Resend verification code error:", error);
+      if (error instanceof NotFoundError) {
+        return res.status(404).json({
+          error: "Not Found",
+          message: error?.message || "No pending verification found",
+        });
+      }
+      if (error instanceof TooManyRequestsError) {
+        return res.status(429).json({
+          error: "Too Many Attempts",
+          message: error?.message || "Too many verification attempts",
+        });
+      }
+
+      return res.status(400).json({
+        error: "Bad Request",
+        message: error?.message || "Failed to resend verification code",
+      });
+    }
   },
 };

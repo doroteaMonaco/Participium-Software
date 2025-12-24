@@ -1,6 +1,6 @@
 import Redis from "ioredis";
 import { CONFIG } from "@config";
-import { logError, logInfo } from "@services/loggingService";
+import { logError, logInfo, logWarn } from "@services/loggingService";
 
 export let redisClient: Redis;
 
@@ -29,14 +29,17 @@ export async function initializeRedis(): Promise<void> {
 
 export async function closeRedis(): Promise<void> {
   if (!redisClient) return;
+
   try {
     await redisClient.quit();
     logInfo("Redis connection closed.");
-  } catch (error) {
+  } catch (quitErr: unknown) {
+    logWarn(`Redis quit() failed, forcing disconnect. Error: ${quitErr}`);
+
     try {
       redisClient.disconnect();
-    } catch (error) {
-      logError("Error while closing Redis:", error);
+    } catch (disconnectErr: unknown) {
+      logError("Error while disconnecting Redis:", disconnectErr);
     }
   }
 }

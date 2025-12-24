@@ -2,8 +2,8 @@ import request from "supertest";
 import { userService } from "@services/userService";
 import app from "@app";
 import { roleType } from "@models/enums";
-import bcrypt from "bcrypt";
 import { getTestPrisma } from "../../setup/test-datasource";
+import * as emailService from "@services/emailService";
 
 let prisma: any;
 
@@ -36,6 +36,7 @@ describe("Admin routes integration tests", () => {
     await prisma.comment.deleteMany();
     await prisma.external_maintainer.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
@@ -58,6 +59,7 @@ describe("Admin routes integration tests", () => {
     await prisma.comment.deleteMany();
     await prisma.external_maintainer.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
@@ -65,17 +67,17 @@ describe("Admin routes integration tests", () => {
   });
 
   const makeAdminAgent = async () => {
-    // Create admin user directly in database with hashed password
-    const hashedPassword = await bcrypt.hash(adminUser.password, 10);
-    await prisma.admin_user.create({
-      data: {
+    // Create admin user via service to avoid direct DB access
+    await userService.registerUser(
+      {
         username: adminUser.username,
         email: adminUser.email,
         firstName: adminUser.firstName,
         lastName: adminUser.lastName,
-        password: hashedPassword,
+        password: adminUser.password,
       },
-    });
+      roleType.ADMIN,
+    );
 
     // Create agent and login
     const agent = request.agent(app);
@@ -86,7 +88,7 @@ describe("Admin routes integration tests", () => {
       password: adminUser.password,
       role: "ADMIN",
     });
-    
+
     expect(loginRes.status).toBe(200);
     const setCookie = loginRes.headers["set-cookie"] || [];
     expect(Array.isArray(setCookie) ? setCookie.join(";") : setCookie).toMatch(
@@ -96,36 +98,63 @@ describe("Admin routes integration tests", () => {
     return agent;
   };
 
-  const makeNormalAgent = async () => {
-    const agent = request.agent(app);
-    await agent.post("/api/users").send(normalUser).expect(201);
-    const loginRes = await agent.post("/api/auth/session").send({
-      identifier: normalUser.email,
-      password: normalUser.password,
-      role: "CITIZEN",
-    });
-    expect(loginRes.status).toBe(200);
-    return agent;
-  };
-
   describe("POST /api/users (Registration)", () => {
-    it("201 crea utente, imposta Set-Cookie authToken e Location /reports", async () => {
+    it("201 avvia registrazione e invia codice di verifica via email", async () => {
       const res = await request(app)
         .post("/api/users")
         .set("Accept", "application/json")
         .send({ ...normalUser, role: "CITIZEN" })
         .expect(201);
 
-      const setCookie = res.headers["set-cookie"] || [];
-      expect(
-        Array.isArray(setCookie) ? setCookie.join(";") : setCookie,
-      ).toMatch(/authToken=/i);
+      expect(res.body).toHaveProperty("success", true);
+      expect(res.body).toHaveProperty("email", normalUser.email);
+      const sendMock = emailService.sendVerificationEmail as jest.Mock;
+      expect(sendMock).toHaveBeenCalled();
+      expect((global as any).__lastSentVerificationCode).toBeDefined();
+    });
 
-      // Swagger indica Location: /reports
-      expect(res.headers.location).toBe("/reports");
+    it("400 when missing required fields", async () => {
+      await request(app)
+        .post("/api/users")
+        .send({ username: "onlyuser" })
+        .expect(400);
+    });
 
-      expect(res.headers["content-type"]).toMatch(/application\/json/);
-      expect(res.body).toBeDefined();
+    it("409 when email already used by active user", async () => {
+      const existing = {
+        username: "existing",
+        email: "existing@example.com",
+        firstName: "Ex",
+        lastName: "Ist",
+        password: "pwd",
+      };
+
+      // create active user via service
+      await userService.registerUser(existing, roleType.CITIZEN);
+
+      const res = await request(app)
+        .post("/api/users")
+        .send({ ...existing, role: "CITIZEN" })
+        .expect(409);
+
+      expect(res.body).toHaveProperty("error");
+      expect(res.body).toHaveProperty("message");
+    });
+
+    it("409 when registration already pending returns proper message", async () => {
+      // first registration creates pending
+      await request(app)
+        .post("/api/users")
+        .send({ ...normalUser, role: "CITIZEN" })
+        .expect(201);
+
+      const res = await request(app)
+        .post("/api/users")
+        .send({ ...normalUser, role: "CITIZEN" })
+        .expect(409);
+
+      expect(res.body).toHaveProperty("message");
+      expect(res.body.message).toMatch(/pending verification/i);
     });
 
     it("409 su duplicato (username o email già esistenti)", async () => {
@@ -136,8 +165,6 @@ describe("Admin routes integration tests", () => {
       expect(res.body).toHaveProperty("error");
       expect(res.body).toHaveProperty("message");
     });
-
-
   });
 
   // GET /users
@@ -161,10 +188,6 @@ describe("Admin routes integration tests", () => {
       const res = await admin.get(`${base}`).expect(200);
       expect(Array.isArray(res.body)).toBeTruthy();
     });
-
-
-
-
   });
 
   // GET /users/:id
@@ -198,8 +221,6 @@ describe("Admin routes integration tests", () => {
       const admin = await makeAdminAgent();
       await admin.get(`${base}/999999`).send({ role: "CITIZEN" }).expect(404);
     });
-
-
   });
 
   // DELETE /users/:id
@@ -240,8 +261,6 @@ describe("Admin routes integration tests", () => {
         .send({ role: "CITIZEN" })
         .expect(404);
     });
-
-
   });
 
   // POST /users/municipality-users
@@ -268,8 +287,6 @@ describe("Admin routes integration tests", () => {
       expect(res.body.email).toBe(payload.email);
       expect(res.body.username).toBe(payload.username);
     });
-
-
 
     it("409 when email or username already exists", async () => {
       const admin = await makeAdminAgent();
@@ -309,10 +326,6 @@ describe("Admin routes integration tests", () => {
       expect(res.body[0]).toHaveProperty("id");
       expect(res.body[0]).toHaveProperty("name");
     });
-
-
-
-
   });
 
   // GET /users/municipality-users
@@ -338,8 +351,6 @@ describe("Admin routes integration tests", () => {
       expect(res.body.length).toBeGreaterThanOrEqual(1);
     });
 
-
-
     it("500 when service fails", async () => {
       const admin = await makeAdminAgent();
       jest
@@ -357,10 +368,6 @@ describe("Admin routes integration tests", () => {
 
       expect(Array.isArray(res.body)).toBeTruthy();
     });
-
-
-
-
   });
 
   // POST /users/external-users
@@ -388,9 +395,5 @@ describe("Admin routes integration tests", () => {
       expect(res.status).toBe(201);
       expect(res.body).toHaveProperty("id");
     });
-
-
   });
-
-
 });

@@ -8,6 +8,8 @@ jest.mock("@repositories/reportRepository", () => {
     findById: jest.fn(),
     addCommentToReport: jest.fn(),
     getCommentsByReportId: jest.fn(),
+    markExternalMaintainerCommentsAsRead: jest.fn(),
+    markMunicipalityCommentsAsRead: jest.fn(),
   };
   return { __esModule: true, default: mRepo };
 });
@@ -30,10 +32,11 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
   });
 
   describe("Municipality User Adding Comments", () => {
-    it("municipality user can comment on any report in their jurisdiction", async () => {
+    it("municipality user can comment on assigned report", async () => {
       const report = {
         id: 5,
-        status: ReportStatus.PENDING_APPROVAL,
+        status: ReportStatus.IN_PROGRESS,
+        assignedOfficerId: 7,
         externalMaintainerId: null,
       };
       const comment = {
@@ -70,6 +73,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
       const report = {
         id: 5,
         status: ReportStatus.IN_PROGRESS,
+        assignedOfficerId: 7,
         externalMaintainerId: 3,
       };
       const comment = {
@@ -112,7 +116,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
           authorType: "MUNICIPALITY",
           content: "This should not work",
         }),
-      ).rejects.toThrow(/Cannot add comments to resolved reports/i);
+      ).rejects.toThrow("Cannot add comments to resolved or rejected reports");
     });
   });
 
@@ -207,7 +211,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
           authorType: "EXTERNAL_MAINTAINER",
           content: "Cannot comment on resolved",
         }),
-      ).rejects.toThrow(/Cannot add comments to resolved reports/i);
+      ).rejects.toThrow("Cannot add comments to resolved or rejected reports");
     });
   });
 
@@ -266,7 +270,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
 
   describe("Retrieving Comments", () => {
     it("retrieves all comments for a report regardless of author type", async () => {
-      const report = { id: 5 };
+      const report = { id: 5, assignedOfficerId: 7, externalMaintainerId: 3 };
       const comments = [
         {
           id: 1,
@@ -291,7 +295,11 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
       (repo as any).findById.mockResolvedValue(report);
       (repo as any).getCommentsByReportId.mockResolvedValue(comments);
 
-      const result = await reportService.getCommentsOfAReportById(5);
+      const result = await reportService.getCommentsOfAReportById(
+        5,
+        7,
+        "MUNICIPALITY",
+      );
 
       expect(result).toHaveLength(2);
       expect(result[0]).toHaveProperty("municipality_user_id", 7);
@@ -300,12 +308,16 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
     });
 
     it("returns empty array when report has no comments", async () => {
-      const report = { id: 5 };
+      const report = { id: 5, assignedOfficerId: 7, externalMaintainerId: 3 };
 
       (repo as any).findById.mockResolvedValue(report);
       (repo as any).getCommentsByReportId.mockResolvedValue([]);
 
-      const result = await reportService.getCommentsOfAReportById(5);
+      const result = await reportService.getCommentsOfAReportById(
+        5,
+        7,
+        "MUNICIPALITY",
+      );
 
       expect(result).toEqual([]);
     });
@@ -313,9 +325,9 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
     it("throws error when trying to retrieve comments for non-existent report", async () => {
       (repo as any).findById.mockResolvedValue(null);
 
-      await expect(reportService.getCommentsOfAReportById(999)).rejects.toThrow(
-        /Report not found/i,
-      );
+      await expect(
+        reportService.getCommentsOfAReportById(999, 7, "MUNICIPALITY"),
+      ).rejects.toThrow(/Report not found/i);
     });
   });
 
@@ -332,6 +344,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
         const report = {
           id: 5,
           status,
+          assignedOfficerId: 7,
           externalMaintainerId: 3,
         };
         const comment = {
@@ -363,13 +376,12 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
       const report = {
         id: 5,
         status: ReportStatus.REJECTED,
+        assignedOfficerId: 7,
         externalMaintainerId: null,
       };
 
       (repo as any).findById.mockResolvedValue(report);
 
-      // REJECTED is not RESOLVED, so it should allow commenting
-      // unless there's explicit blocking logic for REJECTED
       const comment = {
         id: 201,
         reportId: 5,
@@ -382,14 +394,14 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
 
       (repo as any).addCommentToReport.mockResolvedValue(comment);
 
-      const result = await reportService.addCommentToReport({
-        reportId: 5,
-        authorId: 7,
-        authorType: "MUNICIPALITY",
-        content: "Comment on rejected",
-      });
-
-      expect(result).toBeDefined();
+      await expect(
+        reportService.addCommentToReport({
+          reportId: 5,
+          authorId: 7,
+          authorType: "MUNICIPALITY",
+          content: "Comment on rejected",
+        }),
+      ).rejects.toThrow("Cannot add comments to resolved or rejected reports");
     });
   });
 
@@ -398,6 +410,7 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
       const report = {
         id: 5,
         status: ReportStatus.IN_PROGRESS,
+        assignedOfficerId: 7,
         externalMaintainerId: 3,
       };
 
@@ -450,7 +463,11 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
       const allComments = [muniComment, emComment];
       (repo as any).getCommentsByReportId.mockResolvedValue(allComments);
 
-      const comments = await reportService.getCommentsOfAReportById(5);
+      const comments = await reportService.getCommentsOfAReportById(
+        5,
+        7,
+        "MUNICIPALITY",
+      );
 
       expect(comments).toHaveLength(2);
       expect(comments[0]).toHaveProperty("municipality_user_id", 7);
@@ -458,7 +475,12 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
     });
 
     it("tracks who commented in comments history", async () => {
-      const report = { id: 5, status: ReportStatus.IN_PROGRESS };
+      const report = {
+        id: 5,
+        status: ReportStatus.IN_PROGRESS,
+        assignedOfficerId: 7,
+        externalMaintainerId: 3,
+      };
       const comments = [
         {
           id: 1,
@@ -492,11 +514,19 @@ describe("Comment Logic - Municipality User and External Maintainer Collaboratio
       (repo as any).findById.mockResolvedValue(report);
       (repo as any).getCommentsByReportId.mockResolvedValue(comments);
 
-      const result = await reportService.getCommentsOfAReportById(5);
+      const result = await reportService.getCommentsOfAReportById(
+        5,
+        7,
+        "MUNICIPALITY",
+      );
 
       // Verify we can identify who said what
-      expect(result.filter((c) => c.municipality_user_id === 7)).toHaveLength(2);
-      expect(result.filter((c) => c.external_maintainer_id === 3)).toHaveLength(1);
+      expect(result.filter((c) => c.municipality_user_id === 7)).toHaveLength(
+        2,
+      );
+      expect(result.filter((c) => c.external_maintainer_id === 3)).toHaveLength(
+        1,
+      );
       expect(result).toHaveLength(3);
     });
   });

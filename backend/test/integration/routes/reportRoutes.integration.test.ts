@@ -2,7 +2,6 @@ import request from "supertest";
 import app from "@app";
 import { roleType } from "@models/enums";
 import { userService } from "@services/userService";
-import reportRepository from "@repositories/reportRepository";
 import { getTestPrisma } from "../../setup/test-datasource";
 
 // Mock only the image service to avoid dealing with real Redis/FS in this e2e
@@ -46,6 +45,11 @@ const registerUser = async (
 ) => {
   const res = await agent.post("/api/users").send({ ...user, role });
   expect(res.status).toBe(201);
+
+  const ver = await agent.post("/api/auth/verify").send({
+    emailOrUsername: user.email,
+    code: (global as any).__lastSentVerificationCode,
+  });
 };
 const loginAgent = async (
   agent: request.SuperAgentTest,
@@ -184,6 +188,7 @@ describe("POST /api/reports (Create Report)", () => {
     await prisma.municipality_user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.municipality_role.deleteMany();
     await prisma.municipality_role.createMany({
       data: [
@@ -207,6 +212,7 @@ describe("POST /api/reports (Create Report)", () => {
     await prisma.municipality_user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.municipality_role.deleteMany();
     // DO NOT disconnect - singleton is managed by test setup
   });
@@ -632,10 +638,8 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       lastName: "User",
       password: "password123",
     };
+    const agent = await createAndLogin(user);
 
-    await request(app).post("/api/users").send(user).expect(201);
-
-    const agent = request.agent(app);
     await agent
       .post("/api/auth/session")
       .send({
@@ -672,18 +676,7 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       lastName: "Viewer",
       password: "password123",
     };
-
-    await request(app).post("/api/users").send(citizen).expect(201);
-
-    const citizenAgent = request.agent(app);
-    await citizenAgent
-      .post("/api/auth/session")
-      .send({
-        identifier: citizen.username,
-        password: citizen.password,
-        role: roleType.CITIZEN,
-      })
-      .expect(200);
+    const citizenAgent = await createAndLogin(citizen);
 
     // Citizen tries to get approved reports (should succeed with status filter)
     const response = await citizenAgent
@@ -701,18 +694,7 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       lastName: "Invalid",
       password: "password123",
     };
-
-    await request(app).post("/api/users").send(citizen).expect(201);
-
-    const citizenAgent = request.agent(app);
-    await citizenAgent
-      .post("/api/auth/session")
-      .send({
-        identifier: citizen.username,
-        password: citizen.password,
-        role: roleType.CITIZEN,
-      })
-      .expect(200);
+    const citizenAgent = await createAndLogin(citizen);
 
     const response = await citizenAgent
       .get("/api/reports?status=INVALID")
@@ -1596,9 +1578,21 @@ describe("Integration: Comments endpoints", () => {
       password: "munipass1",
       municipality_role_id: 3,
     };
+    const muni2 = {
+      username: "muni_comments_e2e2",
+      email: "muni_comments_e2e2@example.com",
+      firstName: "Muni2",
+      lastName: "Comments2",
+      password: "munipass2",
+      municipality_role_id: 4,
+    };
 
     const adminAgent = await createAdmin(admin);
     const { muniAgent } = await createMunicipality(adminAgent, muni);
+    const { muniAgent: muniAgent2 } = await createMunicipality(
+      adminAgent,
+      muni2,
+    );
     const citizenAgent = await createAndLogin(fakeUser);
 
     const createdReport = await createReportAs(citizenAgent, {
@@ -1609,8 +1603,14 @@ describe("Integration: Comments endpoints", () => {
       longitude: 7.0,
     });
 
+    // Municipality approves the report first
+    const response = await muniAgent
+      .post(`/api/reports/${createdReport.id}`)
+      .send({ status: "ASSIGNED" })
+      .expect(204);
+
     // Add comment
-    const postRes = await muniAgent
+    const postRes = await muniAgent2
       .post(`/api/reports/${createdReport.id}/comments`)
       .send({ content: "Hello from municipality" })
       .expect(201);
@@ -1619,7 +1619,7 @@ describe("Integration: Comments endpoints", () => {
     expect(postRes.body).toHaveProperty("content", "Hello from municipality");
 
     // Fetch comments
-    const getRes = await muniAgent
+    const getRes = await muniAgent2
       .get(`/api/reports/${createdReport.id}/comments`)
       .expect(200);
 
@@ -1741,6 +1741,14 @@ describe("Integration: Comments endpoints", () => {
       password: "munipassget",
       municipality_role_id: 3,
     });
+    const { muniAgent: muniAgent2 } = await createMunicipality(adminAgent, {
+      username: "muni_comments_get2",
+      email: "muni_comments_get2@example.com",
+      firstName: "MuniGet2",
+      lastName: "Comments2",
+      password: "munipassget2",
+      municipality_role_id: 4,
+    });
 
     const citizenAgent = await createAndLogin(fakeUser);
     const createdReport = await createReportAs(citizenAgent, {
@@ -1751,13 +1759,19 @@ describe("Integration: Comments endpoints", () => {
       longitude: 7.0,
     });
 
+    // Municipality approves the report first
+    const response = await muniAgent
+      .post(`/api/reports/${createdReport.id}`)
+      .send({ status: "ASSIGNED" })
+      .expect(204);
+
     // Add a comment via muniAgent
-    await muniAgent
+    await muniAgent2
       .post(`/api/reports/${createdReport.id}/comments`)
       .send({ content: "visible to muni" })
       .expect(201);
 
-    const getRes = await muniAgent
+    const getRes = await muniAgent2
       .get(`/api/reports/${createdReport.id}/comments`)
       .expect(200);
 
@@ -1885,7 +1899,10 @@ describe("Integration: Comments endpoints", () => {
         .expect(201);
 
       expect(postRes.body).toHaveProperty("id");
-      expect(postRes.body).toHaveProperty("content", "Hello from external maintainer");
+      expect(postRes.body).toHaveProperty(
+        "content",
+        "Hello from external maintainer",
+      );
       expect(postRes.body).toHaveProperty("external_maintainer_id");
     });
 
@@ -2008,6 +2025,14 @@ describe("Integration: Comments endpoints", () => {
         password: "munipass4",
         municipality_role_id: 3,
       };
+      const muni2 = {
+        username: "muni2_collab",
+        email: "muni2_collab@example.com",
+        firstName: "Muni2",
+        lastName: "Collab2",
+        password: "munipass4",
+        municipality_role_id: 4,
+      };
       const emData = {
         username: "em_collab_1",
         email: "em_collab_1@example.com",
@@ -2020,6 +2045,10 @@ describe("Integration: Comments endpoints", () => {
 
       const adminAgent = await createAdmin(admin);
       const { muniAgent } = await createMunicipality(adminAgent, muni);
+      const { muniAgent: muniAgent2 } = await createMunicipality(
+        adminAgent,
+        muni2,
+      );
       const { emAgent } = await createExternalMaintainer(adminAgent, emData);
       const citizenAgent = await createAndLogin(fakeUser);
 
@@ -2031,14 +2060,20 @@ describe("Integration: Comments endpoints", () => {
         longitude: 7.0,
       });
 
+      // Municipality approves the report first
+      const response = await muniAgent
+        .post(`/api/reports/${createdReport.id}`)
+        .send({ status: "ASSIGNED" })
+        .expect(204);
+
       // Assign report to external maintainer
-      await muniAgent
+      await muniAgent2
         .post(`/api/reports/${createdReport.id}/external-maintainers/`)
         .send({})
         .expect(200);
 
       // Municipality user adds comment
-      const muniComment = await muniAgent
+      const muniComment = await muniAgent2
         .post(`/api/reports/${createdReport.id}/comments`)
         .send({ content: "Please prioritize this issue" })
         .expect(201);
@@ -2056,16 +2091,20 @@ describe("Integration: Comments endpoints", () => {
       expect(emComment.body.content).toBe("Starting work tomorrow");
 
       // Municipality user sees both comments
-      const muniCommentsRes = await muniAgent
+      const muniCommentsRes = await muniAgent2
         .get(`/api/reports/${createdReport.id}/comments`)
         .expect(200);
 
       expect(muniCommentsRes.body.length).toBeGreaterThanOrEqual(2);
       expect(
-        muniCommentsRes.body.some((c: any) => c.content === "Please prioritize this issue"),
+        muniCommentsRes.body.some(
+          (c: any) => c.content === "Please prioritize this issue",
+        ),
       ).toBeTruthy();
       expect(
-        muniCommentsRes.body.some((c: any) => c.content === "Starting work tomorrow"),
+        muniCommentsRes.body.some(
+          (c: any) => c.content === "Starting work tomorrow",
+        ),
       ).toBeTruthy();
 
       // External maintainer sees both comments
@@ -2075,10 +2114,14 @@ describe("Integration: Comments endpoints", () => {
 
       expect(emCommentsRes.body.length).toBeGreaterThanOrEqual(2);
       expect(
-        emCommentsRes.body.some((c: any) => c.content === "Please prioritize this issue"),
+        emCommentsRes.body.some(
+          (c: any) => c.content === "Please prioritize this issue",
+        ),
       ).toBeTruthy();
       expect(
-        emCommentsRes.body.some((c: any) => c.content === "Starting work tomorrow"),
+        emCommentsRes.body.some(
+          (c: any) => c.content === "Starting work tomorrow",
+        ),
       ).toBeTruthy();
     });
 
