@@ -202,8 +202,11 @@ export const register = async (userData: UserRegistration): Promise<User> => {
  */
 export const confirmRegistration = async (
   confirmData: ConfirmRegistrationRequest
-): Promise<{ message: string }> => {
-  const response = await api.post("/users/confirm", confirmData);
+): Promise<{ success: boolean; message: string; user?: User }> => {
+  const response = await api.post("/auth/verify", {
+    emailOrUsername: confirmData.email,
+    code: confirmData.code,
+  });
   return response.data;
 };
 
@@ -539,6 +542,21 @@ export const addReportComment = async (
   comment: CommentRequest,
 ): Promise<Comment> => {
   const response = await api.post(`/reports/${reportId}/comments`, comment);
+  return response.data;
+};
+
+/**
+ * Get unread comments for a report
+ * @param reportId Report ID
+ * @returns List of unread comments
+ * @throws ApiError on failure
+ */
+export const getUnreadComments = async (
+  reportId: number,
+): Promise<Comment[]> => {
+  // For now, return all comments as the backend doesn't have a specific unread endpoint
+  // This can be enhanced later with actual read/unread tracking
+  const response = await api.get(`/reports/${reportId}/comments`);
   return response.data;
 };
 

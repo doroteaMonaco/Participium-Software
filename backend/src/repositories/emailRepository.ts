@@ -64,6 +64,18 @@ export const emailRepository = {
     }
   },
 
+  async deleteByUsername(username: string) {
+    try {
+      await prisma.pending_verification_user.deleteMany({
+        where: { username },
+      });
+    } catch (error) {
+      throw new Error(
+        `Failed to delete pending verification by username: ${error}`,
+      );
+    }
+  },
+
   async deleteById(id: number) {
     try {
       await prisma.pending_verification_user.delete({

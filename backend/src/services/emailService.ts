@@ -67,9 +67,14 @@ export const sendVerificationEmail = async (
       `,
     });
 
-    if (result.error) {
-      logger.error("Failed to send verification email:", result.error);
-      throw new Error(`Failed to send verification email: ${result.error}`);
+    // Check for errors in the result
+    const resultData = result as any;
+    if (resultData.error) {
+      const errorMessage = typeof resultData.error === 'object' 
+        ? JSON.stringify(resultData.error) 
+        : String(resultData.error);
+      logger.error("Failed to send verification email:", errorMessage);
+      throw new Error(`Failed to send verification email: ${errorMessage}`);
     }
 
     logger.info(`Verification email sent to ${email}`);

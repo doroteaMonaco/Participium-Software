@@ -39,7 +39,9 @@ export const emailVerificationService = {
     const expiryMinutes = CONFIG.VERIFICATION_CODE_EXPIRY_MINUTES;
     const expiryDate = new Date(Date.now() + expiryMinutes * 60 * 1000);
 
+    // Delete any existing pending verifications for this email or username
     await emailRepository.deleteByEmail(email);
+    await emailRepository.deleteByUsername(username);
 
     await emailRepository.createVerification(
       email,
