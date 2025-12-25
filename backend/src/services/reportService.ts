@@ -394,6 +394,24 @@ const addCommentToReport = async (
     read: created.read,
   };
 
+  // Notify the other party via WebSocket
+  if (authorType === roleType.MUNICIPALITY && report.externalMaintainerId) {
+    sendMessageToUser(
+      report.externalMaintainerId,
+      roleType.EXTERNAL_MAINTAINER,
+      result,
+    );
+  } else if (
+    authorType === roleType.EXTERNAL_MAINTAINER &&
+    report.assignedOfficerId
+  ) {
+    sendMessageToUser(
+      report.assignedOfficerId,
+      roleType.MUNICIPALITY,
+      result,
+    );
+  }
+
   return result;
 };
 

@@ -7,6 +7,7 @@ import {
 import type { Comment, CommentRequest } from "../../services/api";
 import { ReportModel, ReportStatus } from "../../services/models";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNotifications } from "../../contexts/NotificationContext";
 
 interface CommentsSectionProps {
   reportId: number;
@@ -20,6 +21,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ reportId }) => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { markAsRead } = useNotifications();
 
   // Only show for MUNICIPALITY_USER or EXTERNAL_MAINTAINER
   const canViewComments =
@@ -41,6 +43,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ reportId }) => {
         setLoading(true);
         const data = await getReportComments(reportId);
         setComments(data);
+        markAsRead(reportId);
         setError(null);
       } catch (err) {
         console.error("Failed to fetch comments", err);

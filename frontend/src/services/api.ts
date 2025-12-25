@@ -41,6 +41,7 @@ export interface User {
   notificationsEnabled?: boolean;
   notifications?: boolean;
   profilePhoto?: string;
+  token?: string;
 }
 
 export interface LoginRequest {
@@ -481,7 +482,7 @@ export const updateMunicipalityUserRole = async (
  */
 export const createExternalMaintainerUser = async (
   userData: ExternalMaintainerUserCreateRequest,
-): Promise<any> => {
+): Promise<ExternalMaintainerUser> => {
   const response = await api.post("/users/external-users", userData);
   return response.data;
 };
@@ -554,76 +555,77 @@ export const addReportComment = async (
 export const getUnreadComments = async (
   reportId: number,
 ): Promise<Comment[]> => {
-  // For now, return all comments as the backend doesn't have a specific unread endpoint
-  // This can be enhanced later with actual read/unread tracking
-  const response = await api.get(`/reports/${reportId}/comments`);
+  const response = await api.get(`/reports/${reportId}/comments/unread`);
   return response.data;
 };
 
 // ==================== WebSocket API ====================
 
-// export class WebSocketService {
-//   private ws: WebSocket | null = null;
-//   private messageHandlers: ((message: any) => void)[] = [];
+export class WebSocketService {
+  private ws: WebSocket | null = null;
+  private messageHandlers: ((message: unknown) => void)[] = [];
+  private authToken: string;
 
-//   constructor(private authToken: string) {}
+  constructor(authToken: string) {
+    this.authToken = authToken;
+  }
 
-//   connect() {
-//     if (this.ws) {
-//       return;
-//     }
+  connect() {
+    if (this.ws) {
+      return;
+    }
 
-//     const wsUrl = import.meta.env.VITE_WS_URL || "ws://localhost:8080";
-//     this.ws = new WebSocket(`${wsUrl}?token=${this.authToken}`);
+    const wsUrl = import.meta.env.VITE_WS_URL || "ws://localhost:8080";
+    this.ws = new WebSocket(`${wsUrl}?token=${this.authToken}`);
 
-//     this.ws.onopen = () => {
-//       console.log("WebSocket connected");
-//     };
+    this.ws.onopen = () => {
+      console.log("WebSocket connected");
+    };
 
-//     this.ws.onmessage = (event) => {
-//       try {
-//         const message = JSON.parse(event.data);
-//         this.messageHandlers.forEach((handler) => handler(message));
-//       } catch (error) {
-//         console.error("Error parsing WebSocket message:", error);
-//       }
-//     };
+    this.ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        this.messageHandlers.forEach((handler) => handler(message));
+      } catch (error) {
+        console.error("Error parsing WebSocket message:", error);
+      }
+    };
 
-//     this.ws.onclose = () => {
-//       console.log("WebSocket disconnected");
-//       this.ws = null;
-//     };
+    this.ws.onclose = () => {
+      console.log("WebSocket disconnected");
+      this.ws = null;
+    };
 
-//     this.ws.onerror = (error) => {
-//       console.error("WebSocket error:", error);
-//     };
-//   }
+    this.ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+  }
 
-//   disconnect() {
-//     if (this.ws) {
-//       this.ws.close();
-//       this.ws = null;
-//     }
-//   }
+  disconnect() {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+  }
 
-//   onMessage(handler: (message: any) => void) {
-//     this.messageHandlers.push(handler);
-//   }
+  onMessage(handler: (message: unknown) => void) {
+    this.messageHandlers.push(handler);
+  }
 
-//   offMessage(handler: (message: any) => void) {
-//     this.messageHandlers = this.messageHandlers.filter((h) => h !== handler);
-//   }
+  offMessage(handler: (message: unknown) => void) {
+    this.messageHandlers = this.messageHandlers.filter((h) => h !== handler);
+  }
 
-//   markCommentsAsRead(reportId: number) {
-//     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-//       this.ws.send(
-//         JSON.stringify({
-//           type: "MARK_COMMENTS_AS_READ",
-//           reportId,
-//         }),
-//       );
-//     }
-//   }
-// }
+  markCommentsAsRead(reportId: number) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: "MARK_COMMENTS_AS_READ",
+          reportId,
+        }),
+      );
+    }
+  }
+}
 
 export default api;

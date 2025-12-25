@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./AuthContext";
 import { getUnreadComments } from "../services/api";
 
@@ -15,6 +15,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState<Map<number, number>>(new Map());
+  const wsRef = useRef<WebSocket | null>(null);
 
   // Calculate total unread count
   const totalUnread = Array.from(notifications.values()).reduce((sum, count) => sum + count, 0);
@@ -53,6 +54,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       updated.delete(reportId);
       return updated;
     });
+
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(
+        JSON.stringify({
+          type: "MARK_COMMENTS_AS_READ",
+          reportId,
+        }),
+      );
+    }
   }, []);
 
   // Add a notification for a report
@@ -75,13 +85,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     // Remove /api from the URL if present, as WebSocket endpoint is at root level
     const host = import.meta.env.VITE_API_URL 
-      ? import.meta.env.VITE_API_URL.replace(/^https?:\/\//, "").replace(/\/api\/?$/, "")
+      ? import.meta.env.VITE_API_URL.replace(/^https?:\/\//, "").replace(/\/api\/?$/, "").replace(/\/$/, "")
       : "localhost:4000";
     
-    const wsUrl = `${protocol}//${host}/ws/comments`;
+    // Use port 8080 for WebSocket as defined in backend/src/services/websocketService.ts
+    const wsHost = host.split(':')[0] + ':8080';
+    const wsUrl = `${protocol}//${wsHost}?token=${user.token}`;
 
     try {
       const websocket = new WebSocket(wsUrl);
+      wsRef.current = websocket;
 
       websocket.onopen = () => {
         console.log("WebSocket connected for notifications");
@@ -90,9 +103,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       websocket.onmessage = (event) => {
         try {
           const comment = JSON.parse(event.data);
-          
-          // Only show notification if the comment is not from the current user
-          if (comment.userId !== user.id && comment.reportId) {
+            console.log("websocket response:" + comment)
+          if (comment.reportId) {
             addNotification(comment.reportId);
             
             // Optional: Show browser notification
@@ -118,6 +130,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       return () => {
         websocket.close();
+        wsRef.current = null;
       };
     } catch (error) {
       console.error("Failed to connect WebSocket:", error);

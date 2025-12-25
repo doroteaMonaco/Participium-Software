@@ -1,11 +1,10 @@
 import WebSocket, { WebSocketServer } from "ws";
 import { IncomingMessage } from "http";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { logInfo, logError } from "@services/loggingService";
+import { logInfo, logError, logDebug } from "@services/loggingService";
 import { SECRET_KEY } from "@config";
 import { roleType } from "@models/enums";
 import reportRepository from "@repositories/reportRepository";
-import { log } from "console";
 
 let wss: WebSocketServer | null = null;
 const clients = new Map<string, Set<WebSocket>>();
@@ -60,7 +59,7 @@ export const startWebSocketServer = (port: number = 8080): void => {
       ws.on("message", async (message) => {
         try {
           const parsedMessage = JSON.parse(message.toString());
-          logInfo(`Received message from user ${userId}: ${message}`);
+          logDebug(`Received message from user ${userId}: ${message}`);
 
           if (
             parsedMessage.type === "MARK_COMMENTS_AS_READ" &&

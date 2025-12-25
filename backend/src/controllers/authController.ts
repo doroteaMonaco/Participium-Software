@@ -35,7 +35,7 @@ export const authController = {
       res.cookie("authToken", token, cookieOpts);
       res.setHeader("Location", "/reports");
 
-      return res.status(200).json(user);
+      return res.status(200).json({ ...user, token });
     } catch (error: any) {
       if (error instanceof BadRequestError) {
         return res.status(400).json({
@@ -62,7 +62,7 @@ export const authController = {
           message: "Session is invalid or has expired",
         });
       }
-      return res.status(200).json(user);
+      return res.status(200).json({ ...user, token });
     } catch {
       return res.status(401).json({
         error: "Authentication Error",
