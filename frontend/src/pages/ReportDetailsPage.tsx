@@ -143,10 +143,10 @@ const ReportDetailsPage: React.FC = () => {
                 {report.title}
               </h1>
               <span
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border flex-shrink-0 ${getStatusBadgeClass(report.status)}`}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border flex-shrink-0 ${getStatusBadgeClass(report.status!)}`}
               >
-                {getStatusIcon(report.status)}
-                {getStatusDisplayText(report.status)}
+                {getStatusIcon(report.status!)}
+                {getStatusDisplayText(report.status!)}
               </span>
             </div>
 
@@ -185,14 +185,14 @@ const ReportDetailsPage: React.FC = () => {
                     <div className="text-left">
                       <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Submitted</p>
                       <p className="text-slate-900 font-semibold">
-                        {new Date(report.createdAt).toLocaleDateString('en-US', {
+                        {new Date(report.createdAt!).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric',
                         })}
                       </p>
                       <p className="text-sm text-slate-500">
-                        {new Date(report.createdAt).toLocaleTimeString('en-US', {
+                        {new Date(report.createdAt!).toLocaleTimeString('en-US', {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
@@ -208,7 +208,7 @@ const ReportDetailsPage: React.FC = () => {
                     <div className="text-left">
                       <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Category</p>
                       <p className="text-slate-900 font-semibold">
-                        {ENUM_TO_LABEL[report.category] ?? report.category}
+                        {ENUM_TO_LABEL[report.category!] ?? report.category}
                       </p>
                     </div>
                   </div>
