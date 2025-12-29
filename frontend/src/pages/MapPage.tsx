@@ -134,12 +134,9 @@ const MapPage: React.FC = () => {
       } catch (err: any) {
         console.error("Error fetching reports:", err);
         // Check if it's an authentication error
-        if (err?.response?.status === 401) {
-          setIsAuthError(true);
-          setError("Please login to view the map of approved reports.");
-        } else {
+       
           setError("Could not fetch reports.");
-        }
+        
       }
     };
 
