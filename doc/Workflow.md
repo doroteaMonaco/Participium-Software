@@ -99,33 +99,62 @@ Allow citizen/unregistered users to type an address, recenter the map, and explo
 
 ## Technical decision: geocoding
 
-Recommended: backend proxy (avoids CORS issues, centralizes rate limiting, does not expose keys if used).
+Default: frontend geocoding (address → lat/lng and possibly bbox), then call backend to fetch reports in that area
+
+Rationale:
+  - Leaflet itself does not provide address data; geocoding is handled by an external provider.
+  - Backend remains responsible only for “reports in an area” (clean separation of concerns).
 
 ## Backend (backend/)
 
-- [ ] Endpoint: `GET /geocode?query=...`
-  - returns top N results (e.g., 5): `{ displayName, lat, lng }`
-- [ ] Implement call to the chosen geocoding provider
+- [ ] Endpoint: `GET /reports/search`
+  - supports one of the following input formats:
+    - bbox-based: `?bbox=minLng,minLat,maxLng,maxLat`
+    - center+radius: `?lat=...&lng=...&radius=...` (meters)
+  - optional filters (if needed): `category`, `status`, pagination (`limit`, `offset`)
+  - response: list of reports (minimum data needed for map markers)
+- [ ] Validation & abuse controls
+  - validate lat/lng ranges
+  - validate bbox ordering (min < max)
+  - clamp `radius` to a safe max (e.g., 500m)
+  - enforce a max `limit`
 - [ ] Tests: valid query → results; nonsense query → empty; provider down → handled 502
+
+## DB / Prisma changes
+- [ ] Add indexes to support geo queries efficiently:
+  - `@@index([latitude, longitude])`
+  - (optional) `@@index([status])`, `@@index([category])`, `@@index([status, category])` 
 
 ## Frontend (frontend/)
 
+### Address search UI 
 - [ ] Address search bar above the map:
   - input + search button / enter
-- [ ] Call `GET /geocode`:
-  - if multiple results → selectable dropdown/list
-  - if single result → auto-select
-- [ ] Recenter map to chosen coordinates + reasonable zoom
-- [ ] After recenter: trigger bbox fetch (integration with Story 28)
-- [ ] UX states:
-  - “No results”
-  - “Geocoding error”
-  - loading
+- [ ] Geocoding call (client-side)
+  - send typed address to geocoding provider
+  - handle: 
+    - multiple results → user selects from dropdown/list
+    - single result → auto-select
+    - no results → show “No results”
+    - error → show “Geocoding error”
+    - loading state
+
+### Map behavior
+- [ ] On selection: 
+  - if provider returns bbox → `fitBounds(bbox)`
+  - else use lat/lng → `setView([lat,lng], zoom)` and define a default 
+  
+### Fetch reports after recenter
+- [ ] After recenter, fetch reports for current area:
+  - preferred: call `GET /reports/search?bbox=...` using current map bounds (or provider bbox)
+  - alternative: call `GET /reports/search?lat/lng/radius=...` if only point is available
+- [ ] Render markers for returned reports
+- [ ] Clear previous markers before rendering new ones (or update via layer management)
 
 ## Acceptance Criteria
-
-- A valid address recenters the map correctly
-- Markers refresh and show reports in the target area
-- Errors and “no results” are handled with clear feedback
+- Typing a valid address and selecting a result recenters the map correctly (fitBounds or setView).
+- Reports in the selected area are fetched via GET /reports/search and displayed as markers.
+- “No results”, geocoding errors, and loading states are clearly handled in the UI.
+- Backend validates parameters and rejects invalid requests with appropriate status codes.
 
 ---
