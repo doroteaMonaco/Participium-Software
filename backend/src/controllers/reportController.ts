@@ -81,6 +81,18 @@ export const getReports = async (_req: Request, res: Response) => {
   }
 };
 
+export const getReportsMap = async (_req: Request, res: Response) => {
+  try {
+    const reports = await reportService.findAllForMapView();
+    return res.json(reports);
+  } catch (error) {
+    console.error("getReportsMap error:", error);
+    return res
+      .status(500)
+      .json({ error: "Failed to fetch reports for map view" });
+  }
+};
+
 export const getReportById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -460,7 +472,7 @@ export const addCommentToReport = async (req: Request, res: Response) => {
       error instanceof Error
         ? error.message
         : "Failed to add comment to report";
-    
+
     // Check for specific error messages
     if (error instanceof Error && /resolved/i.test(error.message)) {
       return res.status(403).json({
@@ -468,14 +480,17 @@ export const addCommentToReport = async (req: Request, res: Response) => {
         message: errorMessage,
       });
     }
-    
-    if (error instanceof Error && /only comment on reports assigned/i.test(error.message)) {
+
+    if (
+      error instanceof Error &&
+      /only comment on reports assigned/i.test(error.message)
+    ) {
       return res.status(403).json({
         error: "Forbidden",
         message: errorMessage,
       });
     }
-    
+
     const statusCode =
       error instanceof Error && /not found/i.test(error.message) ? 404 : 500;
     return res.status(statusCode).json({ error: errorMessage });
@@ -506,7 +521,11 @@ export const getCommentOfAReportById = async (req: Request, res: Response) => {
       });
     }
 
-    const response = await reportService.getCommentsOfAReportById(reportId, req.user.id, req.role);
+    const response = await reportService.getCommentsOfAReportById(
+      reportId,
+      req.user.id,
+      req.role,
+    );
 
     if (!response) {
       return res.status(404).json({
@@ -518,16 +537,17 @@ export const getCommentOfAReportById = async (req: Request, res: Response) => {
     return res.status(200).json(response);
   } catch (error) {
     const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Failed to retrieve comments";
+      error instanceof Error ? error.message : "Failed to retrieve comments";
     const statusCode =
       error instanceof Error && /not found/i.test(error.message) ? 404 : 500;
     return res.status(statusCode).json({ error: errorMessage });
   }
 };
 
-export const getUnreadCommentOfAReportById = async (req: Request, res: Response) => {
+export const getUnreadCommentOfAReportById = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     if (!req.user) {
       return res.status(401).json({
@@ -536,7 +556,7 @@ export const getUnreadCommentOfAReportById = async (req: Request, res: Response)
       });
     }
 
-      if (!req.role) {
+    if (!req.role) {
       return res.status(403).json({
         error: "Authorization Error",
         message: "User role not found",
@@ -551,7 +571,11 @@ export const getUnreadCommentOfAReportById = async (req: Request, res: Response)
       });
     }
 
-    const response = await reportService.getUnreadCommentsOfAReportById(reportId, req.user.id, req.role);
+    const response = await reportService.getUnreadCommentsOfAReportById(
+      reportId,
+      req.user.id,
+      req.role,
+    );
 
     if (!response) {
       return res.status(404).json({

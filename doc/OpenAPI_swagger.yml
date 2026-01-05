@@ -694,15 +694,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Report'
-        '404':
-          description: Not Found - No reports found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error: "Not Found"
-                message: "No reports found"
         '500':
           description: Internal Server Error
           content:

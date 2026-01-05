@@ -202,7 +202,7 @@ export const register = async (userData: UserRegistration): Promise<User> => {
  * @throws ApiError on failure
  */
 export const confirmRegistration = async (
-  confirmData: ConfirmRegistrationRequest
+  confirmData: ConfirmRegistrationRequest,
 ): Promise<{ success: boolean; message: string; user?: User }> => {
   const response = await api.post("/auth/verify", {
     emailOrUsername: confirmData.email,
@@ -311,6 +311,16 @@ export const getReports = async (
   const response = await api.get("/reports", {
     params: statusFilter ? { status: statusFilter } : undefined,
   });
+  return response.data;
+};
+
+/**
+ * Get reports for map view (public)
+ * @returns Array of reports
+ * @throws ApiError on failure
+ */
+export const getReportsForMapView = async (): Promise<Report[]> => {
+  const response = await api.get("/reports/reports-map");
   return response.data;
 };
 
