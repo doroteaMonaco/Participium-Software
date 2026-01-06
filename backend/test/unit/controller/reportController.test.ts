@@ -14,6 +14,7 @@ jest.mock("@services/reportService", () => {
     addCommentToReport: jest.fn(),
     getCommentsOfAReportById: jest.fn(),
     getUnreadCommentsOfAReportById: jest.fn(),
+    searchReportsByBoundingBox: jest.fn(),
   };
   return { __esModule: true, default: m };
 });
@@ -40,6 +41,7 @@ import {
   addCommentToReport,
   getCommentOfAReportById,
   getUnreadCommentOfAReportById,
+  reportSearchHandler,
 } from "@controllers/reportController";
 import { query } from "winston";
 import { roleType } from "@models/enums";
@@ -1681,6 +1683,211 @@ describe("reportController", () => {
       expect(res.json).toHaveBeenCalledWith({
         error: "Database error",
       });
+    });
+  });
+
+  // -------- reportSearchHandler --------
+  describe("reportSearchHandler", () => {
+    it("returns 400 when bbox parameter is missing", async () => {
+      const req = { query: {} } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Missing bbox parameter",
+      });
+    });
+
+    it("returns 400 when bbox is not a string", async () => {
+      const req = { query: { bbox: ["7.6600", "45.0600", "7.6750", "45.0700"] } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Missing bbox parameter",
+      });
+    });
+
+    it("returns 400 when bbox has incorrect number of parts", async () => {
+      const req = { query: { bbox: "7.6600,45.0600,7.6750" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Expected format: minLng,minLat,maxLng,maxLat",
+      });
+    });
+
+    it("returns 400 when bbox contains non-numeric values", async () => {
+      const req = { query: { bbox: "invalid,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Coordinates must be valid numbers.",
+      });
+    });
+
+    it("returns 400 when latitude is out of range", async () => {
+      const req = { query: { bbox: "7.6600,95.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Coordinates out of range.",
+      });
+    });
+
+    it("returns 400 when longitude is out of range", async () => {
+      const req = { query: { bbox: "200.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Coordinates out of range.",
+      });
+    });
+
+    it("returns 400 when minLng >= maxLng", async () => {
+      const req = { query: { bbox: "7.6750,45.0600,7.6600,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox values. Expected minLng < maxLng and minLat < maxLat.",
+      });
+    });
+
+    it("returns 400 when minLat >= maxLat", async () => {
+      const req = { query: { bbox: "7.6600,45.0700,7.6750,45.0600" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox values. Expected minLng < maxLng and minLat < maxLat.",
+      });
+    });
+
+    it("returns 200 with reports when bbox is valid", async () => {
+      const mockReports = [
+        { id: 1, title: "Report 1", latitude: 45.065, longitude: 7.67 },
+        { id: 2, title: "Report 2", latitude: 45.068, longitude: 7.672 },
+      ];
+      svc.searchReportsByBoundingBox.mockResolvedValue(mockReports);
+
+      const req = { query: { bbox: "7.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(svc.searchReportsByBoundingBox).toHaveBeenCalledWith({
+        minLng: 7.66,
+        minLat: 45.06,
+        maxLng: 7.675,
+        maxLat: 45.07,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockReports);
+    });
+
+    it("returns 200 with empty array when no reports found", async () => {
+      svc.searchReportsByBoundingBox.mockResolvedValue([]);
+
+      const req = { query: { bbox: "7.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith([]);
+    });
+
+    it("returns 404 when service throws 'not found' error", async () => {
+      svc.searchReportsByBoundingBox.mockRejectedValue(new Error("Reports not found"));
+
+      const req = { query: { bbox: "7.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Reports not found",
+      });
+    });
+
+    it("returns 500 on generic service error", async () => {
+      svc.searchReportsByBoundingBox.mockRejectedValue(new Error("Database connection failed"));
+
+      const req = { query: { bbox: "7.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Database connection failed",
+      });
+    });
+
+    it("handles bbox with spaces correctly", async () => {
+      const mockReports = [{ id: 1, title: "Report 1", latitude: 45.065, longitude: 7.67 }];
+      svc.searchReportsByBoundingBox.mockResolvedValue(mockReports);
+
+      const req = { query: { bbox: " 7.6600 , 45.0600 , 7.6750 , 45.0700 " } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(svc.searchReportsByBoundingBox).toHaveBeenCalledWith({
+        minLng: 7.66,
+        minLat: 45.06,
+        maxLng: 7.675,
+        maxLat: 45.07,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it("handles negative coordinates correctly", async () => {
+      const mockReports = [{ id: 1, title: "Report 1", latitude: -23.5, longitude: -46.5 }];
+      svc.searchReportsByBoundingBox.mockResolvedValue(mockReports);
+
+      const req = { query: { bbox: "-47,-24,-46,-23" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(svc.searchReportsByBoundingBox).toHaveBeenCalledWith({
+        minLng: -47,
+        minLat: -24,
+        maxLng: -46,
+        maxLat: -23,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
     });
   });
 });

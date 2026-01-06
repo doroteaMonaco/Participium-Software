@@ -844,5 +844,304 @@ describe("reportRepository", () => {
       });
       expect(res).toEqual({ count: 1 });
     });
+
+    // -------- findByBoundingBox --------
+    describe("findByBoundingBox", () => {
+      it("returns reports within bounding box with correct coordinates filter", async () => {
+        const mockReports = [
+          makeReport({
+            id: 1,
+            latitude: 45.065,
+            longitude: 7.67,
+          }),
+          makeReport({
+            id: 2,
+            latitude: 45.068,
+            longitude: 7.672,
+          }),
+        ];
+        prismaMock.report.findMany.mockResolvedValue(mockReports);
+
+        const bbox = {
+          minLng: 7.66,
+          minLat: 45.06,
+          maxLng: 7.675,
+          maxLat: 45.07,
+        };
+
+        const result = await reportRepository.findByBoundingBox(bbox, {
+          statuses: ["ASSIGNED", "IN_PROGRESS"],
+        });
+
+        expect(prismaMock.report.findMany).toHaveBeenCalledWith({
+          where: {
+            longitude: {
+              gte: 7.66,
+              lte: 7.675,
+            },
+            latitude: {
+              gte: 45.06,
+              lte: 45.07,
+            },
+            status: {
+              in: ["ASSIGNED", "IN_PROGRESS"],
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+        expect(result).toHaveLength(2);
+        expect(result[0].id).toBe(1);
+        expect(result[1].id).toBe(2);
+      });
+
+      it("returns empty array when no reports in bbox", async () => {
+        prismaMock.report.findMany.mockResolvedValue([]);
+
+        const bbox = {
+          minLng: 7.66,
+          minLat: 45.06,
+          maxLng: 7.675,
+          maxLat: 45.07,
+        };
+
+        const result = await reportRepository.findByBoundingBox(bbox, {
+          statuses: ["ASSIGNED"],
+        });
+
+        expect(result).toEqual([]);
+        expect(prismaMock.report.findMany).toHaveBeenCalled();
+      });
+
+      it("correctly filters by multiple statuses", async () => {
+        const mockReports = [
+          makeReport({ id: 1, status: "ASSIGNED" }),
+          makeReport({ id: 2, status: "IN_PROGRESS" }),
+          makeReport({ id: 3, status: "RESOLVED" }),
+        ];
+        prismaMock.report.findMany.mockResolvedValue(mockReports);
+
+        const bbox = {
+          minLng: -180,
+          minLat: -90,
+          maxLng: 180,
+          maxLat: 90,
+        };
+
+        const statuses = ["ASSIGNED", "IN_PROGRESS", "RESOLVED"];
+
+        const result = await reportRepository.findByBoundingBox(bbox, {
+          statuses: statuses as any,
+        });
+
+        expect(prismaMock.report.findMany).toHaveBeenCalledWith({
+          where: {
+            longitude: {
+              gte: -180,
+              lte: 180,
+            },
+            latitude: {
+              gte: -90,
+              lte: 90,
+            },
+            status: {
+              in: statuses,
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+        expect(result).toHaveLength(3);
+      });
+
+      it("orders results by createdAt in descending order", async () => {
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+
+        const mockReports = [
+          makeReport({ id: 1, createdAt: now }),
+          makeReport({ id: 2, createdAt: yesterday }),
+          makeReport({ id: 3, createdAt: twoDaysAgo }),
+        ];
+        prismaMock.report.findMany.mockResolvedValue(mockReports);
+
+        const bbox = {
+          minLng: 7.66,
+          minLat: 45.06,
+          maxLng: 7.675,
+          maxLat: 45.07,
+        };
+
+        const result = await reportRepository.findByBoundingBox(bbox, {
+          statuses: ["ASSIGNED"],
+        });
+
+        expect(prismaMock.report.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            orderBy: { createdAt: "desc" },
+          }),
+        );
+        expect(result[0].id).toBe(1); // Most recent
+        expect(result[1].id).toBe(2);
+        expect(result[2].id).toBe(3); // Oldest
+      });
+
+      it("handles negative coordinates correctly", async () => {
+        const mockReports = [
+          makeReport({
+            id: 1,
+            latitude: -33.5,
+            longitude: -151.5,
+          }),
+        ];
+        prismaMock.report.findMany.mockResolvedValue(mockReports);
+
+        const bbox = {
+          minLng: -152,
+          minLat: -34,
+          maxLng: -151,
+          maxLat: -33,
+        };
+
+        const result = await reportRepository.findByBoundingBox(bbox, {
+          statuses: ["ASSIGNED"],
+        });
+
+        expect(prismaMock.report.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              longitude: {
+                gte: -152,
+                lte: -151,
+              },
+              latitude: {
+                gte: -34,
+                lte: -33,
+              },
+            }),
+          }),
+        );
+        expect(result).toHaveLength(1);
+      });
+
+      it("handles floating point coordinates with high precision", async () => {
+        const mockReports = [
+          makeReport({
+            id: 1,
+            latitude: 45.06501234,
+            longitude: 7.67012345,
+          }),
+        ];
+        prismaMock.report.findMany.mockResolvedValue(mockReports);
+
+        const bbox = {
+          minLng: 7.6701,
+          minLat: 45.0650,
+          maxLng: 7.6702,
+          maxLat: 45.0651,
+        };
+
+        const result = await reportRepository.findByBoundingBox(bbox, {
+          statuses: ["ASSIGNED"],
+        });
+
+        expect(prismaMock.report.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              longitude: {
+                gte: 7.6701,
+                lte: 7.6702,
+              },
+              latitude: {
+                gte: 45.065,
+                lte: 45.0651,
+              },
+            }),
+          }),
+        );
+      });
+
+      it("throws error when database query fails", async () => {
+        prismaMock.report.findMany.mockRejectedValue(
+          new Error("Database connection failed"),
+        );
+
+        const bbox = {
+          minLng: 7.66,
+          minLat: 45.06,
+          maxLng: 7.675,
+          maxLat: 45.07,
+        };
+
+        await expect(
+          reportRepository.findByBoundingBox(bbox, { statuses: ["ASSIGNED"] }),
+        ).rejects.toThrow("Database connection failed");
+      });
+
+      it("handles world-wide bounding box", async () => {
+        const mockReports = [
+          makeReport({ id: 1, latitude: 45.0, longitude: 7.0 }),
+          makeReport({ id: 2, latitude: -33.0, longitude: 151.0 }),
+          makeReport({ id: 3, latitude: 40.0, longitude: -74.0 }),
+        ];
+        prismaMock.report.findMany.mockResolvedValue(mockReports);
+
+        const bbox = {
+          minLng: -180,
+          minLat: -90,
+          maxLng: 180,
+          maxLat: 90,
+        };
+
+        const result = await reportRepository.findByBoundingBox(bbox, {
+          statuses: ["ASSIGNED", "IN_PROGRESS"],
+        });
+
+        expect(prismaMock.report.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              longitude: {
+                gte: -180,
+                lte: 180,
+              },
+              latitude: {
+                gte: -90,
+                lte: 90,
+              },
+            }),
+          }),
+        );
+        expect(result).toHaveLength(3);
+      });
+
+      it("returns reports with all expected fields", async () => {
+        const mockReports = [
+          makeReport({
+            id: 42,
+            latitude: 45.065,
+            longitude: 7.67,
+            title: "Test Report",
+            category: "WASTE",
+          }),
+        ];
+        prismaMock.report.findMany.mockResolvedValue(mockReports);
+
+        const bbox = {
+          minLng: 7.66,
+          minLat: 45.06,
+          maxLng: 7.675,
+          maxLat: 45.07,
+        };
+
+        const result = await reportRepository.findByBoundingBox(bbox, {
+          statuses: ["ASSIGNED"],
+        });
+
+        expect(result[0]).toHaveProperty("id", 42);
+        expect(result[0]).toHaveProperty("latitude");
+        expect(result[0]).toHaveProperty("longitude");
+        expect(result[0]).toHaveProperty("title");
+        expect(result[0]).toHaveProperty("category");
+      });
+    });
   });
 });

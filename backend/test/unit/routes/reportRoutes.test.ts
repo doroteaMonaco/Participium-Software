@@ -61,6 +61,12 @@ jest.mock("@controllers/reportController", () => ({
   deleteReport: jest.fn((req: Request, res: Response) =>
     res.status(204).send(),
   ),
+  reportSearchHandler: jest.fn((req: Request, res: Response) =>
+    res.json({
+      route: "reportSearchHandler",
+      bbox: (req as any).query?.bbox,
+    }),
+  ),
 }));
 
 jest.mock("@middlewares/authMiddleware", () => ({
