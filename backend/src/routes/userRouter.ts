@@ -46,11 +46,6 @@ router.get(
   userController.getAllMunicipalityRoles,
 );
 
-/* 
-// POST /api/users - User registration
-router.post("/", userController.register);
-*/
-
 // POST /api/users - Register with email verification
 router.post("/", userController.registerWithVerification);
 

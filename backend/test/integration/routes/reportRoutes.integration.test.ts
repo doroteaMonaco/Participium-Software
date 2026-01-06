@@ -46,7 +46,7 @@ const registerUser = async (
   const res = await agent.post("/api/users").send({ ...user, role });
   expect(res.status).toBe(201);
 
-  const ver = await agent.post("/api/auth/verify").send({
+  await agent.post("/api/auth/verify").send({
     emailOrUsername: user.email,
     code: (globalThis as any).__lastSentVerificationCode,
   });
@@ -508,7 +508,7 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   });
 
   it("200 approves a report with valid municipality authentication", async () => {
-    const response = await municipalityAgent
+    await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "ASSIGNED" })
       .expect(204);
@@ -524,7 +524,7 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   it("200 rejects a report with reason", async () => {
     const rejectionReason = "Report does not meet requirements";
 
-    const response = await municipalityAgent
+    await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "REJECTED", rejectionReason })
       .expect(204);
@@ -539,15 +539,16 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   });
 
   it("400 rejects a report without reason", async () => {
-    const response = await municipalityAgent
+    await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "REJECTED" })
-      .expect(400);
-
-    expect(response.body).toHaveProperty(
-      "error",
-      "Rejection reason is required when rejecting a report.",
-    );
+      .expect(400)
+      .then((response: request.Response) => {
+        expect(response.body).toHaveProperty(
+          "error",
+          "Rejection reason is required when rejecting a report.",
+        );
+      });
   });
 
   it("400 invalid status", async () => {
@@ -664,7 +665,7 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       .expect(201);
 
     // Get reports with authentication
-    const response = await agent.get("/api/reports").expect(200);
+    await agent.get("/api/reports").expect(200);
   });
 
   it("403 citizen role required for status filter", async () => {
@@ -1179,7 +1180,7 @@ describe("POST /api/reports/:id (Validate Report)", () => {
 
     const adminAgent = await createAdmin(admin);
     const { muniAgent } = await createMunicipality(adminAgent, muniPayload);
-    const res = await muniAgent
+    await muniAgent
       .post(`/api/reports/1`)
       .send({ status: "NOT_A_VALID_STATUS" })
       .expect(400);
@@ -1269,7 +1270,7 @@ describe("POST /api/reports/:id (Validate Report)", () => {
     const adminAgent = await createAdmin(admin);
     const { muniAgent } = await createMunicipality(adminAgent, muniPayload);
 
-    const res = await muniAgent
+    await muniAgent
       .post("/api/reports/999999")
       .send({ status: "ASSIGNED" })
       .expect(404);
@@ -1604,7 +1605,7 @@ describe("Integration: Comments endpoints", () => {
     });
 
     // Municipality approves the report first
-    const response = await muniAgent
+    await muniAgent
       .post(`/api/reports/${createdReport.id}`)
       .send({ status: "ASSIGNED" })
       .expect(204);
@@ -1663,15 +1664,8 @@ describe("Integration: Comments endpoints", () => {
   });
 
   it("POST 401 when not authenticated", async () => {
-    const resident = {
-      username: "random_guest",
-      email: "random_guest@example.com",
-      firstName: "Guest",
-      lastName: "User",
-      password: "guest123",
-    };
     // don't log in - unauthenticated
-    const res = await request(app)
+    await request(app)
       .post(`/api/reports/1/comments`)
       .send({ content: "x" })
       .expect(401);
@@ -1760,7 +1754,7 @@ describe("Integration: Comments endpoints", () => {
     });
 
     // Municipality approves the report first
-    const response = await muniAgent
+    await muniAgent
       .post(`/api/reports/${createdReport.id}`)
       .send({ status: "ASSIGNED" })
       .expect(204);
@@ -2061,7 +2055,7 @@ describe("Integration: Comments endpoints", () => {
       });
 
       // Municipality approves the report first
-      const response = await muniAgent
+      await muniAgent
         .post(`/api/reports/${createdReport.id}`)
         .send({ status: "ASSIGNED" })
         .expect(204);
