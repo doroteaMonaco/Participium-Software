@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response } from "express";
 import request from "supertest";
 import multer from "multer";
 
@@ -136,7 +136,7 @@ const upload = multer({
     files: 3,
   },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype && file.mimetype.startsWith("image/")) cb(null, true);
+    if (file.mimetype?.startsWith("image/")) cb(null, true);
     else cb(new Error("Only image files are allowed"));
   },
 });

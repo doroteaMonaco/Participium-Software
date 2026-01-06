@@ -62,7 +62,22 @@ export const emailVerificationService = {
   },
 
   async getPendingVerification(emailOrUsername: string) {
-    return emailRepository.getVerification(emailOrUsername);
+    const pending = await emailRepository.getVerification(emailOrUsername);
+
+    if (!pending) {
+      return null;
+    }
+
+    // Check if the verification code has expired
+    if (new Date() > pending.verificationCodeExpiry) {
+      logger.warn(
+        `Pending verification expired for ${emailOrUsername}, deleting...`,
+      );
+      await emailRepository.deleteById(pending.id);
+      return null;
+    }
+
+    return pending;
   },
 
   async verifyCode(emailOrUsername: string, plainCode: string): Promise<void> {
@@ -71,12 +86,6 @@ export const emailVerificationService = {
     if (!pending) {
       logger.warn(`No pending verification found for ${emailOrUsername}`);
       throw new NotFoundError("No pending verification found");
-    }
-
-    if (new Date() > pending.verificationCodeExpiry) {
-      logger.warn(`Verification code expired for ${emailOrUsername}`);
-      await emailRepository.deleteById(pending.id);
-      throw new BadRequestError("Verification code has expired");
     }
 
     if (pending.verificationAttempts >= CONFIG.MAX_VERIFICATION_ATTEMPTS) {
@@ -131,7 +140,7 @@ export const emailVerificationService = {
       throw new TooManyRequestsError("Too many verification attempts");
     }
 
-    const { code, expiresIn } = await this.createPendingVerification(
+    const { code } = await this.createPendingVerification(
       pending.email,
       pending.username,
       pending.firstName,

@@ -80,11 +80,9 @@ describe("emailVerificationService", () => {
     });
 
     it("generates codes with leading zeros if needed", async () => {
-      let hasLeadingZero = false;
       for (let i = 0; i < 100; i++) {
         const code = await emailVerificationService.generateVerificationCode();
         if (code.startsWith("0")) {
-          hasLeadingZero = true;
           break;
         }
       }
@@ -241,8 +239,7 @@ describe("emailVerificationService", () => {
       );
       const afterTime = Date.now();
 
-      const callArgs = (db.pending_verification_user.create as jest.Mock).mock
-        .calls[0][0];
+      const callArgs = db.pending_verification_user.create.mock.calls[0][0];
       const expiryTime = callArgs.data.verificationCodeExpiry.getTime();
       const expectedExpiry =
         CONFIG.VERIFICATION_CODE_EXPIRY_MINUTES * 60 * 1000;
@@ -333,13 +330,12 @@ describe("emailVerificationService", () => {
       });
       db.pending_verification_user.findFirst.mockResolvedValue(expiredPending);
 
-      await expect(
-        emailVerificationService.verifyCode("test@example.com", "123456"),
-      ).rejects.toThrow("Verification code has expired");
-
-      expect(logger.warn).toHaveBeenCalledWith(
-        "Verification code expired for test@example.com",
+      // getPendingVerification will delete it and return null
+      const result = await emailVerificationService.getPendingVerification(
+        "test@example.com",
       );
+
+      expect(result).toBeNull();
       expect(db.pending_verification_user.delete).toHaveBeenCalledWith({
         where: { id: expiredPending.id },
       });
@@ -407,10 +403,12 @@ describe("emailVerificationService", () => {
       });
       db.pending_verification_user.findFirst.mockResolvedValue(expiredPending);
 
-      await expect(
-        emailVerificationService.verifyCode("test@example.com", "123456"),
-      ).rejects.toThrow("Verification code has expired");
+      // When getPendingVerification encounters an expired record, it deletes it and returns null
+      const result = await emailVerificationService.getPendingVerification(
+        "test@example.com",
+      );
 
+      expect(result).toBeNull();
       expect(db.pending_verification_user.update).not.toHaveBeenCalled();
     });
   });
@@ -540,7 +538,7 @@ describe("emailVerificationService", () => {
 
       await emailVerificationService.resendCode("test@example.com");
 
-      const createCall = (db.pending_verification_user.create as jest.Mock).mock
+      const createCall = db.pending_verification_user.create.mock
         .calls[0];
       expect(createCall[0].data).toMatchObject({
         email: pending.email,

@@ -870,7 +870,7 @@ describe("reportRepository", () => {
         };
 
         const result = await reportRepository.findByBoundingBox(bbox, {
-          statuses: ["ASSIGNED", "IN_PROGRESS"],
+          statuses: [ReportStatus.ASSIGNED, ReportStatus.IN_PROGRESS],
         });
 
         expect(prismaMock.report.findMany).toHaveBeenCalledWith({
@@ -905,7 +905,7 @@ describe("reportRepository", () => {
         };
 
         const result = await reportRepository.findByBoundingBox(bbox, {
-          statuses: ["ASSIGNED"],
+          statuses: [ReportStatus.ASSIGNED],
         });
 
         expect(result).toEqual([]);
@@ -972,7 +972,7 @@ describe("reportRepository", () => {
         };
 
         const result = await reportRepository.findByBoundingBox(bbox, {
-          statuses: ["ASSIGNED"],
+          statuses: [ReportStatus.ASSIGNED],
         });
 
         expect(prismaMock.report.findMany).toHaveBeenCalledWith(
@@ -1003,7 +1003,7 @@ describe("reportRepository", () => {
         };
 
         const result = await reportRepository.findByBoundingBox(bbox, {
-          statuses: ["ASSIGNED"],
+          statuses: [ReportStatus.ASSIGNED],
         });
 
         expect(prismaMock.report.findMany).toHaveBeenCalledWith(
@@ -1035,13 +1035,13 @@ describe("reportRepository", () => {
 
         const bbox = {
           minLng: 7.6701,
-          minLat: 45.0650,
+          minLat: 45.065,
           maxLng: 7.6702,
           maxLat: 45.0651,
         };
 
         const result = await reportRepository.findByBoundingBox(bbox, {
-          statuses: ["ASSIGNED"],
+          statuses: [ReportStatus.ASSIGNED],
         });
 
         expect(prismaMock.report.findMany).toHaveBeenCalledWith(
@@ -1058,6 +1058,7 @@ describe("reportRepository", () => {
             }),
           }),
         );
+        expect(result).toHaveLength(1);
       });
 
       it("throws error when database query fails", async () => {
@@ -1073,15 +1074,15 @@ describe("reportRepository", () => {
         };
 
         await expect(
-          reportRepository.findByBoundingBox(bbox, { statuses: ["ASSIGNED"] }),
+          reportRepository.findByBoundingBox(bbox, { statuses: [ReportStatus.ASSIGNED] }),
         ).rejects.toThrow("Database connection failed");
       });
 
       it("handles world-wide bounding box", async () => {
         const mockReports = [
-          makeReport({ id: 1, latitude: 45.0, longitude: 7.0 }),
-          makeReport({ id: 2, latitude: -33.0, longitude: 151.0 }),
-          makeReport({ id: 3, latitude: 40.0, longitude: -74.0 }),
+          makeReport({ id: 1, latitude: 45, longitude: 7 }),
+          makeReport({ id: 2, latitude: -33, longitude: 151 }),
+          makeReport({ id: 3, latitude: 40, longitude: -74 }),
         ];
         prismaMock.report.findMany.mockResolvedValue(mockReports);
 
@@ -1093,7 +1094,7 @@ describe("reportRepository", () => {
         };
 
         const result = await reportRepository.findByBoundingBox(bbox, {
-          statuses: ["ASSIGNED", "IN_PROGRESS"],
+          statuses: [ReportStatus.ASSIGNED, ReportStatus.IN_PROGRESS],
         });
 
         expect(prismaMock.report.findMany).toHaveBeenCalledWith(
@@ -1133,7 +1134,7 @@ describe("reportRepository", () => {
         };
 
         const result = await reportRepository.findByBoundingBox(bbox, {
-          statuses: ["ASSIGNED"],
+          statuses: [ReportStatus.ASSIGNED],
         });
 
         expect(result[0]).toHaveProperty("id", 42);

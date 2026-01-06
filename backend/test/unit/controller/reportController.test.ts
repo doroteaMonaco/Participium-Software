@@ -43,7 +43,6 @@ import {
   getUnreadCommentOfAReportById,
   reportSearchHandler,
 } from "@controllers/reportController";
-import { query } from "winston";
 import { roleType } from "@models/enums";
 
 type ServiceMock = {
@@ -60,6 +59,7 @@ type ServiceMock = {
   addCommentToReport: jest.Mock;
   getCommentsOfAReportById: jest.Mock;
   getUnreadCommentsOfAReportById: jest.Mock;
+  searchReportsByBoundingBox: jest.Mock;
 };
 type ImageMock = {
   storeTemporaryImages: jest.Mock;
@@ -154,39 +154,6 @@ describe("reportController", () => {
         error: "Failed to fetch reports",
       });
     });
-
-    // it("allows citizen to filter reports by ASSIGNED status", async () => {
-    //   const approvedReports = [makeReport({ id: 1, status: "ASSIGNED" })];
-    //   svc.findAll.mockResolvedValue(approvedReports);
-
-    //   const req = {
-    //     query: { status: "ASSIGNED" },
-    //     user: { role: "CITIZEN" }
-    //   } as unknown as Request;
-    //   const res = makeRes();
-
-    //   await getReports(req, res as unknown as Response);
-
-    //   expect(svc.findAll).toHaveBeenCalledWith("ASSIGNED");
-    //   expect(res.json).toHaveBeenCalledWith(approvedReports);
-    // });
-
-    // it("denies non-citizen access to status filter", async () => {
-    //   const req = {
-    //     query: { status: "ASSIGNED" },
-    //     user: { role: "ADMIN" }
-    //   } as unknown as Request;
-    //   const res = makeRes();
-
-    //   await getReports(req, res as unknown as Response);
-
-    //   expect(res.status).toHaveBeenCalledWith(403);
-    //   expect(res.json).toHaveBeenCalledWith({
-    //     error: "Authorization Error",
-    //     message: "Access denied. Citizen role required to filter by status.",
-    //   });
-    //   expect(svc.findAll).not.toHaveBeenCalled();
-    // });
 
     it("returns 401 for invalid status filter", async () => {
       const req = {
@@ -297,23 +264,6 @@ describe("reportController", () => {
       expect(svc.findAll).toHaveBeenCalledWith("ASSIGNED", undefined);
       expect(res.json).toHaveBeenCalledWith(assignedReports);
     });
-
-    // it("returns 403 for citizen without status filter", async () => {
-    //   const req = {
-    //     query: {},
-    //     user: { role: "CITIZEN" }
-    //   } as unknown as Request;
-    //   const res = makeRes();
-
-    //   await getReports(req, res as unknown as Response);
-
-    //   expect(res.status).toHaveBeenCalledWith(403);
-    //   expect(res.json).toHaveBeenCalledWith({
-    //     error: "Authorization Error",
-    //     message: "Access denied. Required roles: ADMIN, MUNICIPALITY",
-    //   });
-    //   expect(svc.findAll).not.toHaveBeenCalled();
-    // });
   });
 
   // -------- getReportById --------

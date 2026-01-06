@@ -1,6 +1,6 @@
 import { prisma } from "@database";
 import { Report } from "@models/entities/report";
-import { ReportStatus, roleType } from "@models/enums";
+import { ReportStatus} from "@models/enums";
 
 type BoundingBox = {
   minLng: number;

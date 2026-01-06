@@ -5,9 +5,7 @@ let testPrisma: PrismaClient | null = null;
 let isConnected = false;
 
 export async function getTestPrisma(): Promise<PrismaClient> {
-  if (!testPrisma) {
-    testPrisma = new PrismaClient();
-  }
+  testPrisma ??= new PrismaClient();
   return testPrisma;
 }
 

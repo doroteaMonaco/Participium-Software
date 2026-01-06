@@ -44,6 +44,11 @@ type RepoMock = {
   create: jest.Mock;
   update: jest.Mock;
   deleteById: jest.Mock;
+  addCommentToReport: jest.Mock;
+  getCommentsByReportId: jest.Mock;
+  markMunicipalityCommentsAsRead: jest.Mock;
+  markExternalMaintainerCommentsAsRead: jest.Mock;
+  findByBoundingBox: jest.Mock;
 };
 
 type ImageMock = {
@@ -273,7 +278,6 @@ describe("reportService", () => {
         ...created,
         photos: ["/img/r/1.jpg", "/img/r/2.jpg"],
       });
-      // img.getMultipleImages.mockResolvedValue(["BINARY1", "BINARY2"]);
 
       const res = await reportService.submitReport(dto as any, 1);
 
@@ -306,7 +310,6 @@ describe("reportService", () => {
       repo.create.mockResolvedValue(created);
       img.persistImagesForReport.mockResolvedValue(["p1"]);
       repo.update.mockResolvedValue(updated);
-      // img.getMultipleImages.mockResolvedValue(["url_p1"]);
 
       const res = await reportService.submitReport(dto as any, 123);
 
@@ -1227,15 +1230,6 @@ describe("reportService", () => {
         assignedOfficerId: null,
         externalMaintainerId: null,
       };
-      const comment = {
-        id: 100,
-        reportId: 5,
-        content: "muni comment",
-        municipality_user_id: 7,
-        external_maintainer_id: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
       (repo as any).findById.mockResolvedValue(report);
 
       await expect(
@@ -1325,7 +1319,7 @@ describe("reportService", () => {
 
       const result = await reportService.searchReportsByBoundingBox(bbox);
 
-      const callArgs = (repo.findByBoundingBox as jest.Mock).mock.calls[0][1];
+      const callArgs = repo.findByBoundingBox.mock.calls[0][1];
       expect(callArgs).toHaveProperty("statuses");
       expect(Array.isArray(callArgs.statuses)).toBe(true);
       expect(result).toHaveLength(1);
@@ -1333,9 +1327,9 @@ describe("reportService", () => {
 
     it("handles large bounding box covering whole world", async () => {
       const mockReports = [
-        makeReport({ id: 1, latitude: 45.0, longitude: 7.0 }),
-        makeReport({ id: 2, latitude: -33.0, longitude: 151.0 }),
-        makeReport({ id: 3, latitude: 40.0, longitude: -74.0 }),
+        makeReport({ id: 1, latitude: 45, longitude: 7 }),
+        makeReport({ id: 2, latitude: -33, longitude: 151 }),
+        makeReport({ id: 3, latitude: 40, longitude: -74 }),
       ];
       repo.findByBoundingBox.mockResolvedValue(mockReports);
 
@@ -1366,8 +1360,8 @@ describe("reportService", () => {
       repo.findByBoundingBox.mockResolvedValue(mockReports);
 
       const bbox = {
-        minLng: 7.6700,
-        minLat: 45.0650,
+        minLng: 7.67,
+        minLat: 45.065,
         maxLng: 7.6702,
         maxLat: 45.0652,
       };
