@@ -92,7 +92,7 @@ describe("Municipality E2E", () => {
         .send({ ...u, role: "CITIZEN" })
         .expect(201);
 
-      expect((global as any).__lastSentVerificationCode).toBeDefined();
+      expect((globalThis as any).__lastSentVerificationCode).toBeDefined();
     });
 
     it("Admin can create municipality user with valid role and retrieve it", async () => {
@@ -330,7 +330,7 @@ describe("Municipality E2E", () => {
       await citizenAgent.post("/api/users").send(citizenUser).expect(201);
       await citizenAgent.post("/api/auth/verify").send({
         emailOrUsername: citizenUser.email,
-        code: (global as any).__lastSentVerificationCode,
+        code: (globalThis as any).__lastSentVerificationCode,
       });
 
       const muniPayload = {
@@ -363,7 +363,7 @@ describe("Municipality E2E", () => {
       await citizenAgent.post("/api/users").send(citizenUser).expect(201);
       await citizenAgent.post("/api/auth/verify").send({
         emailOrUsername: citizenUser.email,
-        code: (global as any).__lastSentVerificationCode,
+        code: (globalThis as any).__lastSentVerificationCode,
       });
 
       // Citizen tries to access roles (should be forbidden)
@@ -383,7 +383,8 @@ describe("Municipality E2E", () => {
         municipality_role_id: 3,
       };
 
-      const muniCreateRes = await adminAgent
+      // Admin creates the municipality user first
+      await adminAgent
         .post(`${base}/municipality-users`)
         .send(muniPayload)
         .expect(201);
@@ -412,7 +413,7 @@ describe("Municipality E2E", () => {
       await citizenAgent.post("/api/users").send(citizenUser).expect(201);
       await citizenAgent.post("/api/auth/verify").send({
         emailOrUsername: citizenUser.email,
-        code: (global as any).__lastSentVerificationCode,
+        code: (globalThis as any).__lastSentVerificationCode,
       });
 
       // Citizen is already authenticated from registration
@@ -481,12 +482,13 @@ describe("Municipality E2E", () => {
         municipality_role_id: 1,
       };
 
-      const validatorRes = await adminAgent
+      // Admin creates both municipality users first
+      await adminAgent
         .post(`${base}/municipality-users`)
         .send(validator)
         .expect(201);
 
-      const operatorRes = await adminAgent
+      await adminAgent
         .post(`${base}/municipality-users`)
         .send(operator)
         .expect(201);
@@ -526,7 +528,7 @@ describe("Municipality E2E", () => {
       await citizenAgent.post("/api/users").send(citizenUser).expect(201);
       await citizenAgent.post("/api/auth/verify").send({
         emailOrUsername: citizenUser.email,
-        code: (global as any).__lastSentVerificationCode,
+        code: (globalThis as any).__lastSentVerificationCode,
       });
 
       await citizenAgent
@@ -554,21 +556,17 @@ describe("Municipality E2E", () => {
 
       const reportId = reportRes.body.id;
 
-      // Validator can view and approve
-      const validatorViewRes = await validatorAgent
-        .get(`/api/reports/${reportId}`)
-        .expect(200);
-
-      // Note: Report status update endpoint has a server error, skip this for now
-      const statusRes = await validatorAgent
-        .post(`/api/reports/${reportId}`)
-        .send({ status: "ASSIGNED" });
-
       // Operator can view the report
       const operatorViewRes = await operatorAgent
         .get(`/api/reports/${reportId}`)
         .expect(200);
       expect(operatorViewRes.body).toHaveProperty("id", reportId);
+
+      // Validator approves and assigns the report first
+      await validatorAgent
+        .post(`/api/reports/${reportId}`)
+        .send({ status: "ASSIGNED" })
+        .expect(204);
 
       // Both can add comments
       await validatorAgent
@@ -630,7 +628,7 @@ describe("Municipality E2E", () => {
       await citizenAgent.post("/api/users").send(citizenUser).expect(201);
       await citizenAgent.post("/api/auth/verify").send({
         emailOrUsername: citizenUser.email,
-        code: (global as any).__lastSentVerificationCode,
+        code: (globalThis as any).__lastSentVerificationCode,
       });
 
       await citizenAgent

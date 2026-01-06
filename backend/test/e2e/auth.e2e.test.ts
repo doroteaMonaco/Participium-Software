@@ -6,13 +6,6 @@ import { CONFIG } from "@config";
 let prisma: any;
 
 describe("Auth E2E", () => {
-  let fakeUser = {
-    username: "mrossi",
-    email: "mr@example.com",
-    firstName: "Mario",
-    lastName: "Rossi",
-    password: "password123",
-  };
 
   beforeAll(async () => {
     prisma = await getTestPrisma();
@@ -57,7 +50,7 @@ describe("Auth E2E", () => {
       await agent.get("/api/auth/session").expect(401);
 
       // global mock should have recorded the code
-      expect((global as any).__lastSentVerificationCode).toBeDefined();
+      expect((globalThis as any).__lastSentVerificationCode).toBeDefined();
     });
 
     it("expired first code, request new verification email and access denied until verify", async () => {
@@ -72,7 +65,7 @@ describe("Auth E2E", () => {
 
       // register -> generates first code
       await agent.post("/api/users").send(u).expect(201);
-      const firstCode = (global as any).__lastSentVerificationCode as string;
+      const firstCode = (globalThis as any).__lastSentVerificationCode as string;
       expect(firstCode).toBeDefined();
 
       // force expiry of the pending verification
@@ -98,7 +91,7 @@ describe("Auth E2E", () => {
 
       // request a new verification by re-sending registration
       await agent.post("/api/users").send(u).expect(201);
-      const secondCode = (global as any).__lastSentVerificationCode as string;
+      const secondCode = (globalThis as any).__lastSentVerificationCode as string;
       expect(secondCode).toBeDefined();
       expect(secondCode).not.toEqual(firstCode);
 
@@ -122,7 +115,7 @@ describe("Auth E2E", () => {
 
       // request a new verification again
       await agent.post("/api/users").send(u).expect(201);
-      const thirdCode = (global as any).__lastSentVerificationCode as string;
+      const thirdCode = (globalThis as any).__lastSentVerificationCode as string;
       expect(thirdCode).toBeDefined();
       expect(thirdCode).not.toEqual(secondCode);
 
@@ -153,7 +146,7 @@ describe("Auth E2E", () => {
       // Complete verification step
       const registerRes = await agent.post("/api/auth/verify").send({
         emailOrUsername: u.email,
-        code: (global as any).__lastSentVerificationCode,
+        code: (globalThis as any).__lastSentVerificationCode,
       });
 
       expect(registerRes.headers["set-cookie"]).toBeDefined();
@@ -202,7 +195,7 @@ describe("Auth E2E", () => {
       // Complete verification step
       await agent.post("/api/auth/verify").send({
         emailOrUsername: u.email,
-        code: (global as any).__lastSentVerificationCode,
+        code: (globalThis as any).__lastSentVerificationCode,
       });
 
       // Verify registration already set up session, can check it works
@@ -234,7 +227,7 @@ describe("Auth E2E", () => {
         .post("/api/auth/verify")
         .send({
           emailOrUsername: u.email,
-          code: (global as any).__lastSentVerificationCode,
+          code: (globalThis as any).__lastSentVerificationCode,
         });
 
       // First login
@@ -281,7 +274,7 @@ describe("Auth E2E", () => {
       // Complete verification step
       const registerRes = await agent.post("/api/auth/verify").send({
         emailOrUsername: newUser.email,
-        code: (global as any).__lastSentVerificationCode,
+        code: (globalThis as any).__lastSentVerificationCode,
       });
       expect(registerRes.body.user).toHaveProperty("id");
 
@@ -311,7 +304,7 @@ describe("Auth E2E", () => {
       // Complete verification step
       await agent.post("/api/auth/verify").send({
         emailOrUsername: user.email,
-        code: (global as any).__lastSentVerificationCode,
+        code: (globalThis as any).__lastSentVerificationCode,
       });
 
       // Get initial profile
@@ -349,7 +342,7 @@ describe("Auth E2E", () => {
       // Complete verification step
       await agent.post("/api/auth/verify").send({
         emailOrUsername: user.email,
-        code: (global as any).__lastSentVerificationCode,
+        code: (globalThis as any).__lastSentVerificationCode,
       });
 
       const beforeLogoutRes = await agent.get("/api/auth/session").expect(200);
@@ -451,7 +444,7 @@ describe("Auth E2E", () => {
       // Complete verification step
       await agent.post("/api/auth/verify").send({
         emailOrUsername: user.email,
-        code: (global as any).__lastSentVerificationCode,
+        code: (globalThis as any).__lastSentVerificationCode,
       });
 
       // Try to register with same email

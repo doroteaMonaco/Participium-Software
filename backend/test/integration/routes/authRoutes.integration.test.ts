@@ -110,7 +110,7 @@ describe("Auth Routes - Integration Tests", () => {
         .post("/api/auth/verify")
         .send({
           emailOrUsername: u.email,
-          code: (global as any).__lastSentVerificationCode,
+          code: (globalThis as any).__lastSentVerificationCode,
         })
         .expect(201);
 
@@ -154,7 +154,7 @@ describe("Auth Routes - Integration Tests", () => {
         .post("/api/auth/verify")
         .send({
           emailOrUsername: u.email,
-          code: (global as any).__lastSentVerificationCode,
+          code: (globalThis as any).__lastSentVerificationCode,
         })
         .expect(201);
 
@@ -187,8 +187,8 @@ describe("Auth Routes - Integration Tests", () => {
         .expect(201);
 
       // ensure mock was called and code recorded
-      expect((global as any).__lastSentVerificationCode).toBeDefined();
-      const code = (global as any).__lastSentVerificationCode as string;
+      expect((globalThis as any).__lastSentVerificationCode).toBeDefined();
+      const code = (globalThis as any).__lastSentVerificationCode as string;
 
       const res = await request(app)
         .post("/api/auth/verify")
@@ -255,7 +255,7 @@ describe("Auth Routes - Integration Tests", () => {
         data: { verificationCodeExpiry: new Date(Date.now() - 1000) },
       });
 
-      const code = (global as any).__lastSentVerificationCode as string;
+      const code = (globalThis as any).__lastSentVerificationCode as string;
 
       const res = await request(app)
         .post("/api/auth/verify")
@@ -313,7 +313,7 @@ describe("Auth Routes - Integration Tests", () => {
         data: { verificationAttempts: CONFIG.MAX_VERIFICATION_ATTEMPTS },
       });
 
-      const code = (global as any).__lastSentVerificationCode as string;
+      const code = (globalThis as any).__lastSentVerificationCode as string;
 
       await request(app)
         .post("/api/auth/verify")

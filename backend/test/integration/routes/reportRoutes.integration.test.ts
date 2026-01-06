@@ -48,7 +48,7 @@ const registerUser = async (
 
   const ver = await agent.post("/api/auth/verify").send({
     emailOrUsername: user.email,
-    code: (global as any).__lastSentVerificationCode,
+    code: (globalThis as any).__lastSentVerificationCode,
   });
 };
 const loginAgent = async (
@@ -276,8 +276,8 @@ describe("POST /api/reports (Create Report)", () => {
       .post("/api/reports")
       .field("description", "desc")
       .field("category", "PUBLIC_LIGHTING")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .attach("photos", Buffer.from("fake"), {
         filename: "p.jpg",
         contentType: "image/jpeg",
@@ -295,8 +295,8 @@ describe("POST /api/reports (Create Report)", () => {
       .post("/api/reports")
       .field("title", "t")
       .field("category", "PUBLIC_LIGHTING")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .attach("photos", Buffer.from("fake"), {
         filename: "p.jpg",
         contentType: "image/jpeg",
@@ -314,8 +314,8 @@ describe("POST /api/reports (Create Report)", () => {
       .post("/api/reports")
       .field("title", "t")
       .field("description", "d")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .attach("photos", Buffer.from("fake"), {
         filename: "p.jpg",
         contentType: "image/jpeg",
@@ -334,8 +334,8 @@ describe("POST /api/reports (Create Report)", () => {
       .field("title", "t")
       .field("description", "d")
       .field("category", "NOT_A_VALID_CATEGORY")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .attach("photos", Buffer.from("fake"), {
         filename: "p.jpg",
         contentType: "image/jpeg",
@@ -376,8 +376,8 @@ describe("POST /api/reports (Create Report)", () => {
       .field("title", "t")
       .field("description", "d")
       .field("category", "PUBLIC_LIGHTING")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .expect(400);
 
     expect(res.body).toHaveProperty("error", "At least 1 photo is required");
@@ -392,8 +392,8 @@ describe("POST /api/reports (Create Report)", () => {
       .field("title", "t")
       .field("description", "d")
       .field("category", "PUBLIC_LIGHTING")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0));
+      .field("latitude", String(45))
+      .field("longitude", String(9));
 
     for (let i = 0; i < 4; i++) {
       post.attach("photos", Buffer.from(`fake${i}`), {
@@ -1038,8 +1038,8 @@ describe("GET /api/reports/:id (Get Report by ID)", () => {
       title: "Public report",
       description: "Public desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1117,8 +1117,8 @@ describe("POST /api/reports/:id (Validate Report)", () => {
       title: "Validate me",
       description: "Need validation",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1197,8 +1197,8 @@ describe("POST /api/reports/:id (Validate Report)", () => {
       title: "To validate",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1229,8 +1229,8 @@ describe("POST /api/reports/:id (Validate Report)", () => {
       title: "To validate 2",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1366,8 +1366,8 @@ describe("POST /api/reports/:id (Additional validation tests)", () => {
       title: "Report for db verification",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1494,8 +1494,8 @@ describe("GET /api/reports/:id (Additional validation tests)", () => {
       title: "Public report",
       description: "Public desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1599,8 +1599,8 @@ describe("Integration: Comments endpoints", () => {
       title: "Report for comments e2e",
       description: "Description",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
     // Municipality approves the report first
@@ -1652,8 +1652,8 @@ describe("Integration: Comments endpoints", () => {
       title: "Report missing content",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
     await muniAgent
@@ -1691,8 +1691,8 @@ describe("Integration: Comments endpoints", () => {
       title: "Report citizen comment",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
     await citizenAgent
@@ -1755,8 +1755,8 @@ describe("Integration: Comments endpoints", () => {
       title: "Report for get comments",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
     // Municipality approves the report first
@@ -1816,8 +1816,8 @@ describe("Integration: Comments endpoints", () => {
       title: "Report get forbidden",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
     await citizenAgent
@@ -1882,8 +1882,8 @@ describe("Integration: Comments endpoints", () => {
         title: "Report for EM comments",
         description: "Description",
         category: "WASTE",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // Assign report to external maintainer
@@ -1932,8 +1932,8 @@ describe("Integration: Comments endpoints", () => {
         title: "Report not assigned",
         description: "Description",
         category: "WASTE",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // External maintainer tries to comment on unassigned report
@@ -1978,8 +1978,8 @@ describe("Integration: Comments endpoints", () => {
         title: "Report for get EM comments",
         description: "Description",
         category: "WASTE",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // Assign report to external maintainer
@@ -2056,8 +2056,8 @@ describe("Integration: Comments endpoints", () => {
         title: "Collaboration test",
         description: "Description",
         category: "WASTE",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // Municipality approves the report first
@@ -2160,8 +2160,8 @@ describe("Integration: Comments endpoints", () => {
         title: "Report to resolve",
         description: "Description",
         category: "PUBLIC_LIGHTING",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // Municipality approves the report first

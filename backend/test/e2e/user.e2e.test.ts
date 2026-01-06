@@ -51,7 +51,7 @@ describe("User E2E", () => {
     // Recreate admin user and agent after cleanup
     try {
       await userService.registerUser(adminUser, roleType.ADMIN);
-    } catch (e) {
+    } catch {
       // If user already exists, that's okay
     }
 
@@ -84,7 +84,7 @@ describe("User E2E", () => {
     await agent.post("/api/users").send(normalUser).expect(201);
     await agent.post("/api/auth/verify").send({
       emailOrUsername: normalUser.email,
-      code: (global as any).__lastSentVerificationCode,
+      code: (globalThis as any).__lastSentVerificationCode,
     });
 
     const loginRes = await agent.post("/api/auth/session").send({
@@ -129,7 +129,7 @@ describe("User E2E", () => {
         .expect(201);
       const registerRes = await agent.post("/api/auth/verify").send({
         emailOrUsername: testUser.email,
-        code: (global as any).__lastSentVerificationCode,
+        code: (globalThis as any).__lastSentVerificationCode,
       });
 
       expect(registerRes.headers["set-cookie"]).toBeDefined();
@@ -164,7 +164,7 @@ describe("User E2E", () => {
         .post("/api/auth/verify")
         .send({
           emailOrUsername: "u1@example.com",
-          code: (global as any).__lastSentVerificationCode,
+          code: (globalThis as any).__lastSentVerificationCode,
         });
 
       await request(app)
@@ -181,7 +181,7 @@ describe("User E2E", () => {
         .post("/api/auth/verify")
         .send({
           emailOrUsername: "u2@example.com",
-          code: (global as any).__lastSentVerificationCode,
+          code: (globalThis as any).__lastSentVerificationCode,
         });
 
       // Get all users
@@ -405,7 +405,7 @@ describe("User E2E", () => {
         .post("/api/auth/verify")
         .send({
           emailOrUsername: citizenUser.email,
-          code: (global as any).__lastSentVerificationCode,
+          code: (globalThis as any).__lastSentVerificationCode,
         });
 
       const citizenId = citizenCreateRes.body.user.id;
@@ -465,14 +465,14 @@ describe("User E2E", () => {
       await agent1.post(`${base}`).send(citizen1).expect(201);
       await agent1.post("/api/auth/verify").send({
         emailOrUsername: citizen1.email,
-        code: (global as any).__lastSentVerificationCode,
+        code: (globalThis as any).__lastSentVerificationCode,
       });
 
       const agent2 = request.agent(app);
       await agent2.post(`${base}`).send(citizen2).expect(201);
       await agent2.post("/api/auth/verify").send({
         emailOrUsername: citizen2.email,
-        code: (global as any).__lastSentVerificationCode,
+        code: (globalThis as any).__lastSentVerificationCode,
       });
 
       // Get all users (returns citizens only)

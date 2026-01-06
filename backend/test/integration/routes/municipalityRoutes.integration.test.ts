@@ -1,7 +1,5 @@
 import request from "supertest";
-import { userService } from "@services/userService";
 import app from "@app";
-import { roleType } from "@models/enums";
 import bcrypt from "bcrypt";
 import { getTestPrisma } from "../../setup/test-datasource";
 
@@ -251,8 +249,8 @@ describe("Municipality Integration Tests", () => {
       await citizenAgent.post("/api/users").send(citizenUser).expect(201);
 
       // ensure mock was called and code recorded
-      expect((global as any).__lastSentVerificationCode).toBeDefined();
-      const code = (global as any).__lastSentVerificationCode as string;
+      expect((globalThis as any).__lastSentVerificationCode).toBeDefined();
+      const code = (globalThis as any).__lastSentVerificationCode as string;
 
       await citizenAgent
         .post("/api/auth/verify")

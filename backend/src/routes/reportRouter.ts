@@ -35,6 +35,9 @@ router.post(
 // GET /api/reports - Get all reports (authenticated users, role check in controller based on query params)
 router.get("/", isAuthenticated, getReports);
 
+// GET /api/reports/search - Search reports by bounding box (public)
+router.get("/search", reportSearchHandler);
+
 // GET /api/reports/:id - Get report by ID (public)
 router.get("/:id", getReportById);
 
@@ -77,7 +80,5 @@ router.post(
 router.get("/:report_id/comments", isAuthenticated, isMunicipalityOrExternalMaintainer, getCommentOfAReportById)
 
 router.get("/:report_id/comments/unread", isAuthenticated, isMunicipalityOrExternalMaintainer, getUnreadCommentOfAReportById)
-
-router.get("/search", reportSearchHandler);
 
 export default router;
