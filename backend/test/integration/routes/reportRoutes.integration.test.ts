@@ -43,7 +43,7 @@ const registerUser = async (
   user: any,
   role: roleType = roleType.CITIZEN,
 ) => {
-  const res = await agent.post("/api/users").send({ ...user, role });
+  const res = await agent.post("/api/users").send({ ...user });
   expect(res.status).toBe(201);
 
   await agent.post("/api/auth/verify").send({
@@ -2192,5 +2192,138 @@ describe("Integration: Comments endpoints", () => {
         .send({ content: "Should not be able to comment" })
         .expect(403);
     });
+  });
+});
+
+describe("GET /api/reports/search (Geospatial Search)", () => {
+  const fakeUser = {
+    username: "geo_citizen",
+    email: "geo@example.com",
+    firstName: "Geo",
+    lastName: "Citizen",
+    password: "GeoPassword1!",
+  };
+
+  beforeAll(async () => {
+    prisma = await getTestPrisma();
+  });
+
+  beforeEach(async () => {
+    await prisma.comment.deleteMany();
+    await prisma.report.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+  });
+
+  it("200 returns reports strictly within the bounding box", async () => {
+    const agent = await createAndLogin(fakeUser);
+
+    // Define a Bounding Box: [10, 40] to [12, 42] (minLng, minLat, maxLng, maxLat)
+    const bbox = "5,40,9,50";
+
+    // 1. Report INSIDE the box
+    const insideReport = await createReportAs(agent, {
+      title: "Inside Box",
+      description: "Should be found",
+      category: "WASTE",
+      latitude: 45,
+      longitude: 7,
+      photos: [{ buffer: Buffer.from("f"), name: "p.jpg", contentType: "image/jpeg" }]
+    });
+
+    // 2. Report OUTSIDE (Longitude too low)
+    await createReportAs(agent, {
+      title: "Outside Left",
+      description: "Should NOT be found",
+      category: "WASTE",
+      latitude: 41,
+      longitude: 3, 
+      photos: [{ buffer: Buffer.from("f"), name: "p.jpg", contentType: "image/jpeg" }]
+    });
+
+    // 3. Report OUTSIDE (Latitude too high)
+    await createReportAs(agent, {
+      title: "Outside Top",
+      description: "Should NOT be found",
+      category: "WASTE",
+      latitude: 60,
+      longitude: 11,
+      photos: [{ buffer: Buffer.from("f"), name: "p.jpg", contentType: "image/jpeg" }]
+    });
+
+    // We need to ensure the report status allows it to be seen. 
+    // Depending on service logic, usually 'ASSIGNED' or 'IN_PROGRESS' are visible on public maps. 
+    // Let's manually approve the inside report to be sure, assuming PENDING might be hidden.
+    await prisma.report.update({
+      where: { id: insideReport.id },
+      data: { status: "ASSIGNED" } // Simulate approval
+    });
+
+    const response = await request(app)
+      .get(`/api/reports/search?bbox=${bbox}`)
+      .expect(200);
+
+    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body.length).toBe(1);
+    expect(response.body[0].id).toBe(insideReport.id);
+    expect(response.body[0].title).toBe("Inside Box");
+  });
+
+  it("400 if bbox parameter is missing", async () => {
+    const res = await request(app).get("/api/reports/search").expect(400);
+    expect(res.body).toHaveProperty("message", "Missing bbox parameter");
+  });
+
+  it("400 if bbox has incorrect format (not 4 parts)", async () => {
+    const res = await request(app).get("/api/reports/search?bbox=10,20,30").expect(400);
+    expect(res.body.message).toMatch(/Invalid bbox parameter format/);
+  });
+
+  it("400 if bbox contains non-numeric values", async () => {
+    const res = await request(app).get("/api/reports/search?bbox=10,20,max,40").expect(400);
+    expect(res.body.message).toMatch(/Coordinates must be valid numbers/);
+  });
+
+  it("400 if coordinates are out of range", async () => {
+    // Lat > 90
+    const res = await request(app).get("/api/reports/search?bbox=10,20,12,95").expect(400);
+    expect(res.body.message).toMatch(/Coordinates out of range/);
+  });
+
+  it("400 if min values are greater than max values", async () => {
+    // minLng (12) > maxLng (10)
+    const res = await request(app).get("/api/reports/search?bbox=12,40,10,42").expect(400);
+    expect(res.body.message).toMatch(/Expected minLng < maxLng/);
+  });
+
+  it("200 includes reports exactly on the boundary", async () => {
+    const agent = await createAndLogin(fakeUser);
+    
+    // Box: 10,40 to 12,42
+    const bbox = "10,40,12,42";
+
+    const boundaryReport = await createReportAs(agent, {
+      title: "Boundary Report",
+      description: "Exactly on minLng edge",
+      category: "WASTE",
+      latitude: 41,
+      longitude: 10, // Matches minLng
+      photos: [{ buffer: Buffer.from("f"), name: "p.jpg", contentType: "image/jpeg" }]
+    });
+
+    // Set visible status
+    await prisma.report.update({
+      where: { id: boundaryReport.id },
+      data: { status: "ASSIGNED" } 
+    });
+
+    const response = await request(app)
+      .get(`/api/reports/search?bbox=${bbox}`)
+      .expect(200);
+
+    expect(response.body.length).toBe(1);
+    expect(response.body[0].id).toBe(boundaryReport.id);
   });
 });
