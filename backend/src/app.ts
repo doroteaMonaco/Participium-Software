@@ -16,6 +16,8 @@ import emailRouter from "@routes/emailRouter";
 
 const app = express();
 
+app.disable("x-powered-by");
+
 const swaggerDocument = YAML.load(CONFIG.SWAGGER_PATH);
 
 // Configure CORS to allow credentials and frontend origin
