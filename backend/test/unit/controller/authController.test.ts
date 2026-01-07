@@ -112,7 +112,7 @@ describe("authController", () => {
       );
       expect(res.setHeader).toHaveBeenCalledWith("Location", "/reports");
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith(user);
+      expect(res.json).toHaveBeenCalledWith({ ...user, token: "jwt-abc" });
     });
 
     it("returns 401 on authentication errors", async () => {
@@ -197,7 +197,7 @@ describe("authController", () => {
 
       expect(authService.verifyAuth).toHaveBeenCalledWith("ok");
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith(fullUser);
+      expect(res.json).toHaveBeenCalledWith({ ...fullUser, token: "ok" });
     });
 
     it("returns 401 when user is not found", async () => {

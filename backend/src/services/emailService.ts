@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import { CONFIG } from "@config/config";
 import logger from "@config/logger";
 
-const resend = new Resend(CONFIG.RESEND_API_KEY);
+const resend = CONFIG.RESEND_API_KEY && CONFIG.RESEND_API_KEY.length > 0 ? new Resend(CONFIG.RESEND_API_KEY) : null;
 
 export interface SendVerificationEmailParams {
   email: string;
@@ -15,6 +15,12 @@ export const sendVerificationEmail = async (
   params: SendVerificationEmailParams,
 ) => {
   const { email, firstName, code, resendUrl } = params;
+
+  // Skip sending in test environment or when API key is not configured
+  if (!resend) {
+    logger.warn(`Email service not configured. Skipping verification email to ${email}`);
+    return { id: "test-mock-id" };
+  }
 
   try {
     const result = await resend.emails.send({
