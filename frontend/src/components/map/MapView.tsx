@@ -60,6 +60,7 @@ type Props = {
   showLegend?: boolean;
   showSearch?: boolean;
   showMarker?: boolean;
+  selectedReportId?: number | null;
 };
 
 const MapView: React.FC<React.PropsWithChildren<Props>> = ({
@@ -70,6 +71,7 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
   showLegend = true,
   showSearch = true,
   showMarker = true,
+  selectedReportId = null,
 }) => {
   const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJsonObject | null>(
     null,
@@ -78,6 +80,20 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
   const [showOutOfBoundsAlert, setShowOutOfBoundsAlert] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const mapInstanceRef = useRef<any>(null);
+
+  // Center map on selected report
+  useEffect(() => {
+    if (selectedReportId && mapInstanceRef.current) {
+      const selectedReport = reports.find((r) => r.id === selectedReportId);
+      if (selectedReport) {
+        mapInstanceRef.current.flyTo(
+          [selectedReport.lat, selectedReport.lng],
+          16,
+          { duration: 1.5 }
+        );
+      }
+    }
+  }, [selectedReportId, reports]);
 
   const handleRecenter = () => {
     if (mapInstanceRef.current) {

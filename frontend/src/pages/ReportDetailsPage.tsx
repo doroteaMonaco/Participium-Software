@@ -7,9 +7,6 @@ import {
   MapPin, 
   User, 
   Tag, 
-  AlertCircle,
-  CheckCircle2,
-  Clock,
   XCircle,
   Loader2
 } from "lucide-react";
@@ -37,14 +34,6 @@ const getStatusBadgeClass = (status: string): string => {
   if (status === "RESOLVED") return "bg-green-100 text-green-700 border-green-200";
   if (status === "SUSPENDED") return "bg-gray-100 text-gray-700 border-gray-200";
   return "bg-slate-100 text-slate-700 border-slate-200";
-};
-
-const getStatusIcon = (status: string) => {
-  if (status === "REJECTED") return <XCircle className="h-4 w-4" />;
-  if (status === "PENDING" || status === "PENDING_APPROVAL") return <Clock className="h-4 w-4" />;
-  if (status === "ASSIGNED" || status === "IN_PROGRESS") return <Loader2 className="h-4 w-4 animate-spin" />;
-  if (status === "RESOLVED") return <CheckCircle2 className="h-4 w-4" />;
-  return <AlertCircle className="h-4 w-4" />;
 };
 
 const getStatusDisplayText = (status: string): string => {
@@ -99,6 +88,7 @@ const ReportDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [address, setAddress] = useState<string>("");
 
   useEffect(() => {
     if (!id) return;
@@ -106,6 +96,29 @@ const ReportDetailsPage: React.FC = () => {
       try {
         const data = await getReportById(id);
         setReport(data);
+        
+        // Fetch address if coordinates are available
+        if (data.latitude && data.longitude) {
+          try {
+            const response = await window.fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${data.latitude}&lon=${data.longitude}&zoom=18&addressdetails=1`,
+              {
+                headers: {
+                  "User-Agent": "Participium (participatory budgeting app)",
+                },
+              },
+            );
+            const addressData = await response.json();
+            if (addressData.display_name) {
+              setAddress(addressData.display_name);
+            } else {
+              setAddress(`${data.latitude.toFixed(4)}°, ${data.longitude.toFixed(4)}°`);
+            }
+          } catch (addrErr) {
+            console.error("Error fetching address:", addrErr);
+            setAddress(`${data.latitude.toFixed(4)}°, ${data.longitude.toFixed(4)}°`);
+          }
+        }
       } catch (err) {
         console.error(err);
         setError("Could not load report details");
@@ -145,7 +158,6 @@ const ReportDetailsPage: React.FC = () => {
               <span
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border flex-shrink-0 ${getStatusBadgeClass(report.status!)}`}
               >
-                {getStatusIcon(report.status!)}
                 {getStatusDisplayText(report.status!)}
               </span>
             </div>
@@ -237,16 +249,8 @@ const ReportDetailsPage: React.FC = () => {
                       <div className="text-left">
                         <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Location</p>
                         <p className="text-slate-900 font-semibold text-sm">
-                          Lat: {report.latitude.toFixed(4)}°, Lon: {report.longitude.toFixed(4)}°
+                          {address || "Loading address..."}
                         </p>
-                        <a
-                          href={`https://www.google.com/maps?q=${report.latitude},${report.longitude}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-indigo-600 hover:text-indigo-700 font-medium hover:underline inline-flex items-center gap-1 mt-1"
-                        >
-                          View on Google Maps →
-                        </a>
                       </div>
                     </div>
                   )}

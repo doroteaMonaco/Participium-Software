@@ -6,7 +6,7 @@ import { getReportsForMapView } from "src/services/api";
 import { ReportModel } from "src/services/models";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Tag, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { MapPin, Tag, FileText, AlignLeft } from "lucide-react";
 
 // Category labels mapping
 const ENUM_TO_LABEL: Record<string, string> = {
@@ -30,14 +30,6 @@ const getStatusBadgeClass = (status: string): string => {
   if (status === "RESOLVED") return "bg-green-100 text-green-700 border-green-200";
   if (status === "SUSPENDED") return "bg-gray-100 text-gray-700 border-gray-200";
   return "bg-slate-100 text-slate-700 border-slate-200";
-};
-
-const getStatusIcon = (status: string) => {
-  if (status === "REJECTED") return <XCircle className="h-3.5 w-3.5" />;
-  if (status === "PENDING" || status === "PENDING_APPROVAL") return <Clock className="h-3.5 w-3.5" />;
-  if (status === "ASSIGNED" || status === "IN_PROGRESS") return <Loader2 className="h-3.5 w-3.5 animate-spin" />;
-  if (status === "RESOLVED") return <CheckCircle2 className="h-3.5 w-3.5" />;
-  return <Clock className="h-3.5 w-3.5" />;
 };
 
 const getStatusDisplayText = (status: string): string => {
@@ -147,6 +139,7 @@ const MapPage: React.FC = () => {
               markerLocation={false}
               showLegend={false}
               showMarker={false}
+              selectedReportId={selectedReportId}
             />
           </div>
 
@@ -172,20 +165,15 @@ const MapPage: React.FC = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     whileHover={{ backgroundColor: "#f8fafc" }}
-                    className={`px-4 py-3 cursor-pointer transition-colors ${
+                    className={`px-4 py-3 transition-colors ${
                       selectedReportId === report.id ? "bg-indigo-50" : ""
                     }`}
-                    onClick={() => {
-                      setSelectedReportId(report.id);
-                      navigate(`/report/${report.id}`);
-                    }}
                   >
                     {/* Status Badge */}
                     <div className="flex items-center justify-between mb-2">
                       <span
                         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadgeClass(report.status)}`}
                       >
-                        {getStatusIcon(report.status)}
                         {getStatusDisplayText(report.status)}
                       </span>
                       <span className="text-xs text-slate-400">
@@ -197,34 +185,49 @@ const MapPage: React.FC = () => {
                     </div>
 
                     {/* Title */}
-                    <h4 className="font-semibold text-slate-900 text-sm mb-1.5 line-clamp-2">
-                      {report.title}
-                    </h4>
+                    <div className="flex items-start gap-1.5 mb-1.5">
+                      <FileText className="h-3.5 w-3.5 text-slate-700 flex-shrink-0 mt-0.5" />
+                      <h4 className="font-semibold text-slate-900 text-sm line-clamp-2 text-left">
+                        {report.title}
+                      </h4>
+                    </div>
+
+                    {/* Description */}
+                    <div className="flex items-start gap-1.5 mb-2">
+                      <AlignLeft className="h-3.5 w-3.5 text-slate-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-slate-600 line-clamp-2 text-left">
+                        {report.description}
+                      </p>
+                    </div>
 
                     {/* Category */}
-                    <div className="flex items-center gap-1.5 text-xs text-slate-600 mb-1">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-600 mb-2">
                       <Tag className="h-3 w-3" />
                       <span>{ENUM_TO_LABEL[report.category] ?? report.category}</span>
                     </div>
 
-                    {/* Location */}
-                    {report.lat && report.lng && (
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedReportId(report.id);
+                        }}
+                        className="flex-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1"
+                      >
                         <MapPin className="h-3 w-3" />
-                        <span>
-                          {report.lat.toFixed(4)}°, {report.lng.toFixed(4)}°
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Photo Thumbnail */}
-                    {report.photos && report.photos.length > 0 && (
-                      <div className="mt-2">
-                        <div className="w-full h-24 bg-gradient-to-br from-slate-200 to-slate-300 rounded-lg flex items-center justify-center">
-                          <MapPin className="h-8 w-8 text-slate-400" />
-                        </div>
-                      </div>
-                    )}
+                        Show on Map
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/report/${report.id}`);
+                        }}
+                        className="flex-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                      >
+                        View Details
+                      </button>
+                    </div>
                   </motion.div>
                 ))
               )}
