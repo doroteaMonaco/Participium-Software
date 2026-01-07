@@ -1,6 +1,7 @@
 jest.mock("@repositories/reportRepository", () => {
   const mRepo = {
     findAll: jest.fn(),
+    findAllForMapView: jest.fn(),
     findById: jest.fn(),
     findByStatus: jest.fn(),
     findAssignedReportsForOfficer: jest.fn(),
@@ -35,6 +36,7 @@ import { ReportStatus } from "@models/enums";
 
 type RepoMock = {
   findAll: jest.Mock;
+  findAllForMapView: jest.Mock;
   findById: jest.Mock;
   findByStatus: jest.Mock;
   findAssignedReportsForOfficer: jest.Mock;
@@ -1247,4 +1249,62 @@ describe("reportService", () => {
       ).rejects.toThrow("You can only comment on reports assigned to yourself");
     });
   });
+
+  // -------- Story 28: findAllForMapView --------
+  describe("findAllForMapView", () => {
+    it("calls repository.findAllForMapView and returns sanitized reports", async () => {
+      const rows = [
+        makeReport({
+          id: 1,
+          anonymous: true,
+          user_id: 10,
+          user: { id: 10, username: "anonUser" }, // shape minimale coerente con i tuoi test
+        }),
+        makeReport({
+          id: 2,
+          anonymous: false,
+          user_id: 20,
+          user: { id: 20, username: "visibleUser" },
+          photos: undefined, // per verificare normalizzazione
+        }),
+      ];
+
+      repo.findAllForMapView.mockResolvedValue(rows);
+
+      const res = await reportService.findAllForMapView();
+
+      expect(repo.findAllForMapView).toHaveBeenCalledTimes(1);
+      expect(repo.findAllForMapView).toHaveBeenCalledWith();
+
+      // sanitizzazione: se anonymous => user null
+      expect(res[0].id).toBe(1);
+      expect(res[0].user).toBeNull();
+      expect(res[0].user_id).toBe(10); // user_id resta utile per logiche interne
+
+      // non-anonymous => user presente
+      expect(res[1].id).toBe(2);
+      expect(res[1].user).toEqual({ id: 20, username: "visibleUser" });
+
+      // normalizzazione photos (se sanitizeReport la fa): undefined => []
+      expect(res[1].photos).toEqual([]);
+    });
+
+    it("returns empty array when repository returns empty array", async () => {
+      repo.findAllForMapView.mockResolvedValue([]);
+
+      const res = await reportService.findAllForMapView();
+
+      expect(repo.findAllForMapView).toHaveBeenCalledTimes(1);
+      expect(res).toEqual([]);
+    });
+
+    it("propagates repository errors", async () => {
+      const err = new Error("db fail");
+      repo.findAllForMapView.mockRejectedValue(err);
+
+      await expect(reportService.findAllForMapView()).rejects.toThrow("db fail");
+      expect(repo.findAllForMapView).toHaveBeenCalledTimes(1);
+    });
+  });
+
 });

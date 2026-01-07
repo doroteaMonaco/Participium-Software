@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 jest.mock("@services/reportService", () => {
   const m = {
     findAll: jest.fn(),
+    findAllForMapView: jest.fn(),
     findById: jest.fn(),
     findByStatus: jest.fn(),
     submitReport: jest.fn(),
@@ -29,6 +30,7 @@ import reportService from "@services/reportService";
 import imageService from "@services/imageService";
 import {
   getReports,
+  getReportsMap,
   getReportById,
   getReportByStatus,
   submitReport,
@@ -46,6 +48,7 @@ import { roleType } from "@models/enums";
 
 type ServiceMock = {
   findAll: jest.Mock;
+  findAllForMapView: jest.Mock;
   findById: jest.Mock;
   findByStatus: jest.Mock;
   submitReport: jest.Mock;
@@ -1681,6 +1684,41 @@ describe("reportController", () => {
       expect(res.json).toHaveBeenCalledWith({
         error: "Database error",
       });
+    });
+  });
+
+  // -------- getReportsMap (Story 28) --------
+  describe("getReportsMap", () => {
+    it("returns reports via res.json", async () => {
+      const reports = [makeReport({ id: 1 }), makeReport({ id: 2 })];
+      svc.findAllForMapView.mockResolvedValue(reports);
+
+      const req = {} as unknown as Request;
+      const res = makeRes();
+
+      await getReportsMap(req, res as unknown as Response);
+
+      expect(svc.findAllForMapView).toHaveBeenCalledTimes(1);
+      expect(res.json).toHaveBeenCalledWith(reports);
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it("returns 500 when service throws", async () => {
+      svc.findAllForMapView.mockRejectedValue(new Error("boom"));
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+      const req = {} as unknown as Request;
+      const res = makeRes();
+
+      await getReportsMap(req, res as unknown as Response);
+
+      expect(svc.findAllForMapView).toHaveBeenCalledTimes(1);
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Failed to fetch reports for map view",
+      });
+
+      consoleSpy.mockRestore();
     });
   });
 });
