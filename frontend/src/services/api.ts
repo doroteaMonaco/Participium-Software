@@ -559,6 +559,32 @@ export const getUnreadComments = async (
   return response.data;
 };
 
+/**
+ * Search reports in a specific area around center coordinates
+ * @param latitude Center latitude
+ * @param longitude Center longitude
+ * @returns List of reports
+ * @throws ApiError on failure
+ */
+export const searchReports = async (
+  latitude: number,
+  longitude: number,
+): Promise<Report[]> => {
+  // Approximate 1 degree of latitude/longitude as 111km
+  // radius [km] / 111 [km/degree] = delta [degrees]
+  const delta = 0.05;
+  const minLon = longitude - delta;
+  const minLat = latitude - delta;
+  const maxLon = longitude + delta;
+  const maxLat = latitude + delta;
+  const bbox = `${minLon},${minLat},${maxLon},${maxLat}`;
+
+  const response = await api.get("/reports/search", {
+    params: { bbox },
+  });
+  return response.data;
+};
+
 // ==================== WebSocket API ====================
 
 export class WebSocketService {
