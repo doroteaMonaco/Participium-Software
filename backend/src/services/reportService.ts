@@ -8,6 +8,23 @@ import { instanceOfExternalMaintainerUserDto } from "@models/dto/userDto";
 
 import { sendMessageToUser } from "@services/websocketService";
 
+/**
+ * Defines a bounding box with minimum and maximum longitude and latitude for the report search.
+ */
+type BoundingBox = {
+  minLng: number;
+  minLat: number;
+  maxLng: number;
+  maxLat: number;
+};
+
+const DEFAULT_MAP_STATUSES: ReportStatus[] = [
+  ReportStatus.IN_PROGRESS,
+  ReportStatus.ASSIGNED,
+  ReportStatus.SUSPENDED,
+  ReportStatus.RESOLVED,
+]
+
 // Helper function to hide user info for anonymous reports
 const sanitizeReport = (report: any): ReportDto => {
   const sanitized = {
@@ -580,6 +597,15 @@ const updateReportStatusByExternalMaintainer = async (
   return sanitizeReport(updatedReport);
 };
 
+const searchReportsByBoundingBox = async (
+  bbox: BoundingBox
+): Promise<ReportDto[]> => {
+  const reports = await reportRepository.findByBoundingBox(bbox, {
+    statuses: DEFAULT_MAP_STATUSES
+  });
+  return reports.map(sanitizeReport);
+}
+
 export default {
   findAll,
   findAllForMapView,
@@ -596,4 +622,5 @@ export default {
   getCommentsOfAReportById,
   updateReportStatusByExternalMaintainer,
   getUnreadCommentsOfAReportById,
+  searchReportsByBoundingBox,
 };

@@ -1,6 +1,13 @@
 import { prisma } from "@database";
 import { Report } from "@models/entities/report";
-import { ReportStatus, roleType } from "@models/enums";
+import { ReportStatus} from "@models/enums";
+
+type BoundingBox = {
+  minLng: number;
+  minLat: number;
+  maxLng: number;
+  maxLat: number;
+};
 
 type ReportStatusFilter = "ASSIGNED";
 
@@ -323,6 +330,25 @@ const markMunicipalityCommentsAsRead = async (reportId: number) => {
   });
 };
 
+const findByBoundingBox = async (bbox: BoundingBox, options: { statuses: ReportStatus[]}) => {
+  return prisma.report.findMany({
+    where: {
+      longitude: {
+        gte: bbox.minLng,
+        lte: bbox.maxLng,
+      }, 
+      latitude: {
+        gte: bbox.minLat,
+        lte: bbox.maxLat,
+      },
+      status: {
+        in: options.statuses as any,
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  })
+}
+
 export default {
   findAll,
   findAllForMapView,
@@ -340,4 +366,5 @@ export default {
   getExternalMaintainerUnreadCommentsByReportId,
   markExternalMaintainerCommentsAsRead,
   markMunicipalityCommentsAsRead,
+  findByBoundingBox,
 };

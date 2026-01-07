@@ -701,6 +701,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /reports/search:
+    get: 
+      tags: [Reports]
+      summary: Search reports in a specific area
+      description: >
+        Return reports inside a geographica area
+      parameters:
+        - name: bbox
+          in: query
+          required: true
+          description: >
+            Bounding box in the format `minLng,minLat,maxLng,maxLat` (W,S,E,N)
+          schema: 
+            type: string
+            pattern: '^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$'
+          example: "7.6600,45.0600,7.6750,45.0700"
+      responses: 
+        '200': 
+          description: OK - Reports successfully retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Report'
+        '400': 
+          description: Bad Request - Invalid bounding box format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Bad Request"
+                message: "Invalid bounding box format"
+        '500': 
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /users:
     # registration endpoint

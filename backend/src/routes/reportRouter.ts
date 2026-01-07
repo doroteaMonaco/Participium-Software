@@ -11,6 +11,7 @@ import {
   addCommentToReport,
   getCommentOfAReportById,
   getUnreadCommentOfAReportById,
+  reportSearchHandler
 } from "@controllers/reportController";
 import { isAuthenticated } from "@middlewares/authMiddleware";
 import {
@@ -34,6 +35,9 @@ router.post(
 
 // GET /api/reports - Get all reports (authenticated users, role check in controller based on query params)
 router.get("/", isAuthenticated, getReports);
+
+// GET /api/reports/search - Search reports by bounding box (public)
+router.get("/search", reportSearchHandler);
 
 // GET /api/reports/reports-map - Get reports for map view (public)
 router.get("/reports-map", getReportsMap);

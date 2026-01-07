@@ -63,3 +63,13 @@
   scrollbar-width: thin;
   scrollbar-color: #6366f1 #f1f5f9;
 }
+
+/* Hide scrollbar but keep functionality (like Google Maps) */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

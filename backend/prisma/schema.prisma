@@ -97,6 +97,10 @@ model report {
   comments   comment[]
 
   @@index([assignedOfficerId])
+
+  @@index([latitude, longitude])
+  @@index([status])
+  @@index([category])
 }
 
 model message {

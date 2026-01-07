@@ -43,12 +43,12 @@ const registerUser = async (
   user: any,
   role: roleType = roleType.CITIZEN,
 ) => {
-  const res = await agent.post("/api/users").send({ ...user, role });
+  const res = await agent.post("/api/users").send({ ...user });
   expect(res.status).toBe(201);
 
-  const ver = await agent.post("/api/auth/verify").send({
+  await agent.post("/api/auth/verify").send({
     emailOrUsername: user.email,
-    code: (global as any).__lastSentVerificationCode,
+    code: (globalThis as any).__lastSentVerificationCode,
   });
 };
 const loginAgent = async (
@@ -276,8 +276,8 @@ describe("POST /api/reports (Create Report)", () => {
       .post("/api/reports")
       .field("description", "desc")
       .field("category", "PUBLIC_LIGHTING")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .attach("photos", Buffer.from("fake"), {
         filename: "p.jpg",
         contentType: "image/jpeg",
@@ -295,8 +295,8 @@ describe("POST /api/reports (Create Report)", () => {
       .post("/api/reports")
       .field("title", "t")
       .field("category", "PUBLIC_LIGHTING")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .attach("photos", Buffer.from("fake"), {
         filename: "p.jpg",
         contentType: "image/jpeg",
@@ -314,8 +314,8 @@ describe("POST /api/reports (Create Report)", () => {
       .post("/api/reports")
       .field("title", "t")
       .field("description", "d")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .attach("photos", Buffer.from("fake"), {
         filename: "p.jpg",
         contentType: "image/jpeg",
@@ -334,8 +334,8 @@ describe("POST /api/reports (Create Report)", () => {
       .field("title", "t")
       .field("description", "d")
       .field("category", "NOT_A_VALID_CATEGORY")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .attach("photos", Buffer.from("fake"), {
         filename: "p.jpg",
         contentType: "image/jpeg",
@@ -376,8 +376,8 @@ describe("POST /api/reports (Create Report)", () => {
       .field("title", "t")
       .field("description", "d")
       .field("category", "PUBLIC_LIGHTING")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .expect(400);
 
     expect(res.body).toHaveProperty("error", "At least 1 photo is required");
@@ -392,8 +392,8 @@ describe("POST /api/reports (Create Report)", () => {
       .field("title", "t")
       .field("description", "d")
       .field("category", "PUBLIC_LIGHTING")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0));
+      .field("latitude", String(45))
+      .field("longitude", String(9));
 
     for (let i = 0; i < 4; i++) {
       post.attach("photos", Buffer.from(`fake${i}`), {
@@ -508,7 +508,7 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   });
 
   it("200 approves a report with valid municipality authentication", async () => {
-    const response = await municipalityAgent
+    await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "ASSIGNED" })
       .expect(204);
@@ -524,7 +524,7 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   it("200 rejects a report with reason", async () => {
     const rejectionReason = "Report does not meet requirements";
 
-    const response = await municipalityAgent
+    await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "REJECTED", rejectionReason })
       .expect(204);
@@ -539,15 +539,16 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   });
 
   it("400 rejects a report without reason", async () => {
-    const response = await municipalityAgent
+    await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "REJECTED" })
-      .expect(400);
-
-    expect(response.body).toHaveProperty(
-      "error",
-      "Rejection reason is required when rejecting a report.",
-    );
+      .expect(400)
+      .then((response: request.Response) => {
+        expect(response.body).toHaveProperty(
+          "error",
+          "Rejection reason is required when rejecting a report.",
+        );
+      });
   });
 
   it("400 invalid status", async () => {
@@ -664,7 +665,7 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       .expect(201);
 
     // Get reports with authentication
-    const response = await agent.get("/api/reports").expect(200);
+    await agent.get("/api/reports").expect(200);
   });
 
   it("403 citizen role required for status filter", async () => {
@@ -1038,8 +1039,8 @@ describe("GET /api/reports/:id (Get Report by ID)", () => {
       title: "Public report",
       description: "Public desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1117,8 +1118,8 @@ describe("POST /api/reports/:id (Validate Report)", () => {
       title: "Validate me",
       description: "Need validation",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1179,7 +1180,7 @@ describe("POST /api/reports/:id (Validate Report)", () => {
 
     const adminAgent = await createAdmin(admin);
     const { muniAgent } = await createMunicipality(adminAgent, muniPayload);
-    const res = await muniAgent
+    await muniAgent
       .post(`/api/reports/1`)
       .send({ status: "NOT_A_VALID_STATUS" })
       .expect(400);
@@ -1197,8 +1198,8 @@ describe("POST /api/reports/:id (Validate Report)", () => {
       title: "To validate",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1229,8 +1230,8 @@ describe("POST /api/reports/:id (Validate Report)", () => {
       title: "To validate 2",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1269,7 +1270,7 @@ describe("POST /api/reports/:id (Validate Report)", () => {
     const adminAgent = await createAdmin(admin);
     const { muniAgent } = await createMunicipality(adminAgent, muniPayload);
 
-    const res = await muniAgent
+    await muniAgent
       .post("/api/reports/999999")
       .send({ status: "ASSIGNED" })
       .expect(404);
@@ -1366,8 +1367,8 @@ describe("POST /api/reports/:id (Additional validation tests)", () => {
       title: "Report for db verification",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1494,8 +1495,8 @@ describe("GET /api/reports/:id (Additional validation tests)", () => {
       title: "Public report",
       description: "Public desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1599,12 +1600,12 @@ describe("Integration: Comments endpoints", () => {
       title: "Report for comments e2e",
       description: "Description",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
     // Municipality approves the report first
-    const response = await muniAgent
+    await muniAgent
       .post(`/api/reports/${createdReport.id}`)
       .send({ status: "ASSIGNED" })
       .expect(204);
@@ -1652,8 +1653,8 @@ describe("Integration: Comments endpoints", () => {
       title: "Report missing content",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
     await muniAgent
@@ -1663,15 +1664,8 @@ describe("Integration: Comments endpoints", () => {
   });
 
   it("POST 401 when not authenticated", async () => {
-    const resident = {
-      username: "random_guest",
-      email: "random_guest@example.com",
-      firstName: "Guest",
-      lastName: "User",
-      password: "guest123",
-    };
     // don't log in - unauthenticated
-    const res = await request(app)
+    await request(app)
       .post(`/api/reports/1/comments`)
       .send({ content: "x" })
       .expect(401);
@@ -1691,8 +1685,8 @@ describe("Integration: Comments endpoints", () => {
       title: "Report citizen comment",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
     await citizenAgent
@@ -1755,12 +1749,12 @@ describe("Integration: Comments endpoints", () => {
       title: "Report for get comments",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
     // Municipality approves the report first
-    const response = await muniAgent
+    await muniAgent
       .post(`/api/reports/${createdReport.id}`)
       .send({ status: "ASSIGNED" })
       .expect(204);
@@ -1816,8 +1810,8 @@ describe("Integration: Comments endpoints", () => {
       title: "Report get forbidden",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
     await citizenAgent
@@ -1882,8 +1876,8 @@ describe("Integration: Comments endpoints", () => {
         title: "Report for EM comments",
         description: "Description",
         category: "WASTE",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // Assign report to external maintainer
@@ -1932,8 +1926,8 @@ describe("Integration: Comments endpoints", () => {
         title: "Report not assigned",
         description: "Description",
         category: "WASTE",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // External maintainer tries to comment on unassigned report
@@ -1978,8 +1972,8 @@ describe("Integration: Comments endpoints", () => {
         title: "Report for get EM comments",
         description: "Description",
         category: "WASTE",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // Assign report to external maintainer
@@ -2056,12 +2050,12 @@ describe("Integration: Comments endpoints", () => {
         title: "Collaboration test",
         description: "Description",
         category: "WASTE",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // Municipality approves the report first
-      const response = await muniAgent
+      await muniAgent
         .post(`/api/reports/${createdReport.id}`)
         .send({ status: "ASSIGNED" })
         .expect(204);
@@ -2160,8 +2154,8 @@ describe("Integration: Comments endpoints", () => {
         title: "Report to resolve",
         description: "Description",
         category: "PUBLIC_LIGHTING",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // Municipality approves the report first
@@ -2198,5 +2192,138 @@ describe("Integration: Comments endpoints", () => {
         .send({ content: "Should not be able to comment" })
         .expect(403);
     });
+  });
+});
+
+describe("GET /api/reports/search (Geospatial Search)", () => {
+  const fakeUser = {
+    username: "geo_citizen",
+    email: "geo@example.com",
+    firstName: "Geo",
+    lastName: "Citizen",
+    password: "GeoPassword1!",
+  };
+
+  beforeAll(async () => {
+    prisma = await getTestPrisma();
+  });
+
+  beforeEach(async () => {
+    await prisma.comment.deleteMany();
+    await prisma.report.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+  });
+
+  it("200 returns reports strictly within the bounding box", async () => {
+    const agent = await createAndLogin(fakeUser);
+
+    // Define a Bounding Box: [10, 40] to [12, 42] (minLng, minLat, maxLng, maxLat)
+    const bbox = "5,40,9,50";
+
+    // 1. Report INSIDE the box
+    const insideReport = await createReportAs(agent, {
+      title: "Inside Box",
+      description: "Should be found",
+      category: "WASTE",
+      latitude: 45,
+      longitude: 7,
+      photos: [{ buffer: Buffer.from("f"), name: "p.jpg", contentType: "image/jpeg" }]
+    });
+
+    // 2. Report OUTSIDE (Longitude too low)
+    await createReportAs(agent, {
+      title: "Outside Left",
+      description: "Should NOT be found",
+      category: "WASTE",
+      latitude: 41,
+      longitude: 3, 
+      photos: [{ buffer: Buffer.from("f"), name: "p.jpg", contentType: "image/jpeg" }]
+    });
+
+    // 3. Report OUTSIDE (Latitude too high)
+    await createReportAs(agent, {
+      title: "Outside Top",
+      description: "Should NOT be found",
+      category: "WASTE",
+      latitude: 60,
+      longitude: 11,
+      photos: [{ buffer: Buffer.from("f"), name: "p.jpg", contentType: "image/jpeg" }]
+    });
+
+    // We need to ensure the report status allows it to be seen. 
+    // Depending on service logic, usually 'ASSIGNED' or 'IN_PROGRESS' are visible on public maps. 
+    // Let's manually approve the inside report to be sure, assuming PENDING might be hidden.
+    await prisma.report.update({
+      where: { id: insideReport.id },
+      data: { status: "ASSIGNED" } // Simulate approval
+    });
+
+    const response = await request(app)
+      .get(`/api/reports/search?bbox=${bbox}`)
+      .expect(200);
+
+    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body.length).toBe(1);
+    expect(response.body[0].id).toBe(insideReport.id);
+    expect(response.body[0].title).toBe("Inside Box");
+  });
+
+  it("400 if bbox parameter is missing", async () => {
+    const res = await request(app).get("/api/reports/search").expect(400);
+    expect(res.body).toHaveProperty("message", "Missing bbox parameter");
+  });
+
+  it("400 if bbox has incorrect format (not 4 parts)", async () => {
+    const res = await request(app).get("/api/reports/search?bbox=10,20,30").expect(400);
+    expect(res.body.message).toMatch(/Invalid bbox parameter format/);
+  });
+
+  it("400 if bbox contains non-numeric values", async () => {
+    const res = await request(app).get("/api/reports/search?bbox=10,20,max,40").expect(400);
+    expect(res.body.message).toMatch(/Coordinates must be valid numbers/);
+  });
+
+  it("400 if coordinates are out of range", async () => {
+    // Lat > 90
+    const res = await request(app).get("/api/reports/search?bbox=10,20,12,95").expect(400);
+    expect(res.body.message).toMatch(/Coordinates out of range/);
+  });
+
+  it("400 if min values are greater than max values", async () => {
+    // minLng (12) > maxLng (10)
+    const res = await request(app).get("/api/reports/search?bbox=12,40,10,42").expect(400);
+    expect(res.body.message).toMatch(/Expected minLng < maxLng/);
+  });
+
+  it("200 includes reports exactly on the boundary", async () => {
+    const agent = await createAndLogin(fakeUser);
+    
+    // Box: 10,40 to 12,42
+    const bbox = "10,40,12,42";
+
+    const boundaryReport = await createReportAs(agent, {
+      title: "Boundary Report",
+      description: "Exactly on minLng edge",
+      category: "WASTE",
+      latitude: 41,
+      longitude: 10, // Matches minLng
+      photos: [{ buffer: Buffer.from("f"), name: "p.jpg", contentType: "image/jpeg" }]
+    });
+
+    // Set visible status
+    await prisma.report.update({
+      where: { id: boundaryReport.id },
+      data: { status: "ASSIGNED" } 
+    });
+
+    const response = await request(app)
+      .get(`/api/reports/search?bbox=${bbox}`)
+      .expect(200);
+
+    expect(response.body.length).toBe(1);
+    expect(response.body[0].id).toBe(boundaryReport.id);
   });
 });

@@ -48,7 +48,7 @@ const registerUser = async (
   expect(res.status).toBe(201);
   const verifyRes = await agent.post("/api/auth/verify").send({
     emailOrUsername: user.email,
-    code: (global as any).__lastSentVerificationCode,
+    code: (globalThis as any).__lastSentVerificationCode,
   });
   expect(verifyRes.status).toBe(201);
 };
@@ -392,8 +392,8 @@ describe("Report E2E", () => {
         title: "Road damage",
         description: "Pothole in street",
         category: "ROADS_URBAN_FURNISHINGS",
-        latitude: 45.0,
-        longitude: 9.0,
+        latitude: 45,
+        longitude: 9,
         photos: [
           {
             buffer: Buffer.from("fake_jpeg_bytes"),
@@ -447,8 +447,8 @@ describe("Report E2E", () => {
         title: "Park maintenance",
         description: "Broken bench",
         category: "PUBLIC_GREEN_AREAS_PLAYGROUNDS",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
         photos: [
           {
             buffer: Buffer.from("fake_jpeg_bytes"),
@@ -560,8 +560,8 @@ describe("Report E2E", () => {
         title: "Report for view",
         description: "Test report",
         category: "WASTE",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // Assign to municipality
@@ -805,8 +805,8 @@ describe("Report E2E", () => {
         title: "Vague issue report",
         description: "Something is wrong somewhere",
         category: "PUBLIC_LIGHTING",
-        latitude: 45.0,
-        longitude: 9.0,
+        latitude: 45,
+        longitude: 9,
       };
 
       const createdReport = await createReportAs(citizenAgent, reportData);
@@ -896,8 +896,8 @@ describe("Report E2E", () => {
           title: `Report from ${citizen.firstName}`,
           description: `Description from ${citizen.firstName}`,
           category: agents.indexOf(agent) === 0 ? "PUBLIC_LIGHTING" : "WASTE",
-          latitude: 45.0 + agents.indexOf(agent) * 0.1,
-          longitude: 9.0 + agents.indexOf(agent) * 0.1,
+          latitude: 45 + agents.indexOf(agent) * 0.1,
+          longitude: 9 + agents.indexOf(agent) * 0.1,
         });
 
         reports.push({ report, agent });
@@ -971,6 +971,274 @@ describe("Report E2E", () => {
       // Admin can view all reports across all statuses
       const allReportsRes = await adminAgent.get("/api/reports").expect(200);
       expect(allReportsRes.body.length).toBeGreaterThanOrEqual(reports.length);
+    });
+  });
+
+  describe("Search Reports by Area (Address/Location)", () => {
+    it("unregistered user can search for reports in a specific area by address/coordinates", async () => {
+      // Create a citizen and reports at specific locations
+      const citizen = { ...fakeUser, username: "c_search", email: "c_search@test.com" };
+      const citizenAgent = await createAndLogin(citizen);
+
+      // Create admin for approving reports
+      const adminData = {
+        username: "search_admin",
+        email: "search_admin@example.com",
+        firstName: "Search",
+        lastName: "Admin",
+        password: "AdminPass123!",
+      };
+      const adminAgent = await createAdmin(adminData);
+
+      // Create municipality user for approving reports
+      const muniData = {
+        username: "search_muni",
+        email: "search_muni@example.com",
+        firstName: "Search",
+        lastName: "Muni",
+        password: "MuniPass123!",
+        municipality_role_id: 3, // public works project manager
+      };
+      const { muniAgent } = await createMunicipality(adminAgent, muniData);
+
+      // Create multiple reports at different locations
+      const report1 = await createReportAs(citizenAgent, {
+        title: "Broken road in downtown",
+        description: "Road damage near city center",
+        category: "ROADS_URBAN_FURNISHINGS",
+        latitude: 45.07,
+        longitude: 7.68,
+        photos: [],
+      });
+
+      const report2 = await createReportAs(citizenAgent, {
+        title: "Pothole on main street",
+        description: "Dangerous pothole needs repair",
+        category: "ROADS_URBAN_FURNISHINGS",
+        latitude: 45.08,
+        longitude: 7.69,
+        photos: [],
+      });
+
+      const report3 = await createReportAs(citizenAgent, {
+        title: "Park bench broken",
+        description: "Bench in the park is damaged",
+        category: "ROADS_URBAN_FURNISHINGS",
+        latitude: 45.09,
+        longitude: 7.7,
+        photos: [],
+      });
+
+      // Another report far away - should not appear in the search
+      const report4 = await createReportAs(citizenAgent, {
+        title: "Street flooding far away",
+        description: "Flooding in another area",
+        category: "ROADS_URBAN_FURNISHINGS",
+        latitude: 45.2,
+        longitude: 7.8,
+        photos: [],
+      });
+
+      // Approve reports via municipality user so they appear in search
+      await muniAgent
+        .post(`/api/reports/${report1.id}`)
+        .send({ status: "ASSIGNED" })
+        .expect(204);
+
+      await muniAgent
+        .post(`/api/reports/${report2.id}`)
+        .send({ status: "ASSIGNED" })
+        .expect(204);
+
+      await muniAgent
+        .post(`/api/reports/${report3.id}`)
+        .send({ status: "ASSIGNED" })
+        .expect(204);
+
+      await muniAgent
+        .post(`/api/reports/${report4.id}`)
+        .send({ status: "ASSIGNED" })
+        .expect(204);
+
+      const searchRes1 = await request(app)
+        .get("/api/reports/search")
+        .query({ bbox: "7.67,45.06,7.70,45.085" })
+        .expect(200);
+
+      expect(Array.isArray(searchRes1.body)).toBe(true);
+      expect(searchRes1.body.length).toBe(2); // Should find report1 and report2
+      const searchedIds1 = searchRes1.body.map((r: any) => r.id).sort((a: number, b: number) => a - b);
+      expect(searchedIds1).toEqual([report1.id, report2.id].sort((a: number, b: number) => a - b));
+    });
+
+    it("search returns reports within the specified bounding box", async () => {
+      const citizen = { ...fakeUser, username: "c_bbox", email: "c_bbox@test.com" };
+      const citizenAgent = await createAndLogin(citizen);
+
+      // Create admin for approving reports
+      const adminData = {
+        username: "bbox_admin",
+        email: "bbox_admin@example.com",
+        firstName: "BBox",
+        lastName: "Admin",
+        password: "AdminPass123!",
+      };
+      const adminAgent = await createAdmin(adminData);
+
+      // Create municipality user for approving reports
+      const muniData = {
+        username: "bbox_muni",
+        email: "bbox_muni@example.com",
+        firstName: "BBox",
+        lastName: "Muni",
+        password: "MuniPass123!",
+        municipality_role_id: 3, // public works project manager
+      };
+      const { muniAgent } = await createMunicipality(adminAgent, muniData);
+
+      // Create reports in a grid pattern
+      const reports = [];
+      const locations = [
+        { lat: 45.06, lng: 7.68 },
+        { lat: 45.07, lng: 7.69 },
+        { lat: 45.08, lng: 7.7 },
+      ];
+
+      for (let i = 0; i < locations.length; i++) {
+        const report = await createReportAs(citizenAgent, {
+          title: `Report at location ${i + 1}`,
+          description: `Report description ${i + 1}`,
+          category: "ROADS_URBAN_FURNISHINGS",
+          latitude: locations[i].lat,
+          longitude: locations[i].lng,
+          photos: [],
+        });
+        reports.push(report);
+
+        // Approve each report
+        await muniAgent
+          .post(`/api/reports/${report.id}`)
+          .send({ status: "ASSIGNED" })
+          .expect(204);
+      }
+
+      // Search with a bounding box that includes only the first two reports
+      const searchRes = await request(app)
+        .get("/api/reports/search")
+        .query({ bbox: "7.67,45.055,7.695,45.075" })
+        .expect(200);
+
+      expect(searchRes.body.length).toBe(2);
+      const resultIds = searchRes.body.map((r: any) => r.id).sort((a: number, b: number) => a - b);
+      expect(resultIds).toEqual([reports[0].id, reports[1].id].sort((a: number, b: number) => a - b));
+    });
+
+    it("returns empty array when no reports exist in the specified area", async () => {
+      const citizen = { ...fakeUser, username: "c_empty", email: "c_empty@test.com" };
+      const citizenAgent = await createAndLogin(citizen);
+
+      // Create admin and municipality user for approving reports
+      const adminData = {
+        username: "empty_admin",
+        email: "empty_admin@example.com",
+        firstName: "Empty",
+        lastName: "Admin",
+        password: "AdminPass123!",
+      };
+      const adminAgent = await createAdmin(adminData);
+
+      const muniData = {
+        username: "empty_muni",
+        email: "empty_muni@example.com",
+        firstName: "Empty",
+        lastName: "Muni",
+        password: "MuniPass123!",
+        municipality_role_id: 3, // public works project manager
+      };
+      const { muniAgent } = await createMunicipality(adminAgent, muniData);
+
+      // Create a report at one location
+      const report = await createReportAs(citizenAgent, {
+        title: "Report in one location",
+        description: "Located here",
+        category: "PUBLIC_LIGHTING",
+        latitude: 45.07,
+        longitude: 7.68,
+        photos: [],
+      });
+
+      // Approve the report so it would be findable if in the correct area
+      await muniAgent
+        .post(`/api/reports/${report.id}`)
+        .send({ status: "ASSIGNED" })
+        .expect(204);
+
+      // Search in a completely different area
+      const searchRes = await request(app)
+        .get("/api/reports/search")
+        .query({ bbox: "8.0,45.5,8.5,46.0" })
+        .expect(200);
+
+      expect(Array.isArray(searchRes.body)).toBe(true);
+      expect(searchRes.body.length).toBe(0);
+    });
+
+    it("returns validation error for invalid bbox parameter format", async () => {
+      // Missing bbox parameter
+      const missingRes = await request(app)
+        .get("/api/reports/search")
+        .expect(400);
+      expect(missingRes.body.error).toBe("Validation Error");
+      expect(missingRes.body.message).toContain("Missing bbox parameter");
+
+      // Invalid format (not enough coordinates)
+      const invalidRes = await request(app)
+        .get("/api/reports/search")
+        .query({ bbox: "7.68,45.07" })
+        .expect(400);
+      expect(invalidRes.body.error).toBe("Validation Error");
+      expect(invalidRes.body.message).toContain("Invalid bbox parameter format");
+
+      // Invalid coordinates (not numbers)
+      const nonNumericRes = await request(app)
+        .get("/api/reports/search")
+        .query({ bbox: "abc,def,ghi,jkl" })
+        .expect(400);
+      expect(nonNumericRes.body.error).toBe("Validation Error");
+    });
+
+    it("returns validation error when bbox coordinates are out of range", async () => {
+      // Latitude out of range (> 90)
+      const latRes = await request(app)
+        .get("/api/reports/search")
+        .query({ bbox: "7.68,45.07,7.70,120" })
+        .expect(400);
+      expect(latRes.body.error).toBe("Validation Error");
+      expect(latRes.body.message).toContain("out of range");
+
+      // Longitude out of range (> 180)
+      const lngRes = await request(app)
+        .get("/api/reports/search")
+        .query({ bbox: "7.68,45.07,200,50" })
+        .expect(400);
+      expect(lngRes.body.error).toBe("Validation Error");
+    });
+
+    it("returns validation error when bbox min values are not less than max values", async () => {
+      // minLng >= maxLng
+      const lngRes = await request(app)
+        .get("/api/reports/search")
+        .query({ bbox: "7.70,45.07,7.68,45.09" })
+        .expect(400);
+      expect(lngRes.body.error).toBe("Validation Error");
+      expect(lngRes.body.message).toContain("minLng < maxLng");
+
+      // minLat >= maxLat
+      const latRes = await request(app)
+        .get("/api/reports/search")
+        .query({ bbox: "7.68,45.09,7.70,45.07" })
+        .expect(400);
+      expect(latRes.body.error).toBe("Validation Error");
     });
   });
 });

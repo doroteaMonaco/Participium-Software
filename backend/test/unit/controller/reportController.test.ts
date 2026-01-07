@@ -15,6 +15,7 @@ jest.mock("@services/reportService", () => {
     addCommentToReport: jest.fn(),
     getCommentsOfAReportById: jest.fn(),
     getUnreadCommentsOfAReportById: jest.fn(),
+    searchReportsByBoundingBox: jest.fn(),
   };
   return { __esModule: true, default: m };
 });
@@ -42,8 +43,8 @@ import {
   addCommentToReport,
   getCommentOfAReportById,
   getUnreadCommentOfAReportById,
+  reportSearchHandler,
 } from "@controllers/reportController";
-import { query } from "winston";
 import { roleType } from "@models/enums";
 
 type ServiceMock = {
@@ -61,6 +62,7 @@ type ServiceMock = {
   addCommentToReport: jest.Mock;
   getCommentsOfAReportById: jest.Mock;
   getUnreadCommentsOfAReportById: jest.Mock;
+  searchReportsByBoundingBox: jest.Mock;
 };
 type ImageMock = {
   storeTemporaryImages: jest.Mock;
@@ -155,39 +157,6 @@ describe("reportController", () => {
         error: "Failed to fetch reports",
       });
     });
-
-    // it("allows citizen to filter reports by ASSIGNED status", async () => {
-    //   const approvedReports = [makeReport({ id: 1, status: "ASSIGNED" })];
-    //   svc.findAll.mockResolvedValue(approvedReports);
-
-    //   const req = {
-    //     query: { status: "ASSIGNED" },
-    //     user: { role: "CITIZEN" }
-    //   } as unknown as Request;
-    //   const res = makeRes();
-
-    //   await getReports(req, res as unknown as Response);
-
-    //   expect(svc.findAll).toHaveBeenCalledWith("ASSIGNED");
-    //   expect(res.json).toHaveBeenCalledWith(approvedReports);
-    // });
-
-    // it("denies non-citizen access to status filter", async () => {
-    //   const req = {
-    //     query: { status: "ASSIGNED" },
-    //     user: { role: "ADMIN" }
-    //   } as unknown as Request;
-    //   const res = makeRes();
-
-    //   await getReports(req, res as unknown as Response);
-
-    //   expect(res.status).toHaveBeenCalledWith(403);
-    //   expect(res.json).toHaveBeenCalledWith({
-    //     error: "Authorization Error",
-    //     message: "Access denied. Citizen role required to filter by status.",
-    //   });
-    //   expect(svc.findAll).not.toHaveBeenCalled();
-    // });
 
     it("returns 401 for invalid status filter", async () => {
       const req = {
@@ -298,23 +267,6 @@ describe("reportController", () => {
       expect(svc.findAll).toHaveBeenCalledWith("ASSIGNED", undefined);
       expect(res.json).toHaveBeenCalledWith(assignedReports);
     });
-
-    // it("returns 403 for citizen without status filter", async () => {
-    //   const req = {
-    //     query: {},
-    //     user: { role: "CITIZEN" }
-    //   } as unknown as Request;
-    //   const res = makeRes();
-
-    //   await getReports(req, res as unknown as Response);
-
-    //   expect(res.status).toHaveBeenCalledWith(403);
-    //   expect(res.json).toHaveBeenCalledWith({
-    //     error: "Authorization Error",
-    //     message: "Access denied. Required roles: ADMIN, MUNICIPALITY",
-    //   });
-    //   expect(svc.findAll).not.toHaveBeenCalled();
-    // });
   });
 
   // -------- getReportById --------
@@ -1684,6 +1636,211 @@ describe("reportController", () => {
       expect(res.json).toHaveBeenCalledWith({
         error: "Database error",
       });
+    });
+  });
+
+  // -------- reportSearchHandler --------
+  describe("reportSearchHandler", () => {
+    it("returns 400 when bbox parameter is missing", async () => {
+      const req = { query: {} } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Missing bbox parameter",
+      });
+    });
+
+    it("returns 400 when bbox is not a string", async () => {
+      const req = { query: { bbox: ["7.6600", "45.0600", "7.6750", "45.0700"] } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Missing bbox parameter",
+      });
+    });
+
+    it("returns 400 when bbox has incorrect number of parts", async () => {
+      const req = { query: { bbox: "7.6600,45.0600,7.6750" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Expected format: minLng,minLat,maxLng,maxLat",
+      });
+    });
+
+    it("returns 400 when bbox contains non-numeric values", async () => {
+      const req = { query: { bbox: "invalid,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Coordinates must be valid numbers.",
+      });
+    });
+
+    it("returns 400 when latitude is out of range", async () => {
+      const req = { query: { bbox: "7.6600,95.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Coordinates out of range.",
+      });
+    });
+
+    it("returns 400 when longitude is out of range", async () => {
+      const req = { query: { bbox: "200.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Coordinates out of range.",
+      });
+    });
+
+    it("returns 400 when minLng >= maxLng", async () => {
+      const req = { query: { bbox: "7.6750,45.0600,7.6600,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox values. Expected minLng < maxLng and minLat < maxLat.",
+      });
+    });
+
+    it("returns 400 when minLat >= maxLat", async () => {
+      const req = { query: { bbox: "7.6600,45.0700,7.6750,45.0600" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox values. Expected minLng < maxLng and minLat < maxLat.",
+      });
+    });
+
+    it("returns 200 with reports when bbox is valid", async () => {
+      const mockReports = [
+        { id: 1, title: "Report 1", latitude: 45.065, longitude: 7.67 },
+        { id: 2, title: "Report 2", latitude: 45.068, longitude: 7.672 },
+      ];
+      svc.searchReportsByBoundingBox.mockResolvedValue(mockReports);
+
+      const req = { query: { bbox: "7.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(svc.searchReportsByBoundingBox).toHaveBeenCalledWith({
+        minLng: 7.66,
+        minLat: 45.06,
+        maxLng: 7.675,
+        maxLat: 45.07,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockReports);
+    });
+
+    it("returns 200 with empty array when no reports found", async () => {
+      svc.searchReportsByBoundingBox.mockResolvedValue([]);
+
+      const req = { query: { bbox: "7.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith([]);
+    });
+
+    it("returns 404 when service throws 'not found' error", async () => {
+      svc.searchReportsByBoundingBox.mockRejectedValue(new Error("Reports not found"));
+
+      const req = { query: { bbox: "7.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Reports not found",
+      });
+    });
+
+    it("returns 500 on generic service error", async () => {
+      svc.searchReportsByBoundingBox.mockRejectedValue(new Error("Database connection failed"));
+
+      const req = { query: { bbox: "7.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Database connection failed",
+      });
+    });
+
+    it("handles bbox with spaces correctly", async () => {
+      const mockReports = [{ id: 1, title: "Report 1", latitude: 45.065, longitude: 7.67 }];
+      svc.searchReportsByBoundingBox.mockResolvedValue(mockReports);
+
+      const req = { query: { bbox: " 7.6600 , 45.0600 , 7.6750 , 45.0700 " } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(svc.searchReportsByBoundingBox).toHaveBeenCalledWith({
+        minLng: 7.66,
+        minLat: 45.06,
+        maxLng: 7.675,
+        maxLat: 45.07,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it("handles negative coordinates correctly", async () => {
+      const mockReports = [{ id: 1, title: "Report 1", latitude: -23.5, longitude: -46.5 }];
+      svc.searchReportsByBoundingBox.mockResolvedValue(mockReports);
+
+      const req = { query: { bbox: "-47,-24,-46,-23" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(svc.searchReportsByBoundingBox).toHaveBeenCalledWith({
+        minLng: -47,
+        minLat: -24,
+        maxLng: -46,
+        maxLat: -23,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
     });
   });
 

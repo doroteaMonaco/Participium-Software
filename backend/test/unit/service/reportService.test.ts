@@ -14,6 +14,7 @@ jest.mock("@repositories/reportRepository", () => {
     getCommentsByReportId: jest.fn(),
     markMunicipalityCommentsAsRead: jest.fn(),
     markExternalMaintainerCommentsAsRead: jest.fn(),
+    findByBoundingBox: jest.fn(),
   };
   return { __esModule: true, default: mRepo };
 });
@@ -45,6 +46,11 @@ type RepoMock = {
   create: jest.Mock;
   update: jest.Mock;
   deleteById: jest.Mock;
+  addCommentToReport: jest.Mock;
+  getCommentsByReportId: jest.Mock;
+  markMunicipalityCommentsAsRead: jest.Mock;
+  markExternalMaintainerCommentsAsRead: jest.Mock;
+  findByBoundingBox: jest.Mock;
 };
 
 type ImageMock = {
@@ -274,7 +280,6 @@ describe("reportService", () => {
         ...created,
         photos: ["/img/r/1.jpg", "/img/r/2.jpg"],
       });
-      // img.getMultipleImages.mockResolvedValue(["BINARY1", "BINARY2"]);
 
       const res = await reportService.submitReport(dto as any, 1);
 
@@ -307,7 +312,6 @@ describe("reportService", () => {
       repo.create.mockResolvedValue(created);
       img.persistImagesForReport.mockResolvedValue(["p1"]);
       repo.update.mockResolvedValue(updated);
-      // img.getMultipleImages.mockResolvedValue(["url_p1"]);
 
       const res = await reportService.submitReport(dto as any, 123);
 
@@ -1228,15 +1232,6 @@ describe("reportService", () => {
         assignedOfficerId: null,
         externalMaintainerId: null,
       };
-      const comment = {
-        id: 100,
-        reportId: 5,
-        content: "muni comment",
-        municipality_user_id: 7,
-        external_maintainer_id: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
       (repo as any).findById.mockResolvedValue(report);
 
       await expect(
@@ -1247,6 +1242,182 @@ describe("reportService", () => {
           content: "muni comment",
         }),
       ).rejects.toThrow("You can only comment on reports assigned to yourself");
+    });
+  });
+
+  // -------- searchReportsByBoundingBox --------
+  describe("searchReportsByBoundingBox", () => {
+    it("returns empty array when no reports found in bbox", async () => {
+      repo.findByBoundingBox.mockResolvedValue([]);
+
+      const bbox = {
+        minLng: 7.66,
+        minLat: 45.06,
+        maxLng: 7.675,
+        maxLat: 45.07,
+      };
+
+      const result = await reportService.searchReportsByBoundingBox(bbox);
+
+      expect(repo.findByBoundingBox).toHaveBeenCalledWith(bbox, {
+        statuses: expect.any(Array),
+      });
+      expect(result).toEqual([]);
+    });
+
+    it("returns reports found in bbox with sanitization", async () => {
+      const mockReports = [
+        makeReport({
+          id: 1,
+          latitude: 45.065,
+          longitude: 7.67,
+          status: "ASSIGNED",
+          title: "Report in area",
+        }),
+        makeReport({
+          id: 2,
+          latitude: 45.068,
+          longitude: 7.672,
+          status: "IN_PROGRESS",
+          title: "Another report",
+        }),
+      ];
+      repo.findByBoundingBox.mockResolvedValue(mockReports);
+
+      const bbox = {
+        minLng: 7.66,
+        minLat: 45.06,
+        maxLng: 7.675,
+        maxLat: 45.07,
+      };
+
+      const result = await reportService.searchReportsByBoundingBox(bbox);
+
+      expect(repo.findByBoundingBox).toHaveBeenCalledWith(bbox, {
+        statuses: expect.any(Array),
+      });
+      expect(result).toHaveLength(2);
+      expect(result[0]).toHaveProperty("id", 1);
+      expect(result[1]).toHaveProperty("id", 2);
+    });
+
+    it("filters reports by allowed statuses (DEFAULT_MAP_STATUSES)", async () => {
+      const mockReports = [
+        makeReport({
+          id: 1,
+          status: "ASSIGNED",
+          latitude: 45.065,
+          longitude: 7.67,
+        }),
+      ];
+      repo.findByBoundingBox.mockResolvedValue(mockReports);
+
+      const bbox = {
+        minLng: -180,
+        minLat: -90,
+        maxLng: 180,
+        maxLat: 90,
+      };
+
+      const result = await reportService.searchReportsByBoundingBox(bbox);
+
+      const callArgs = repo.findByBoundingBox.mock.calls[0][1];
+      expect(callArgs).toHaveProperty("statuses");
+      expect(Array.isArray(callArgs.statuses)).toBe(true);
+      expect(result).toHaveLength(1);
+    });
+
+    it("handles large bounding box covering whole world", async () => {
+      const mockReports = [
+        makeReport({ id: 1, latitude: 45, longitude: 7 }),
+        makeReport({ id: 2, latitude: -33, longitude: 151 }),
+        makeReport({ id: 3, latitude: 40, longitude: -74 }),
+      ];
+      repo.findByBoundingBox.mockResolvedValue(mockReports);
+
+      const bbox = {
+        minLng: -180,
+        minLat: -90,
+        maxLng: 180,
+        maxLat: 90,
+      };
+
+      const result = await reportService.searchReportsByBoundingBox(bbox);
+
+      expect(result).toHaveLength(3);
+      expect(repo.findByBoundingBox).toHaveBeenCalledWith(bbox, {
+        statuses: expect.any(Array),
+      });
+    });
+
+    it("handles small bounding box with single report", async () => {
+      const mockReports = [
+        makeReport({
+          id: 42,
+          latitude: 45.0651,
+          longitude: 7.6701,
+          title: "Specific Report",
+        }),
+      ];
+      repo.findByBoundingBox.mockResolvedValue(mockReports);
+
+      const bbox = {
+        minLng: 7.67,
+        minLat: 45.065,
+        maxLng: 7.6702,
+        maxLat: 45.0652,
+      };
+
+      const result = await reportService.searchReportsByBoundingBox(bbox);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(42);
+      expect(result[0].title).toBe("Specific Report");
+    });
+
+    it("throws when repository throws error", async () => {
+      repo.findByBoundingBox.mockRejectedValue(
+        new Error("Database connection failed"),
+      );
+
+      const bbox = {
+        minLng: 7.66,
+        minLat: 45.06,
+        maxLng: 7.675,
+        maxLat: 45.07,
+      };
+
+      await expect(
+        reportService.searchReportsByBoundingBox(bbox),
+      ).rejects.toThrow("Database connection failed");
+    });
+
+    it("returns reports with all expected properties after sanitization", async () => {
+      const mockReports = [
+        makeReport({
+          id: 1,
+          latitude: 45.065,
+          longitude: 7.67,
+          title: "Test Report",
+          category: "WASTE",
+        }),
+      ];
+      repo.findByBoundingBox.mockResolvedValue(mockReports);
+
+      const bbox = {
+        minLng: 7.66,
+        minLat: 45.06,
+        maxLng: 7.675,
+        maxLat: 45.07,
+      };
+
+      const result = await reportService.searchReportsByBoundingBox(bbox);
+
+      expect(result[0]).toHaveProperty("id");
+      expect(result[0]).toHaveProperty("latitude");
+      expect(result[0]).toHaveProperty("longitude");
+      expect(result[0]).toHaveProperty("title");
+      expect(result[0]).toHaveProperty("category");
     });
   });
 

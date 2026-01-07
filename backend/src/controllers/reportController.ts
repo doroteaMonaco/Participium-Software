@@ -595,3 +595,65 @@ export const getUnreadCommentOfAReportById = async (
     return res.status(statusCode).json({ error: errorMessage });
   }
 };
+
+export const reportSearchHandler = async (req: Request, res: Response) => {
+  try {
+    const bboxRaw = req.query.bbox;
+
+    if(typeof bboxRaw !== "string") {
+      return res.status(400).json({
+        error: "Validation Error",
+        message: "Missing bbox parameter",
+      });
+    }
+
+    const parts = bboxRaw.split(",").map((s) => s.trim());
+    if(parts.length !== 4) {
+      return res.status(400).json({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Expected format: minLng,minLat,maxLng,maxLat",
+      });
+    }
+
+    const [minLngStr, minLatStr, maxLngStr, maxLatStr] = parts;
+    const minLng = Number(minLngStr);
+    const minLat = Number(minLatStr);
+    const maxLng = Number(maxLngStr);
+    const maxLat = Number(maxLatStr);
+
+    if([minLng, minLat, maxLng, maxLat].some((n) => Number.isNaN(n))) {
+      return res.status(400).json({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Coordinates must be valid numbers.",
+      });
+    }
+
+    const inLatRange = (x: number) => x >= -90 && x <= 90;
+    const inLngRange = (x: number) => x >= -180 && x <= 180;
+
+    if(!inLngRange(minLng) || !inLatRange(minLat) || !inLngRange(maxLng) || !inLatRange(maxLat)) {
+      return res.status(400).json({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Coordinates out of range.",
+      });
+    }
+
+    if (!(minLng < maxLng) || !(minLat < maxLat)) {
+      return res.status(400).json({
+        error: "Validation Error",
+        message: "Invalid bbox values. Expected minLng < maxLng and minLat < maxLat.",
+      });
+    }
+
+    const reports = await reportService.searchReportsByBoundingBox({minLng, minLat, maxLng, maxLat});
+    return res.status(200).json(reports);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to search reports";
+    const statusCode =
+      error instanceof Error && /not found/i.test(error.message) ? 404 : 500;
+    return res.status(statusCode).json({ error: errorMessage });
+  }
+};

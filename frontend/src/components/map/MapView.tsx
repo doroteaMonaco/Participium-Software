@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 // Cluster group for grouping nearby markers
 import ClusteredMarkers from "./ClusteredMarkers";
+import { AddressSearch } from "./AddressSearch";
 
 import type { LatLngExpression } from "leaflet";
 import type { ReportModel } from "src/services/models";
@@ -57,6 +58,7 @@ type Props = {
   markerDraggable?: boolean;
   markerLocation?: boolean;
   showLegend?: boolean;
+  showSearch?: boolean;
   showMarker?: boolean;
 };
 
@@ -66,7 +68,6 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
   markerDraggable = false,
   markerLocation = false,
   showLegend = true,
-  showMarker: showMarker = true,
 }) => {
   const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJsonObject | null>(
     null,
@@ -80,6 +81,14 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
     if (mapInstanceRef.current) {
       mapInstanceRef.current.flyTo(MAP_OPTIONS.center, MAP_OPTIONS.zoom, {
         duration: 1.5,
+      });
+    }
+  };
+
+  const handleLocationSelect = (lat: number, lon: number, zoom: number) => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo([lat, lon], zoom, {
+        duration: 2,
       });
     }
   };
@@ -109,6 +118,9 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
 
   return (
     <div className="h-full w-full relative">
+      {/* Address Search */}
+      {showSearch && <AddressSearch onLocationSelect={handleLocationSelect} />}
+
       {showOutOfBoundsAlert && (
         // TODO: Replace with a better alert component // NOSONAR
         <div
