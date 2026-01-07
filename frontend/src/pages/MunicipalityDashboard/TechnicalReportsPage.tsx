@@ -8,7 +8,11 @@ import CommentsSection from "src/components/report/CommentsSection";
 import { useNotifications } from "src/contexts/NotificationContext";
 import { motion } from "framer-motion";
 import { useAuth } from "src/contexts/AuthContext";
-import { getAssignedReports } from "src/services/api";
+import {
+  getAssignedReports,
+  approveOrRejectReport,
+  updateReportStatusByExternalMaintainer,
+} from "src/services/api";
 import {
   FileText,
   Search,
@@ -222,6 +226,7 @@ export const TechnicalReportsPage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusUpdateError, setStatusUpdateError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -306,16 +311,55 @@ export const TechnicalReportsPage: React.FC = () => {
 
   const handleSubmitStatus = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedReport && newStatus) {
-      setReports(
-        reports.map((r) =>
-          r.id === selectedReport.id
-            ? { ...r, status: newStatus as Report["status"] }
-            : r,
-        ),
-      );
-      closeStatusModal();
-    }
+    setStatusUpdateError(null);
+
+    const mapFrontendToBackend = (s: Report["status"]): string => {
+      switch (s) {
+        case "Assigned":
+          return "ASSIGNED";
+        case "In Progress":
+          return "IN_PROGRESS";
+        case "Suspended":
+          return "SUSPENDED";
+        case "Resolved":
+          return "RESOLVED";
+        default:
+          return "ASSIGNED";
+      }
+    };
+
+    const submit = async () => {
+      if (!selectedReport || !newStatus) return;
+      try {
+        const backendStatus = mapFrontendToBackend(newStatus as Report["status"]);
+        const numericId = selectedReport.numericId;
+
+        if (backendStatus === "ASSIGNED") {
+          await approveOrRejectReport(numericId, { status: "ASSIGNED" });
+        } else {
+          // External maintainer-only statuses on backend; will error if not permitted
+          await updateReportStatusByExternalMaintainer(numericId, {
+            status: backendStatus as any,
+          });
+        }
+
+        // Reload assigned reports from backend to reflect current state
+        if (user?.id) {
+          const data = await getAssignedReports(user.id);
+          const reports = data.map((data) => new ReportModel(data));
+          const mappedReports = mapReports(reports);
+          setReports(mappedReports);
+        }
+
+        closeStatusModal();
+      } catch (err: any) {
+        console.error("Failed to update status:", err);
+        const msg = err?.response?.data?.error || err?.message || "Failed to update status";
+        setStatusUpdateError(msg);
+      }
+    };
+
+    void submit();
   };
 
   const handleSubmitComment = (e: React.FormEvent) => {
@@ -432,6 +476,11 @@ export const TechnicalReportsPage: React.FC = () => {
         {error && !loading && (
           <div className="rounded-xl border-2 border-red-200 bg-red-50 p-6">
             <p className="text-red-700 font-medium">{error}</p>
+          </div>
+        )}
+        {statusUpdateError && (
+          <div className="rounded-xl border-2 border-red-200 bg-red-50 p-6">
+            <p className="text-red-700 font-medium">{statusUpdateError}</p>
           </div>
         )}
 

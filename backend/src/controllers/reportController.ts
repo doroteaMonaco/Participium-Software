@@ -150,23 +150,20 @@ export const approveOrRejectReport = async (req: Request, res: Response) => {
 
     // Define allowed statuses based on user role
     const municipalityStatuses = ["ASSIGNED", "REJECTED"];
-    const externalMaintainerStatuses = ["IN_PROGRESS", "SUSPENDED", "RESOLVED"];
+    const progressStatuses = ["IN_PROGRESS", "SUSPENDED", "RESOLVED"];
 
     const isMunicipalityRole = userRole === "MUNICIPALITY";
     const isExternalMaintainerRole = userRole === "EXTERNAL_MAINTAINER";
 
     // Validate status based on role
-    if (isMunicipalityRole && !municipalityStatuses.includes(status)) {
+    if (isMunicipalityRole && ![...municipalityStatuses, ...progressStatuses].includes(status)) {
       return res.status(400).json({
         error:
-          "Invalid status. Municipality users can only set ASSIGNED or REJECTED.",
+          "Invalid status. Municipality users can only set ASSIGNED, REJECTED, IN_PROGRESS, SUSPENDED or RESOLVED.",
       });
     }
 
-    if (
-      isExternalMaintainerRole &&
-      !externalMaintainerStatuses.includes(status)
-    ) {
+    if (isExternalMaintainerRole && !progressStatuses.includes(status)) {
       return res.status(400).json({
         error:
           "Invalid status. External maintainers can only set IN_PROGRESS, SUSPENDED or RESOLVED.",
@@ -182,24 +179,31 @@ export const approveOrRejectReport = async (req: Request, res: Response) => {
       });
     }
 
-    let result;
     if (isExternalMaintainerRole) {
-      // External maintainer updating status
-      result = await reportService.updateReportStatusByExternalMaintainer(
+      // External maintainer updating status (progress statuses)
+      const updated = await reportService.updateReportStatusByExternalMaintainer(
         Number.parseInt(id),
         req.user!.id,
         status,
       );
+      return res.status(200).json(updated);
+    } else if (isMunicipalityRole && progressStatuses.includes(status)) {
+      // Municipality officer updating progress statuses on their assigned report
+      const updated = await reportService.updateReportStatusByMunicipalityOfficer(
+        Number.parseInt(id),
+        req.user!.id,
+        status,
+      );
+      return res.status(200).json(updated);
     } else {
       // Municipality user approving/rejecting
-      result = await reportService.updateReportStatus(
+      const result = await reportService.updateReportStatus(
         Number.parseInt(id),
         status,
         rejectionReason,
       );
+      return res.status(200).json({ status: result });
     }
-
-    res.status(204).json({ status: result });
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Failed to update report status";

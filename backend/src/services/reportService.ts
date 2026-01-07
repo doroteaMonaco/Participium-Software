@@ -597,6 +597,67 @@ const updateReportStatusByExternalMaintainer = async (
   return sanitizeReport(updatedReport);
 };
 
+/**
+ * Update the status of a report by a municipality technical officer.
+ * Only reports assigned to the officer can be updated.
+ * Valid status transitions mirror those of external maintainers.
+ */
+const updateReportStatusByMunicipalityOfficer = async (
+  reportId: number,
+  municipalityOfficerId: number,
+  newStatus: string,
+): Promise<ReportDto> => {
+  const statusEnum = mapStringToStatus(newStatus);
+
+  const existing = await reportRepository.findById(reportId);
+  if (!existing) {
+    throw new Error("Report not found");
+  }
+
+  // Check assignment
+  if (existing.assignedOfficerId !== municipalityOfficerId) {
+    throw new Error("You are not authorized to update this report");
+  }
+
+  const allowedStatuses = [
+    ReportStatus.IN_PROGRESS,
+    ReportStatus.SUSPENDED,
+    ReportStatus.RESOLVED,
+  ];
+
+  if (!allowedStatuses.includes(statusEnum)) {
+    throw new Error(
+      `Invalid status. Municipality officers can only set status to: ${allowedStatuses.join(", ")}`,
+    );
+  }
+
+  const validTransitions: Record<ReportStatus, ReportStatus[]> = {
+    [ReportStatus.ASSIGNED]: [ReportStatus.IN_PROGRESS],
+    [ReportStatus.IN_PROGRESS]: [ReportStatus.SUSPENDED, ReportStatus.RESOLVED],
+    [ReportStatus.SUSPENDED]: [ReportStatus.IN_PROGRESS, ReportStatus.RESOLVED],
+    [ReportStatus.PENDING_APPROVAL]: [],
+    [ReportStatus.REJECTED]: [],
+    [ReportStatus.RESOLVED]: [],
+  };
+
+  const currentStatus = existing.status as ReportStatus;
+  const allowedTransitions = validTransitions[currentStatus] || [];
+  if (!allowedTransitions.includes(statusEnum)) {
+    throw new Error(
+      `Invalid state transition: cannot change from ${currentStatus} to ${statusEnum}. ` +
+        `Allowed transitions from ${currentStatus}: ${
+          allowedTransitions.length > 0 ? allowedTransitions.join(", ") : "none"
+        }`,
+    );
+  }
+
+  const updatedReport = await reportRepository.update(reportId, {
+    status: statusEnum,
+  });
+
+  return sanitizeReport(updatedReport);
+};
+
 const searchReportsByBoundingBox = async (
   bbox: BoundingBox
 ): Promise<ReportDto[]> => {
@@ -621,6 +682,7 @@ export default {
   addCommentToReport,
   getCommentsOfAReportById,
   updateReportStatusByExternalMaintainer,
+  updateReportStatusByMunicipalityOfficer,
   getUnreadCommentsOfAReportById,
   searchReportsByBoundingBox,
 };

@@ -137,7 +137,7 @@ const MapPage: React.FC = () => {
               reports={reports}
               markerDraggable={false}
               markerLocation={false}
-              showLegend={false}
+              showLegend={true}
               showMarker={false}
               selectedReportId={selectedReportId}
             />
