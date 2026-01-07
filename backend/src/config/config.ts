@@ -8,7 +8,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-if (!process.env.RESEND_API_KEY) {
+if (!process.env.RESEND_API_KEY && process.env.NODE_ENV === "production") {
   console.error(
     "Missing required env: RESEND_API_KEY. Add it to your .env file.",
   );
