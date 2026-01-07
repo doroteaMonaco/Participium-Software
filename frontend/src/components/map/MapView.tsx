@@ -124,7 +124,6 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
       {showSearch && <AddressSearch onLocationSelect={handleLocationSelect} />}
 
       {showOutOfBoundsAlert && (
-        // TODO: Replace with a better alert component // NOSONAR
         <div
           className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded shadow-md flex items-center gap-4"
           role="alert"

@@ -600,7 +600,7 @@ export const searchReports = async (
 export class WebSocketService {
   private ws: WebSocket | null = null;
   private messageHandlers: ((message: unknown) => void)[] = [];
-  private authToken: string;
+  private readonly authToken: string;
 
   constructor(authToken: string) {
     this.authToken = authToken;
