@@ -57,6 +57,7 @@ type Props = {
   markerDraggable?: boolean;
   markerLocation?: boolean;
   showLegend?: boolean;
+  showMarker?: boolean;
 };
 
 const MapView: React.FC<React.PropsWithChildren<Props>> = ({
@@ -65,6 +66,7 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
   markerDraggable = false,
   markerLocation = false,
   showLegend = true,
+  showMarker: showMarker = true,
 }) => {
   const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJsonObject | null>(
     null,
@@ -245,14 +247,16 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
         {geoJsonData && (
           <>
             <GeoJSON data={geoJsonData} />
-            <CustomMarker
-              draggable={markerDraggable}
-              location={markerLocation}
-              geoJsonData={geoJsonData}
-              onOutOfBounds={() => {
-                setShowOutOfBoundsAlert(true);
-              }}
-            />
+            {showMarker && (
+              <CustomMarker
+                draggable={markerDraggable}
+                location={markerLocation}
+                geoJsonData={geoJsonData}
+                onOutOfBounds={() => {
+                  setShowOutOfBoundsAlert(true);
+                }}
+              />
+            )}
           </>
         )}
 

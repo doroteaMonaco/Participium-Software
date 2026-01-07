@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   submitReport,
   getReports,
+  getReportsMap,
   getReportById,
   approveOrRejectReport,
   getReportsForMunicipalityUser,
@@ -9,14 +10,14 @@ import {
   getReportsForExternalMaintainer,
   addCommentToReport,
   getCommentOfAReportById,
-  getUnreadCommentOfAReportById
+  getUnreadCommentOfAReportById,
 } from "@controllers/reportController";
 import { isAuthenticated } from "@middlewares/authMiddleware";
 import {
   isCitizen,
   isMunicipalityStrict,
   isExternalMaintainer,
-  isMunicipalityOrExternalMaintainer
+  isMunicipalityOrExternalMaintainer,
 } from "@middlewares/roleMiddleware";
 import { uploadArray } from "@middlewares/uploadMiddleware";
 
@@ -34,11 +35,19 @@ router.post(
 // GET /api/reports - Get all reports (authenticated users, role check in controller based on query params)
 router.get("/", isAuthenticated, getReports);
 
+// GET /api/reports/reports-map - Get reports for map view (public)
+router.get("/reports-map", getReportsMap);
+
 // GET /api/reports/:id - Get report by ID (public)
 router.get("/:id", getReportById);
 
 // POST /api/reports/:id - Change report status (municipality or external maintainer)
-router.post("/:id", isAuthenticated, isMunicipalityOrExternalMaintainer, approveOrRejectReport);
+router.post(
+  "/:id",
+  isAuthenticated,
+  isMunicipalityOrExternalMaintainer,
+  approveOrRejectReport,
+);
 
 router.get(
   "/municipality-user/:municipalityUserId",
@@ -59,7 +68,7 @@ router.get(
   "/external-maintainers/:externalMaintainersId",
   isAuthenticated,
   isExternalMaintainer,
-  getReportsForExternalMaintainer
+  getReportsForExternalMaintainer,
 );
 
 /**
@@ -70,11 +79,21 @@ router.post(
   "/:report_id/comments",
   isAuthenticated,
   isMunicipalityOrExternalMaintainer,
-  addCommentToReport
-)
+  addCommentToReport,
+);
 
-router.get("/:report_id/comments", isAuthenticated, isMunicipalityOrExternalMaintainer, getCommentOfAReportById)
+router.get(
+  "/:report_id/comments",
+  isAuthenticated,
+  isMunicipalityOrExternalMaintainer,
+  getCommentOfAReportById,
+);
 
-router.get("/:report_id/comments/unread", isAuthenticated, isMunicipalityOrExternalMaintainer, getUnreadCommentOfAReportById)
+router.get(
+  "/:report_id/comments/unread",
+  isAuthenticated,
+  isMunicipalityOrExternalMaintainer,
+  getUnreadCommentOfAReportById,
+);
 
 export default router;

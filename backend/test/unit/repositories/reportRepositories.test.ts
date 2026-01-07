@@ -845,4 +845,63 @@ describe("reportRepository", () => {
       expect(res).toEqual({ count: 1 });
     });
   });
+
+  describe("retrieve report for the map", () => {
+    const expectedQuery = {
+      where: {
+        OR: [
+          { status: ReportStatus.ASSIGNED },
+          { status: ReportStatus.IN_PROGRESS },
+          { status: ReportStatus.SUSPENDED },
+          { status: ReportStatus.RESOLVED },
+        ],
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        externalMaintainer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            companyName: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    };
+
+    it("calls prisma.findMany with approved statuses + include + orderBy and returns results", async () => {
+      const rows = [
+        makeReport({ id: 1, status: ReportStatus.ASSIGNED }),
+        makeReport({ id: 2, status: ReportStatus.RESOLVED }),
+      ];
+
+      prismaMock.report.findMany.mockResolvedValue(rows);
+
+      const res = await reportRepository.findAllForMapView();
+
+      expect(prismaMock.report.findMany).toHaveBeenCalledTimes(1);
+      expect(prismaMock.report.findMany).toHaveBeenCalledWith(expectedQuery);
+      expect(res).toBe(rows);
+    });
+
+    it("returns empty array when prisma returns no rows", async () => {
+      prismaMock.report.findMany.mockResolvedValue([]);
+
+      const res = await reportRepository.findAllForMapView();
+
+      expect(prismaMock.report.findMany).toHaveBeenCalledTimes(1);
+      expect(prismaMock.report.findMany).toHaveBeenCalledWith(expectedQuery);
+      expect(res).toEqual([]);
+    });
+  });
 });

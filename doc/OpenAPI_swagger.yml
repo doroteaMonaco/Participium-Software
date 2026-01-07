@@ -678,6 +678,29 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /reports/reports-map: 
+    get:
+      tags: [Reports]
+      summary: Get reports for map view
+      description: >
+        Get reports with location data for map view. Reports on the map 
+        can be visualized by all users, including unauthenticated visitors.
+      responses:
+        '200':
+          description: OK - Reports successfully retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Report'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 
   /users:
     # registration endpoint

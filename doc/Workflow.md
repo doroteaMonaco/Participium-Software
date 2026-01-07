@@ -73,9 +73,10 @@ Use a separate `PendingVerificationUser` table for unverified users. After succe
 
 Allow an unregistered user to see “approved” reports on an interactive map.
 
-### ToDo
+### API
+There is a new route to retrieve the reports and show them on the map. See the swagger for details
 
-Just un adjustment to allow the view of the reports to an unregistered user
+`GET /reports/reports-map`
 
 ### Tests
 

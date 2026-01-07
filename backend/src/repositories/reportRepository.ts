@@ -72,6 +72,40 @@ const findAll = async (statusFilter?: ReportStatusFilter, userId?: number) => {
   });
 };
 
+const findAllForMapView = async () => {
+  return prisma.report.findMany({
+    where: {
+      OR: [
+        { status: ReportStatus.ASSIGNED },
+        { status: ReportStatus.IN_PROGRESS },
+        { status: ReportStatus.SUSPENDED },
+        { status: ReportStatus.RESOLVED },
+      ],
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+      externalMaintainer: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          companyName: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
+
 const findById = async (id: number) => {
   return prisma.report.findUnique({
     where: { id },
@@ -291,6 +325,7 @@ const markMunicipalityCommentsAsRead = async (reportId: number) => {
 
 export default {
   findAll,
+  findAllForMapView,
   findById,
   findByStatus,
   create,

@@ -14,6 +14,9 @@ jest.mock("@controllers/reportController", () => ({
   getReports: jest.fn((req: Request, res: Response) =>
     res.json({ route: "getReports", query: (req as any).query ?? null }),
   ),
+  getReportsMap: jest.fn((req: Request, res: Response) =>
+    res.json({ route: "getReportsMap" }),
+  ),
   getReportById: jest.fn((req: Request, res: Response) =>
     res.json({ route: "getReportById", id: Number(req.params.id) }),
   ),
@@ -100,6 +103,7 @@ import reportRouter from "@routes/reportRouter";
 import {
   submitReport,
   getReports,
+  getReportsMap,
   getReportById,
   approveOrRejectReport,
   getReportsForMunicipalityUser,
@@ -539,6 +543,23 @@ describe("reportRouter", () => {
       expect(res.status).toBe(401);
       const ctrl = require("@controllers/reportController");
       expect(ctrl.getCommentOfAReportById).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("GET /api/reports/reports-map", () => {
+    it("routes to getReportsMap and returns 200", async () => {
+      const app = makeApp();
+
+      const res = await request(app).get("/api/reports/reports-map");
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ route: "getReportsMap" });
+
+      // Se la route è davvero senza middleware, NON aspettarti isAuthenticated chiamato.
+      // Se invece nel router hai messo auth, allora aggiungi:
+      // expect(isAuthenticatedMock).toHaveBeenCalled();
+
+      expect(getReportsMap).toHaveBeenCalledTimes(1);
     });
   });
 });

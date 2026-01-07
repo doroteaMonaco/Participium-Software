@@ -50,6 +50,11 @@ const findAll = async (
   return reports.map(sanitizeReport);
 };
 
+const findAllForMapView = async (): Promise<ReportDto[]> => {
+  const reports = await reportRepository.findAllForMapView();
+  return reports.map(sanitizeReport);
+};
+
 const findById = async (id: number): Promise<ReportDto | null> => {
   const report = await reportRepository.findById(id);
 
@@ -159,7 +164,7 @@ const updateReportStatus = async (
     if (!assignedOfficerId) {
       throw new Error(
         `Cannot approve report: No officer available with role "${assignedOffice}". ` +
-          `Please create a municipality user with this role before approving reports in category "${existing.category}".`,
+        `Please create a municipality user with this role before approving reports in category "${existing.category}".`,
       );
     }
   }
@@ -563,7 +568,7 @@ const updateReportStatusByExternalMaintainer = async (
   if (!allowedTransitions.includes(statusEnum)) {
     throw new Error(
       `Invalid state transition: cannot change from ${currentStatus} to ${statusEnum}. ` +
-        `Allowed transitions from ${currentStatus}: ${allowedTransitions.length > 0 ? allowedTransitions.join(", ") : "none"}`,
+      `Allowed transitions from ${currentStatus}: ${allowedTransitions.length > 0 ? allowedTransitions.join(", ") : "none"}`,
     );
   }
 
@@ -577,6 +582,7 @@ const updateReportStatusByExternalMaintainer = async (
 
 export default {
   findAll,
+  findAllForMapView,
   findById,
   findByStatus,
   submitReport,
