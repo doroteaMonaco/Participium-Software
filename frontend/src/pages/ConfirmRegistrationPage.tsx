@@ -131,15 +131,10 @@ export const ConfirmRegistration: React.FC = () => {
   const handleResendCode = async () => {
     if (!canResend) return;
     
-    try {
-      // TODO: Implement resend code functionality when backend supports it
-      setError("Resend functionality will be available soon.");
-      // Reset timer after successful resend
-      setResendTimer(30 * 60);
-      setCanResend(false);
-    } catch (err) {
-      setError("Failed to resend code. Please try again.");
-    }
+    setError("Resend functionality will be available soon.");
+    // Reset timer after successful resend
+    setResendTimer(30 * 60);
+    setCanResend(false);
   };
 
   if (success) {
@@ -219,13 +214,14 @@ export const ConfirmRegistration: React.FC = () => {
 
           {/* 6-Digit Code Inputs */}
           <div className="space-y-3">
-            <label className="block text-sm font-semibold text-slate-700 text-center mb-4">
+            <label htmlFor="confirmation-code-0" className="block text-sm font-semibold text-slate-700 text-center mb-4">
               Enter Confirmation Code
             </label>
             <div className="flex justify-center gap-3">
               {codeDigits.map((digit, index) => (
                 <input
                   key={index}
+                  id={`confirmation-code-${index}`}
                   ref={(el) => {
                     inputRefs.current[index] = el;
                   }}

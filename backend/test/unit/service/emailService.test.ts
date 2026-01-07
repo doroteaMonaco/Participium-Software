@@ -27,7 +27,6 @@ jest.mock("@config/config", () => ({
 }));
 
 import { sendVerificationEmail } from "@services/emailService";
-import { Resend } from "resend";
 import logger from "@config/logger";
 import { CONFIG } from "@config";
 
@@ -118,20 +117,20 @@ describe("emailService", () => {
       expect(call.html).toContain("http://localhost:3000/verify-email");
     });
 
-    it("does not include resend URL when not provided", async () => {
-      const params = {
-        email: "user@example.com",
-        firstName: "John",
-        code: "123456",
-      };
+it("does not include resend URL when not provided", async () => {
+  const params = {
+    email: "user@example.com",
+    firstName: "John",
+    code: "123456",
+  };
 
-      mockSend.mockResolvedValue({ data: {}, error: null });
+  mockSend.mockResolvedValue({ data: {}, error: null });
 
-      await sendVerificationEmail(params);
+  await sendVerificationEmail(params);
 
-      const call = mockSend.mock.calls[0][0];
-+      expect(typeof call.html).toBe("string");
-    });
+  const call = mockSend.mock.calls[0][0];
+  expect(typeof call.html).toBe("string");
+});
 
     it("logs success when email is sent", async () => {
       const params = {
@@ -174,11 +173,9 @@ describe("emailService", () => {
       const error = new Error("Email service error");
       mockSend.mockResolvedValue({ error });
 
-      try {
-        await sendVerificationEmail(params);
-      } catch (e) {
-        // Expected
-      }
+      await expect(sendVerificationEmail(params)).rejects.toThrow(
+        "Failed to send verification email"
+      );
 
       expect(logger.error).toHaveBeenCalledWith(
         "Failed to send verification email:",
@@ -211,11 +208,9 @@ describe("emailService", () => {
       const error = new Error("Network error");
       mockSend.mockRejectedValue(error);
 
-      try {
-        await sendVerificationEmail(params);
-      } catch (e) {
-        // Expected
-      }
+      await expect(sendVerificationEmail(params)).rejects.toThrow(
+        "Network error"
+      );
 
       expect(logger.error).toHaveBeenCalledWith(
         "Error sending verification email:",
