@@ -193,6 +193,45 @@ describe("userService", () => {
       );
       expect(res).toBe(created);
     });
+
+    it("creates user with all optional fields including companyName and category", async () => {
+      const userDataFull: CreateBaseUserDto = {
+        email: "full@example.com",
+        username: "fulluser",
+        firstName: "Full",
+        lastName: "User",
+        password: "p",
+        companyName: "Tech Corp",
+        category: "SOFTWARE_DEVELOPMENT",
+      };
+      repo.findUserByEmail.mockResolvedValue(null);
+      repo.findUserByUsername.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue("h-pass");
+
+      const created = makeUser({
+        email: "full@example.com",
+        username: "fulluser",
+        password: "h-pass",
+        id: 11,
+      });
+      repo.createUser.mockResolvedValue(created);
+
+      const res = await userService.registerUser(userDataFull);
+
+      expect(repo.createUser).toHaveBeenCalledWith(
+        userDataFull.email,
+        userDataFull.username,
+        "h-pass",
+        roleType.CITIZEN,
+        {
+          firstName: userDataFull.firstName,
+          lastName: userDataFull.lastName,
+          companyName: userDataFull.companyName,
+          category: userDataFull.category,
+        },
+      );
+      expect(res).toBe(created);
+    });
   });
 
   describe("registerUserWithVerification", () => {
@@ -650,7 +689,7 @@ describe("userService", () => {
         profilePhoto: "user_5.jpg",
       });
 
-      const res = await userService.updateCitizenProfile(
+      await userService.updateCitizenProfile(
         5,
         "photo_key",
         "telegram_user",

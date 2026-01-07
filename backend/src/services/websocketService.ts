@@ -1,5 +1,5 @@
 import WebSocket, { WebSocketServer } from "ws";
-import { IncomingMessage } from "http";
+import { IncomingMessage } from "node:http";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { logInfo, logError, logDebug } from "@services/loggingService";
 import { SECRET_KEY } from "@config";
@@ -56,10 +56,11 @@ export const startWebSocketServer = (port: number = 8080): void => {
       }
       clients.get(clientKey)?.add(ws);
 
-      ws.on("message", async (message) => {
+      ws.on("message", async (message: Buffer) => {
         try {
-          const parsedMessage = JSON.parse(message.toString());
-          logDebug(`Received message from user ${userId}: ${message}`);
+          const messageString = message.toString("utf-8");
+          const parsedMessage = JSON.parse(messageString);
+          logDebug(`Received message from user ${userId}: ${messageString}`);
 
           if (
             parsedMessage.type === "MARK_COMMENTS_AS_READ" &&

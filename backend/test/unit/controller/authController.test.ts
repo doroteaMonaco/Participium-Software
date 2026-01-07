@@ -44,6 +44,7 @@ import { prisma } from "@database";
 import { roleType } from "@models/enums";
 import { BadRequestError } from "@errors/BadRequestError";
 import { NotFoundError } from "@errors/NotFoundError";
+import { TooManyRequestsError } from "@errors/TooManyRequestsError";
 
 type ResMock = Partial<Response> & {
   status: jest.Mock;
@@ -487,6 +488,102 @@ describe("authController", () => {
 
       expect(res.status).toHaveBeenCalledWith(400);
     });
+
+    it("successfully creates user, sets JWT token and calls all response methods", async () => {
+      const req = {
+        body: {
+          emailOrUsername: "verify@example.com",
+          code: "654321",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (emailVerificationService.verifyCode as jest.Mock).mockResolvedValue(
+        true,
+      );
+      (
+        emailVerificationService.completePendingVerification as jest.Mock
+      ).mockResolvedValue({
+        email: "verify@example.com",
+        username: "verify_user",
+        firstName: "Verify",
+        lastName: "User",
+        password: "hashed_password",
+      });
+      const newUser = {
+        id: 99,
+        email: "verify@example.com",
+        username: "verify_user",
+        firstName: "Verify",
+        lastName: "User",
+      };
+      (prisma.user.create as jest.Mock).mockResolvedValue(newUser);
+
+      await authController.verifyEmailAndRegister(
+        req,
+        res as unknown as Response,
+      );
+
+      expect(prisma.user.create).toHaveBeenCalledWith({
+        data: {
+          email: "verify@example.com",
+          username: "verify_user",
+          firstName: "Verify",
+          lastName: "User",
+          password: "hashed_password",
+        },
+      });
+      expect(res.cookie).toHaveBeenCalledWith(
+        "authToken",
+        expect.any(String),
+        expect.any(Object),
+      );
+      expect(res.setHeader).toHaveBeenCalledWith("Location", "/reports");
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          message: "Email verified and registration completed",
+          user: newUser,
+        }),
+      );
+    });
+
+    it("calls logger.info on successful verification", async () => {
+      const req = {
+        body: {
+          emailOrUsername: "logged@example.com",
+          code: "111111",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      const pendingVerif = {
+        email: "logged@example.com",
+        username: "logged_user",
+        firstName: "Log",
+        lastName: "Ger",
+        password: "pass",
+      };
+
+      (emailVerificationService.verifyCode as jest.Mock).mockResolvedValue(
+        true,
+      );
+      (
+        emailVerificationService.completePendingVerification as jest.Mock
+      ).mockResolvedValue(pendingVerif);
+      (prisma.user.create as jest.Mock).mockResolvedValue({
+        id: 88,
+        ...pendingVerif,
+      });
+
+      await authController.verifyEmailAndRegister(
+        req,
+        res as unknown as Response,
+      );
+
+      expect(res.status).toHaveBeenCalledWith(201);
+    });
   });
 
   // ---------- resendVerificationCode ----------
@@ -614,6 +711,66 @@ describe("authController", () => {
       );
 
       expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it("successfully resends code and sends verification email with all parameters", async () => {
+      const req = {
+        body: {
+          emailOrUsername: "resend@example.com",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (emailVerificationService.resendCode as jest.Mock).mockResolvedValue({
+        email: "resend@example.com",
+        firstName: "Resend",
+        code: "999999",
+      });
+      (sendVerificationEmail as jest.Mock).mockResolvedValue(true);
+
+      await authController.resendVerificationCode(
+        req,
+        res as unknown as Response,
+      );
+
+      expect(emailVerificationService.resendCode).toHaveBeenCalledWith(
+        "resend@example.com",
+      );
+      expect(sendVerificationEmail).toHaveBeenCalledWith({
+        email: "resend@example.com",
+        firstName: "Resend",
+        code: "999999",
+        resendUrl: expect.stringContaining("verify-email?email=resend"),
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Verification code resent to your email",
+      });
+    });
+
+    it("returns 429 when too many resend attempts", async () => {
+      const req = {
+        body: {
+          emailOrUsername: "toomany@example.com",
+        },
+      } as unknown as Request;
+      const res = makeRes();
+
+      (emailVerificationService.resendCode as jest.Mock).mockRejectedValue(
+        new TooManyRequestsError("Too many verification attempts"),
+      );
+
+      await authController.resendVerificationCode(
+        req,
+        res as unknown as Response,
+      );
+
+      expect(res.status).toHaveBeenCalledWith(429);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Too Many Attempts",
+        message: "Too many verification attempts",
+      });
     });
   });
 });
