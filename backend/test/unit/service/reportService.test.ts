@@ -562,6 +562,25 @@ describe("reportService", () => {
         reportService.assignToExternalMaintainer(reportId),
       ).rejects.toThrow("No external maintainers available");
     });
+
+    it("should throw error when no maintainer can be chosen after evaluation", async () => {
+      const reportId = 1;
+      const report = {
+        id: reportId,
+        category: "PUBLIC_LIGHTING",
+      };
+      // Mock maintainers with invalid data to trigger null chosen scenario
+      const maintainers = [];
+      
+      repo.findById.mockResolvedValue(report);
+      jest
+        .spyOn(userRepository, "findExternalMaintainersByCategory")
+        .mockResolvedValue(maintainers as any);
+
+      await expect(
+        reportService.assignToExternalMaintainer(reportId),
+      ).rejects.toThrow("No external maintainers available");
+    });
   });
 
   // -------- Find Reports for External Maintainer --------
@@ -870,6 +889,17 @@ describe("reportService", () => {
       expect(res.length).toBeGreaterThan(0);
     });
 
+    it("getUnreadCommentsOfAReportById throws for unauthorized EXTERNAL_MAINTAINER", async () => {
+      (repo as any).findById.mockResolvedValue({
+        id: 5,
+        externalMaintainerId: 7,
+      });
+
+      await expect(
+        reportService.getUnreadCommentsOfAReportById(5, 999, "EXTERNAL_MAINTAINER"),
+      ).rejects.toThrow("not authorized");
+    });
+
     it("getUnreadCommentsOfAReportById returns unread comments for EXTERNAL_MAINTAINER", async () => {
       const unreadComments = [
         {
@@ -980,6 +1010,32 @@ describe("reportService", () => {
       await expect(
         reportService.updateReportStatusByExternalMaintainer(7, 3, "RESOLVED"),
       ).rejects.toThrow(/Invalid state transition/i);
+    });
+
+    it("throws when invalid status string passed", async () => {
+      const existing = { id: 7, externalMaintainerId: 3, status: "ASSIGNED" };
+      (repo as any).findById.mockResolvedValue(existing);
+
+      await expect(
+        reportService.updateReportStatusByExternalMaintainer(
+          7,
+          3,
+          "INVALID_STATUS",
+        ),
+      ).rejects.toThrow(/Invalid status/i);
+    });
+
+    it("throws when external maintainer tries to set ASSIGNED status", async () => {
+      const existing = { id: 7, externalMaintainerId: 3, status: "ASSIGNED" };
+      (repo as any).findById.mockResolvedValue(existing);
+
+      await expect(
+        reportService.updateReportStatusByExternalMaintainer(
+          7,
+          3,
+          "ASSIGNED",
+        ),
+      ).rejects.toThrow(/External maintainers can only set status to/i);
     });
 
     it("throws when invalid status string passed", async () => {

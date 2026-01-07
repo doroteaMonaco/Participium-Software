@@ -646,4 +646,97 @@ describe("emailVerificationService", () => {
       expect(db.pending_verification_user.delete).toHaveBeenCalled();
     });
   });
-});
+
+  describe("resendCode", () => {
+    it("returns new code when old creation is beyond 1 hour", async () => {
+      const oldPending = makePendingUser({
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // Created 2 hours ago
+      });
+      db.pending_verification_user.findFirst.mockResolvedValue(oldPending);
+
+      const mockCode = "654321";
+      const mockCodeHash = "hashed-654321";
+
+      jest
+        .spyOn(emailVerificationService, "generateVerificationCode")
+        .mockResolvedValue(mockCode);
+      jest
+        .spyOn(emailVerificationService, "hashCode")
+        .mockResolvedValue(mockCodeHash);
+
+      const newPending = makePendingUser({
+        id: 2,
+        verificationCodeHash: mockCodeHash,
+      });
+      db.pending_verification_user.create.mockResolvedValue(newPending);
+
+      const result = await emailVerificationService.resendCode(
+        "test@example.com",
+      );
+
+      expect(result).toEqual({
+        email: oldPending.email,
+        firstName: oldPending.firstName,
+        code: mockCode,
+      });
+    });
+
+    it("rejects when resend attempted within 1 hour", async () => {
+      const recentPending = makePendingUser({
+        createdAt: new Date(Date.now() - 30 * 60 * 1000), // Created 30 minutes ago
+      });
+      db.pending_verification_user.findFirst.mockResolvedValue(recentPending);
+
+      await expect(
+        emailVerificationService.resendCode("test@example.com"),
+      ).rejects.toThrow("Too many verification attempts");
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        "Rate limit exceeded for test@example.com",
+      );
+      expect(db.pending_verification_user.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects when no pending verification found for resend", async () => {
+      db.pending_verification_user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        emailVerificationService.resendCode("nonexistent@example.com"),
+      ).rejects.toThrow("No pending verification found");
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        "No pending verification found for resend: nonexistent@example.com",
+      );
+    });
+
+    it("creates new pending verification with fresh code", async () => {
+      const oldPending = makePendingUser({
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      });
+      db.pending_verification_user.findFirst.mockResolvedValue(oldPending);
+
+      const mockCode = "999888";
+      const mockCodeHash = "hashed-999888";
+
+      jest
+        .spyOn(emailVerificationService, "generateVerificationCode")
+        .mockResolvedValue(mockCode);
+      jest
+        .spyOn(emailVerificationService, "hashCode")
+        .mockResolvedValue(mockCodeHash);
+
+      const newPending = makePendingUser({
+        id: 3,
+        verificationCodeHash: mockCodeHash,
+      });
+      db.pending_verification_user.create.mockResolvedValue(newPending);
+
+      const result = await emailVerificationService.resendCode("test@example.com");
+
+      expect(db.pending_verification_user.deleteMany).toHaveBeenCalledWith({
+        where: { email: oldPending.email },
+      });
+      expect(db.pending_verification_user.create).toHaveBeenCalled();
+      expect(result.code).toBe(mockCode);
+    });
+  });});
