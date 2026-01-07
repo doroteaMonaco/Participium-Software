@@ -68,6 +68,8 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
   markerDraggable = false,
   markerLocation = false,
   showLegend = true,
+  showSearch = true,
+  showMarker = true,
 }) => {
   const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJsonObject | null>(
     null,

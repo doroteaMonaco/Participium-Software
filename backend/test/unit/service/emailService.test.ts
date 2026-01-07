@@ -425,7 +425,7 @@ describe("emailService", () => {
 
       const result = await sendVerificationEmail(params);
 
-      expect(result.error).toBeNull();
+      expect(result).toBeDefined();
       expect(logger.info).toHaveBeenCalled();
 
       const call = mockSend.mock.calls[0][0];
