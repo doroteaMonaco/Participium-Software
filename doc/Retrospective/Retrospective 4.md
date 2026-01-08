@@ -41,16 +41,16 @@ sections:
 
 |            | Mean   | StDev  |
 | ---------- | ------ | ------ |
-| Estimation |  |  |
-| Actual     |  |  |
+| Estimation | 124.78m | 146.66m |
+| Actual     | 124.57m | 140.08m |
 
 - Total estimation error ratio: sum of total hours spent / sum of total hours effort - 1
 
-  $$\frac{\sum_i spent_{task_i}}{\sum_i estimation_{task_i}} - 1 = \% $$
+  $$\frac{\sum_i spent_{task_i}}{\sum_i estimation_{task_i}} - 1 = -0.17\% $$
 
 - Absolute relative task estimation error: sum( abs( spent-task-i / estimation-task-i - 1))/n
 
-  $$\frac{1}{n}\sum_i^n \left| \frac{spent_{task_i}}{estimation_task_i}-1 \right| = \%$$
+  $$\frac{1}{n}\sum_i^n \left| \frac{spent_{task_i}}{estimation_task_i}-1 \right| = 2.7\%$$
 
 ## QUALITY MEASURES
 
