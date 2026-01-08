@@ -27,10 +27,12 @@ Developed as a group project for the **Software Engineering II** course at **Pol
 ### For Citizens
 
 - **Interactive Map Interface**: View and create reports on an interactive map with geospatial capabilities
+- **Address Search**: Search for locations by address with autocomplete suggestions powered by OpenStreetMap Nominatim API
 - **Rich Report Creation**: Submit reports with up to 3 photos, precise location, and detailed descriptions
 - **Categorized Issues**: Select from 9 report categories (waste, water supply, sewer system, public lighting, roads, etc.)
 - **Real-time Status Tracking**: Monitor the status of submitted reports (Pending Approval → Assigned → In Progress → Resolved)
 - **Anonymous Reporting**: Option to submit reports anonymously
+- **Email Verification**: Confirm registration with a 6-digit verification code sent via email (30-minute expiry)
 - **Comments & Collaboration**: Internal comments system for municipality staff and external maintainers to collaborate on reports
   - **Comment Access Control**: Only municipality staff and assigned external maintainers can view and add comments
   - **Comment Restriction on Resolved Reports**: Comments are disabled when a report reaches "Resolved" status
@@ -220,11 +222,7 @@ After initialization, you can login with:
 - **Admin User**
   - Username: `admin`
   - Email: `admin@participium.com`
-  - Password: Use the password set during initialization
-
-- **Test Municipality User** (if seeded)
-  - Role: `municipal public relations officer`
-  - Check database for exact credentials
+  - Password: `admin` (default credentials)
 
 #### 4. Stop the Application
 
@@ -277,6 +275,9 @@ npm run test-unit
 # Run integration tests only
 npm run test-integration
 
+# Run E2E tests only
+npm run test-e2e
+
 # Run tests with coverage report
 npm run test-coverage
 ```
@@ -301,31 +302,54 @@ Manual E2E UI testing documentation is available in the test directory.
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|-----------------|
-| POST | `/api/session` | Login (citizen/municipality/admin) | No |
-| GET | `/api/session` | Verify authentication status | No |
-| DELETE | `/api/session` | Logout | Yes |
+| POST | `/api/auth/session` | Login (citizen/municipality/admin) | No |
+| GET | `/api/auth/session` | Verify authentication status | No |
+| DELETE | `/api/auth/session` | Logout | Yes |
+| POST | `/api/auth/verify` | Verify email and complete registration with verification code | No |
+| POST | `/api/auth/resend-code` | Resend verification code to email | No |
+
+### Email
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|-----------------|
+| POST | `/api/email/send-verification` | Send verification email to citizen | No |
 
 ### Reports
 
 | Method | Endpoint | Description | Auth Required | Role |
 |--------|----------|-------------|-----------------|------|
-| POST | `/api/reports` | Create new report (with photos) | Yes | Citizen |
-| GET | `/api/reports` | Get all reports (with filters) | Yes | Citizen/Municipality |
+| POST | `/api/reports` | Create new report (with up to 3 photos) | Yes | Citizen |
+| GET | `/api/reports` | Get all reports (with filters by status, category, date range) | Yes | Citizen/Municipality |
 | GET | `/api/reports/:id` | Get report by ID | No | Any |
-| POST | `/api/reports/:id` | Approve or reject a report | Yes | Municipality |
-| GET | `/api/reports/municipality-user/:municipalityUserId` | Get reports for municipality user | Yes | Municipality |
+| POST | `/api/reports/:id` | Update report status (approve/reject/assign) | Yes | Municipality/External Maintainer |
+| GET | `/api/reports/search` | Search reports by bounding box (map bounds) | No | Any |
+| GET | `/api/reports/reports-map` | Get all reports for map view | No | Any |
+| GET | `/api/reports/municipality-user/:municipalityUserId` | Get reports assigned to a municipality user | Yes | Municipality |
+| GET | `/api/reports/external-maintainers/:externalMaintainersId` | Get reports assigned to an external maintainer | Yes | External Maintainer |
+| POST | `/api/reports/:report_id/external-maintainers` | Assign report to an external maintainer | Yes | Municipality |
+
+### Comments
+
+| Method | Endpoint | Description | Auth Required | Role |
+|--------|----------|-------------|-----------------|------|
+| POST | `/api/reports/:report_id/comments` | Add a comment to a report | Yes | Municipality/External Maintainer |
+| GET | `/api/reports/:report_id/comments` | Get all comments on a report | Yes | Municipality/External Maintainer |
+| GET | `/api/reports/:report_id/comments/unread` | Get unread comments on a report | Yes | Municipality/External Maintainer |
 
 ### Users
 
 | Method | Endpoint | Description | Auth Required | Role |
 |--------|----------|-------------|-----------------|------|
-| POST | `/api/users` | Register new citizen | No | Any |
-| PATCH | `/api/users` | Update citizen profile (with photo) | Yes | Citizen |
-| GET | `/api/users` | Get all users | Yes | Admin |
+| POST | `/api/users` | Register new citizen with email verification | No | Any |
+| PATCH | `/api/users` | Update citizen profile (with optional photo) | Yes | Citizen |
+| GET | `/api/users` | Get all users (pagination available) | Yes | Admin |
 | GET | `/api/users/:id` | Get user by ID | Yes | Admin |
+| DELETE | `/api/users/:id` | Delete user by ID | Yes | Admin |
 | POST | `/api/users/municipality-users` | Create municipality user | Yes | Admin |
 | GET | `/api/users/municipality-users` | Get all municipality users | Yes | Admin |
-| GET | `/api/users/municipality-users/roles` | Get all municipality roles | Yes | Admin |
+| GET | `/api/users/municipality-users/roles` | Get all available municipality roles | Yes | Admin |
+| POST | `/api/users/external-users` | Create external maintainer user | Yes | Admin |
+| GET | `/api/users/external-users` | Get all external maintainer users | Yes | Admin |
 
 ## Documentation
 
@@ -335,6 +359,36 @@ Comprehensive documentation is available in the `/doc` directory:
 - **Workflow.md** - System workflow and user story documentation
 - **OpenAPI_swagger.yml** - Complete API specification in OpenAPI format
 - **RELEASE_1.md** - Features and improvements in Release 1
+- **TD_strategy.md** - Technical debt management strategy and prioritization approach
+
+## Technical Debt Management Strategy
+
+The project follows a structured approach to managing technical debt based on the strategy documented in [TD_strategy.md](doc/TD_strategy.md):
+
+### Prioritization Principles
+
+1. **Category First**
+   - Handle issues by categories in the following sequence:
+     1. Security
+     2. Reliability
+     3. Maintainability
+
+2. **Severity First**
+   - For issues of the same category, handle issues in descending severity (Critical → High → Medium → Low)
+   - Within each severity level, prioritize items that affect multiple services before localized ones
+
+3. **Type Order**
+   - When the previous rules still leave a tie, prefer the following order:
+     1. Bugs
+     2. Vulnerability
+     3. Code smell
+
+### Execution Workflow
+
+1. **Triage** - Review new SonarQube findings, bug reports, and incident retros at the start of every sprint
+2. **Planning** - Reserve sprint capacity for top pending technical debt items following the prioritization stack
+3. **Remediation** - Implement fixes with regression tests; add monitoring/alert rules for security issues when relevant
+4. **Verification** - Re-run the full automated test suite for every fix and document any residual risks
 
 ## Report Categories
 
