@@ -55,12 +55,7 @@ export const sendVerificationEmail = async (
                 
                 <p>This code will expire in ${CONFIG.VERIFICATION_CODE_EXPIRY_MINUTES} minutes.</p>
                 
-                ${
-                  resendUrl
-                    ? `<p><a href="${resendUrl}" class="button">Verify Email</a></p>`
-                    : ""
-                }
-                
+               
                 <p>If you didn't create this account, please ignore this email.</p>
                 
                 <div class="footer">
