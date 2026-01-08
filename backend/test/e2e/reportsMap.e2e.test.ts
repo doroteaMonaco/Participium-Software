@@ -49,7 +49,7 @@ const registerUser = async (
 
   const verifyRes = await agent.post("/api/auth/verify").send({
     emailOrUsername: user.email,
-    code: (global as any).__lastSentVerificationCode,
+    code: (globalThis as any).__lastSentVerificationCode,
   });
   expect(verifyRes.status).toBe(201);
 };

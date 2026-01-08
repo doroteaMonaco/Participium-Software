@@ -642,7 +642,7 @@ export const reportSearchHandler = async (req: Request, res: Response) => {
       });
     }
 
-    if (!(minLng < maxLng) || !(minLat < maxLat)) {
+    if (minLng >= maxLng || minLat >= maxLat) {
       return res.status(400).json({
         error: "Validation Error",
         message: "Invalid bbox values. Expected minLng < maxLng and minLat < maxLat.",
