@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Container } from "src/components/shared/Container";
 import { SectionTitle } from "src/components/shared/SectionTitle";
 import MapView from "src/components/map/MapView";
-import { getReportsForMapView } from "src/services/api";
+import { getReportsForMapView, searchReports } from "src/services/api";
 import { ReportModel } from "src/services/models";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -41,9 +41,24 @@ const getStatusDisplayText = (status: string): string => {
 const MapPage: React.FC = () => {
   const navigate = useNavigate();
   const [reports, setReports] = useState<ReportModel[]>([]);
+  const [filteredReports, setFilteredReports] = useState<ReportModel[]>([]);
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [error, setError] = useState<string>("");
   const [isAuthError, setIsAuthError] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
+
+  const handleAddressSearch = async (lat: number, lon: number) => {
+    try {
+      setError("");
+      const data = await searchReports(lat, lon);
+      const mapped = (data ?? []).map((r: any) => new ReportModel(r));
+      setFilteredReports(mapped);
+      setIsSearchActive(true);
+    } catch (err: any) {
+      console.error("Error searching reports:", err);
+      setError("Could not search reports in this area.");
+    }
+  };
 
   useEffect(() => {
     // fetchReports is defined so it can be called on mount and when reports change
@@ -54,6 +69,7 @@ const MapPage: React.FC = () => {
         // Filter to show only approved statuses
         const mapped = (data ?? []).map((r: any) => new ReportModel(r));
         setReports(mapped);
+        setFilteredReports(mapped);
         setIsAuthError(false);
       } catch (err: any) {
         console.error("Error fetching reports:", err);
@@ -71,6 +87,9 @@ const MapPage: React.FC = () => {
           const r = ce.detail;
           const rep = new ReportModel(r);
           setReports((prev) => [rep, ...prev]);
+          if (!isSearchActive) {
+            setFilteredReports((prev) => [rep, ...prev]);
+          }
           return;
         }
       } catch (err) {
@@ -134,32 +153,48 @@ const MapPage: React.FC = () => {
           {/* Map Container */}
           <div className="flex-1 h-full">
             <MapView
-              reports={reports}
+              reports={filteredReports}
               markerDraggable={false}
               markerLocation={false}
               showLegend={true}
               showMarker={false}
               selectedReportId={selectedReportId}
+              onAddressSearch={handleAddressSearch}
             />
           </div>
 
           {/* Reports List */}
           <div className="w-full lg:w-96 bg-white border-t lg:border-l lg:border-t-0 border-slate-200 overflow-y-auto scrollbar-thin">
             <div className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 z-10">
-              <h3 className="text-lg font-bold text-slate-900">
-                Reports ({reports.length})
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">Click to view details</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    Reports ({filteredReports.length}){isSearchActive && " - Filtered"}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Click to view details</p>
+                </div>
+                {isSearchActive && (
+                  <button
+                    onClick={() => {
+                      setFilteredReports(reports);
+                      setIsSearchActive(false);
+                    }}
+                    className="px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+                  >
+                    Clear Filter
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="divide-y divide-slate-200">
-              {reports.length === 0 ? (
+              {filteredReports.length === 0 ? (
                 <div className="px-4 py-8 text-center text-slate-500">
                   <MapPin className="h-12 w-12 mx-auto mb-2 text-slate-300" />
-                  <p className="text-sm">No reports to display</p>
+                  <p className="text-sm">{isSearchActive ? "No reports found in this area" : "No reports to display"}</p>
                 </div>
               ) : (
-                reports.map((report) => (
+                filteredReports.map((report) => (
                   <motion.div
                     key={report.id}
                     initial={{ opacity: 0 }}

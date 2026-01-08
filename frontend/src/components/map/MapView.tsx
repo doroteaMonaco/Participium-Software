@@ -61,6 +61,7 @@ type Props = {
   showSearch?: boolean;
   showMarker?: boolean;
   selectedReportId?: number | null;
+  onAddressSearch?: (lat: number, lon: number) => void;
 };
 
 const MapView: React.FC<React.PropsWithChildren<Props>> = ({
@@ -72,6 +73,7 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
   showSearch = true,
   showMarker = true,
   selectedReportId = null,
+  onAddressSearch,
 }) => {
   const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJsonObject | null>(
     null,
@@ -108,6 +110,10 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
       mapInstanceRef.current.flyTo([lat, lon], zoom, {
         duration: 2,
       });
+    }
+    // Call the search handler if provided
+    if (onAddressSearch) {
+      onAddressSearch(lat, lon);
     }
   };
 
