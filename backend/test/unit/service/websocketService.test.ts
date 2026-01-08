@@ -57,7 +57,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -92,7 +92,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -133,7 +133,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -158,7 +158,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -176,15 +176,15 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
       startWebSocketServer(8080);
-      const firstCallCount = (WebSocketServer as jest.Mock).mock.calls.length;
+      const firstCallCount = (WebSocketServer as unknown as jest.Mock).mock.calls.length;
 
       startWebSocketServer(8080);
-      const secondCallCount = (WebSocketServer as jest.Mock).mock.calls.length;
+      const secondCallCount = (WebSocketServer as unknown as jest.Mock).mock.calls.length;
 
       expect(secondCallCount).toBe(firstCallCount);
       expect(loggingService.logInfo).toHaveBeenCalledWith(
@@ -202,7 +202,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -224,7 +224,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -237,7 +237,7 @@ describe("websocketService", () => {
     });
 
     it("should throw error if server creation fails", () => {
-      (WebSocketServer as jest.Mock).mockImplementation(() => {
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(() => {
         throw new Error("Failed to create server");
       });
 
@@ -259,7 +259,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -294,7 +294,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -340,7 +340,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -397,7 +397,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -451,7 +451,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -497,7 +497,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -545,7 +545,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -596,7 +596,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -636,7 +636,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -676,7 +676,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -697,7 +697,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 
@@ -750,7 +750,7 @@ describe("websocketService", () => {
         close: jest.fn((cb) => cb?.()),
       };
 
-      (WebSocketServer as jest.Mock).mockImplementation(
+      (WebSocketServer as unknown as jest.Mock).mockImplementation(
         () => mockWssInstance,
       );
 

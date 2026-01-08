@@ -201,8 +201,7 @@ describe("userService", () => {
         firstName: "Full",
         lastName: "User",
         password: "p",
-        companyName: "Tech Corp",
-        category: "SOFTWARE_DEVELOPMENT",
+
       };
       repo.findUserByEmail.mockResolvedValue(null);
       repo.findUserByUsername.mockResolvedValue(null);
@@ -226,8 +225,6 @@ describe("userService", () => {
         {
           firstName: userDataFull.firstName,
           lastName: userDataFull.lastName,
-          companyName: userDataFull.companyName,
-          category: userDataFull.category,
         },
       );
       expect(res).toBe(created);

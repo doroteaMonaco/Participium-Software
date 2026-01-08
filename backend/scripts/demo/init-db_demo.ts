@@ -12,7 +12,7 @@ import {
   ExternalMaintainerUserDto,
 } from "@dto/userDto";
 import { CreateReportDto, ReportDto } from "@dto/reportDto";
-import { createCommentDto } from "@models/dto/commentDto";
+import { CreateCommentDto } from "@models/dto/commentDto";
 
 import { userService } from "@services/userService";
 import reportService from "@services/reportService";
@@ -359,7 +359,7 @@ async function updateReports(
 async function createComments(comments: any[]) {
   for (const c of comments) {
     try {
-      const dto: createCommentDto = {
+      const dto: CreateCommentDto = {
         reportId: c.reportId,
         content: c.content,
         authorType: c.municipality_user_id

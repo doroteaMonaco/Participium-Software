@@ -570,7 +570,7 @@ describe("reportService", () => {
         category: "PUBLIC_LIGHTING",
       };
       // Mock maintainers with invalid data to trigger null chosen scenario
-      const maintainers = [];
+      const maintainers: any[] = [];
       
       repo.findById.mockResolvedValue(report);
       jest

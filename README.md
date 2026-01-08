@@ -296,6 +296,34 @@ Manual E2E UI testing documentation is available in the test directory.
 - **E2E Report Workflow Tests**: Complete report lifecycle and collaboration
 - **E2E Map and Location Tests**: Interactive map features
 
+## Real-Time Features
+
+### WebSocket Implementation
+
+The application uses WebSocket for real-time notifications and comment synchronization between municipality staff and external maintainers.
+
+**WebSocket Server Details:**
+- **Port**: 8080 (configurable in `websocketService.ts`)
+- **Authentication**: JWT token passed as query parameter (`?token=<jwt_token>`)
+- **Supported Roles**: Municipality users and External maintainers only
+
+**WebSocket Events:**
+
+| Event | Direction | Description | Payload |
+|-------|-----------|-------------|---------|
+| `CONNECTED` | Server → Client | Initial connection confirmation | `{ type: "CONNECTED", message: "Welcome message" }` |
+| `MARK_COMMENTS_AS_READ` | Client → Server | Mark report comments as read | `{ type: "MARK_COMMENTS_AS_READ", reportId: number }` |
+| Comment notification | Server → Client | Real-time comment added notification | `{ id, reportId, content, municipality_user_id or external_maintainer_id, createdAt, updatedAt }` |
+
+**How It Works:**
+
+1. **Connection**: When a municipality user or external maintainer logs in, a WebSocket connection is established with their JWT token
+2. **Comment Notifications**: When a comment is added to a report, the system automatically notifies the other party (municipality ↔ external maintainer) via WebSocket
+3. **Read Status Tracking**: When a user reads comments, they mark them as read by sending the `MARK_COMMENTS_AS_READ` event
+4. **Real-time Updates**: Users see comment counts update in real-time without refreshing the page.
+
+---
+
 ## API Documentation
 
 ### Authentication
