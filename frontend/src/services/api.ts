@@ -21,6 +21,11 @@ export interface UserRegistration {
   password: string;
 }
 
+export interface ConfirmRegistrationRequest {
+  email: string;
+  code: string;
+}
+
 export interface User {
   id?: number;
   firstName?: string;
@@ -36,6 +41,7 @@ export interface User {
   notificationsEnabled?: boolean;
   notifications?: boolean;
   profilePhoto?: string;
+  token?: string;
 }
 
 export interface LoginRequest {
@@ -89,8 +95,6 @@ export type ReportStatus =
   | "SUSPENDED"
   | "REJECTED"
   | "RESOLVED";
-
-export type ReportStatusFilter = ReportStatus;
 
 export interface ApproveReportRequest {
   status: Extract<ReportStatus, "ASSIGNED" | "REJECTED">;
@@ -192,6 +196,22 @@ export const register = async (userData: UserRegistration): Promise<User> => {
 };
 
 /**
+ * Confirm user registration with email code
+ * @param confirmData - Object containing email and 6-digit code
+ * @returns Success message
+ * @throws ApiError on failure
+ */
+export const confirmRegistration = async (
+  confirmData: ConfirmRegistrationRequest,
+): Promise<{ success: boolean; message: string; user?: User }> => {
+  const response = await api.post("/auth/verify", {
+    emailOrUsername: confirmData.email,
+    code: confirmData.code,
+  });
+  return response.data;
+};
+
+/**
  * Login with username/email and password
  * @returns User data on success
  * @throws ApiError on failure
@@ -286,11 +306,21 @@ export const createReport = async (
  * @throws ApiError on failure
  */
 export const getReports = async (
-  statusFilter?: ReportStatusFilter,
+  statusFilter?: ReportStatus,
 ): Promise<Report[]> => {
   const response = await api.get("/reports", {
     params: statusFilter ? { status: statusFilter } : undefined,
   });
+  return response.data;
+};
+
+/**
+ * Get reports for map view (public)
+ * @returns Array of reports
+ * @throws ApiError on failure
+ */
+export const getReportsForMapView = async (): Promise<Report[]> => {
+  const response = await api.get("/reports/reports-map");
   return response.data;
 };
 
@@ -462,7 +492,7 @@ export const updateMunicipalityUserRole = async (
  */
 export const createExternalMaintainerUser = async (
   userData: ExternalMaintainerUserCreateRequest,
-): Promise<any> => {
+): Promise<ExternalMaintainerUser> => {
   const response = await api.post("/users/external-users", userData);
   return response.data;
 };
@@ -525,5 +555,113 @@ export const addReportComment = async (
   const response = await api.post(`/reports/${reportId}/comments`, comment);
   return response.data;
 };
+
+/**
+ * Get unread comments for a report
+ * @param reportId Report ID
+ * @returns List of unread comments
+ * @throws ApiError on failure
+ */
+export const getUnreadComments = async (
+  reportId: number,
+): Promise<Comment[]> => {
+  const response = await api.get(`/reports/${reportId}/comments/unread`);
+  return response.data;
+};
+
+/**
+ * Search reports in a specific area around center coordinates
+ * @param latitude Center latitude
+ * @param longitude Center longitude
+ * @returns List of reports
+ * @throws ApiError on failure
+ */
+export const searchReports = async (
+  latitude: number,
+  longitude: number,
+): Promise<Report[]> => {
+  // Approximate 1 degree of latitude/longitude as 111km
+  // radius [km] / 111 [km/degree] = delta [degrees]
+  const delta = 0.0018; // ~200m
+  const minLon = longitude - delta;
+  const minLat = latitude - delta;
+  const maxLon = longitude + delta;
+  const maxLat = latitude + delta;
+  const bbox = `${minLon},${minLat},${maxLon},${maxLat}`;
+
+  const response = await api.get("/reports/search", {
+    params: { bbox },
+  });
+  return response.data;
+};
+
+// ==================== WebSocket API ====================
+
+export class WebSocketService {
+  private ws: WebSocket | null = null;
+  private messageHandlers: ((message: unknown) => void)[] = [];
+  private readonly authToken: string;
+
+  constructor(authToken: string) {
+    this.authToken = authToken;
+  }
+
+  connect() {
+    if (this.ws) {
+      return;
+    }
+
+    const wsUrl = import.meta.env.VITE_WS_URL || "ws://localhost:8080";
+    this.ws = new WebSocket(`${wsUrl}?token=${this.authToken}`);
+
+    this.ws.onopen = () => {
+      console.log("WebSocket connected");
+    };
+
+    this.ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        this.messageHandlers.forEach((handler) => handler(message));
+      } catch (error) {
+        console.error("Error parsing WebSocket message:", error);
+      }
+    };
+
+    this.ws.onclose = () => {
+      console.log("WebSocket disconnected");
+      this.ws = null;
+    };
+
+    this.ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+  }
+
+  disconnect() {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+  }
+
+  onMessage(handler: (message: unknown) => void) {
+    this.messageHandlers.push(handler);
+  }
+
+  offMessage(handler: (message: unknown) => void) {
+    this.messageHandlers = this.messageHandlers.filter((h) => h !== handler);
+  }
+
+  markCommentsAsRead(reportId: number) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: "MARK_COMMENTS_AS_READ",
+          reportId,
+        }),
+      );
+    }
+  }
+}
 
 export default api;

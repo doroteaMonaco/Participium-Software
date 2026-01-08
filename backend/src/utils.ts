@@ -30,7 +30,7 @@ export function throwConflictIfFound<T>(
   predicate: (item: T) => boolean,
   errorMessage: string,
 ): void {
-  if (array.find(predicate)) {
+  if (array.some(predicate)) {
     throw new ConflictError(errorMessage);
   }
 }

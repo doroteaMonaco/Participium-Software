@@ -9,7 +9,7 @@ import {
   verifyAuth,
   logout as apiLogout,
   type User as ApiUser,
-} from "../services/api";
+} from "src/services/api";
 
 export type UserRole = "ADMIN" | "MUNICIPALITY" | "CITIZEN" | "EXTERNAL_MAINTAINER";
 
@@ -18,12 +18,13 @@ interface User {
   firstName?: string;
   lastName?: string;
   username?: string;
-  role?: UserRole | string;
+  role?: UserRole;
   municipality_role_id?: number;
   municipality_role?: {
     id: number;
     name: string;
   };
+  token?: string;
 }
 
 interface AuthContextType {
@@ -46,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const checkAuth = async () => {
     try {
       const userData = await verifyAuth();
-      setUser(userData);
+      setUser(userData as User);
     } catch {
       setUser(null);
     } finally {

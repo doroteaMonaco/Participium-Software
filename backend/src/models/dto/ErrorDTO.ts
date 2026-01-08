@@ -35,8 +35,8 @@ export function ErrorFromJSON(json: any): ErrorDTO {
   }
   return {
     code: json["code"],
-    error: json["error"] == null ? undefined : json["error"],
-    message: json["message"] == null ? undefined : json["message"],
+    error: json["error"]?? undefined,
+    message: json["message"]?? undefined,
   };
 }
 

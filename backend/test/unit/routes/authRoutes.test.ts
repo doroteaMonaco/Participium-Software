@@ -10,6 +10,15 @@ jest.mock("@controllers/authController", () => ({
       res.status(200).json({ route: "verifyAuth" }),
     ),
     logout: jest.fn((_req: Request, res: Response) => res.status(204).send()),
+    registerWithVerification: jest.fn((req: Request, res: Response) =>
+      res.status(201).json({ route: "registerWithVerification", body: req.body }),
+    ),
+    verifyEmailAndRegister: jest.fn((req: Request, res: Response) =>
+      res.status(201).json({ route: "verifyEmailAndRegister", body: req.body }),
+    ),
+    resendVerificationCode: jest.fn((req: Request, res: Response) =>
+      res.status(200).json({ route: "resendVerificationCode", body: req.body }),
+    ),
   },
 }));
 

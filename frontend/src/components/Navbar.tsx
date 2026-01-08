@@ -14,7 +14,7 @@ const HOME_LINKS = [
 
 const NAV_LINKS = [
   { to: "/users", label: "Users" },
-  //   { to: "/map", label: "Map" },
+  { to: "/map", label: "Map" },
 ];
 
 const AUTH_BUTTONS = [
@@ -120,6 +120,7 @@ export const NavBar: React.FC = () => {
 
               {dropdownOpen && (
                 <div
+                  role="menu"
                   className="absolute left-0 top-full mt-2 w-48 rounded-xl border border-slate-200 bg-white shadow-lg py-2"
                   onMouseLeave={() => setDropdownOpen(false)}
                 >
@@ -156,9 +157,14 @@ export const NavBar: React.FC = () => {
               <div className="flex items-center gap-3">
                 <Link
                   to={getUserDashboardPath()}
-                  className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                  className="flex items-center gap-2.5 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 px-3 py-1 hover:shadow-md hover:border-indigo-200 transition-all group"
                 >
-                  {user.firstName || user.username || "User"}
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold shadow-sm">
+                    {(user.firstName?.[0] || user.username?.[0] || "U").toUpperCase()}
+                  </div>
+                  <span className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors">
+                    {user.firstName || user.username || "User"}
+                  </span>
                 </Link>
                 <button
                   onClick={async () => {
@@ -274,17 +280,52 @@ export const NavBar: React.FC = () => {
                 </Link>
               ))}
 
-              {/* Auth Buttons */}
-              {AUTH_BUTTONS.map((button) => (
-                <Link
-                  key={button.to}
-                  to={button.to}
-                  className={button.mobileClassName}
-                  onClick={closeMobileMenu}
-                >
-                  {button.label}
-                </Link>
-              ))}
+              {/* User or Auth Buttons */}
+              {isAuthenticated && user ? (
+                <>
+                  <Link
+                    to={getUserDashboardPath()}
+                    className="flex items-center gap-3 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 px-4 py-3 hover:shadow-md hover:border-indigo-200 transition-all mt-2"
+                    onClick={closeMobileMenu}
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold shadow-sm">
+                      {(user.firstName?.[0] || user.username?.[0] || "U").toUpperCase()}
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-semibold text-slate-900">
+                        {user.firstName || user.username || "User"}
+                      </span>
+                      <span className="text-xs text-slate-500 capitalize">
+                        {user.role?.toLowerCase() || "User"}
+                      </span>
+                    </div>
+                  </Link>
+                  <button
+                    onClick={async () => {
+                      await logout();
+                      navigate("/");
+                      closeMobileMenu();
+                    }}
+                    className="inline-flex items-center justify-center gap-2 w-full rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  {AUTH_BUTTONS.map((button) => (
+                    <Link
+                      key={button.to}
+                      to={button.to}
+                      className={button.mobileClassName}
+                      onClick={closeMobileMenu}
+                    >
+                      {button.label}
+                    </Link>
+                  ))}
+                </>
+              )}
             </nav>
           </div>
         </div>

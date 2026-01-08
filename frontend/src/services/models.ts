@@ -26,7 +26,6 @@ export class ReportModel {
     lastName: string;
     companyName: string;
   } | null;
-  // submittedBy?: string;
 
   constructor(x: Report) {
     this.id = x.id ?? 0;
@@ -43,7 +42,6 @@ export class ReportModel {
     this.assignedOffice = x.assignedOffice;
     this.externalMaintainerId = x.externalMaintainerId || null;
     this.externalMaintainer = x.externalMaintainer || null;
-    // this.submittedBy = submittedBy;
     this.isAnonymous = x.anonymous || false;
   }
 }
@@ -60,7 +58,7 @@ export const ReportStatus = {
 export type ReportStatus = (typeof ReportStatus)[keyof typeof ReportStatus];
 
 export const parseReportStatus = (
-  val?: string | APIReportStatus,
+  val?: APIReportStatus | string,
 ): ReportStatus => {
   const s = (val ?? "").toString().trim().toUpperCase();
 

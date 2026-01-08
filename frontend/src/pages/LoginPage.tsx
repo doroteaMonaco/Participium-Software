@@ -119,10 +119,7 @@ export const Login: React.FC = () => {
               </h1>
               <p className="mt-2 text-sm text-slate-600">
                 Sign in to continue contributing to{" "}
-                <span className="font-semibold text-indigo-600">
-                  Participium
-                </span>
-                .
+                <span className="font-semibold text-indigo-600">Participium</span>.
               </p>
             </div>
 

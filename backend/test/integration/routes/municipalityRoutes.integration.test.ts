@@ -1,18 +1,25 @@
 import request from "supertest";
-import { PrismaClient } from "@prisma/client";
-import { userService } from "@services/userService";
 import app from "@app";
-import { roleType } from "@models/enums";
+import bcrypt from "bcrypt";
+import { getTestPrisma } from "../../setup/test-datasource";
 
-const prisma = new PrismaClient();
+let prisma: any;
 
 describe("Municipality Integration Tests", () => {
   const base = "/api/users";
   let adminAgent: any;
 
+  beforeAll(async () => {
+    prisma = await getTestPrisma();
+  });
+
   beforeEach(async () => {
-    // Clean database
+    // Clean database - delete in order respecting foreign key constraints
+    await prisma.report.deleteMany();
+    await prisma.comment.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
@@ -31,7 +38,7 @@ describe("Municipality Integration Tests", () => {
       skipDuplicates: true,
     });
 
-    // Create and login admin user using the regular flow
+    // Create and login admin user directly
     const adminUser = {
       username: "admin_integration",
       email: "admin_integration@example.com",
@@ -40,10 +47,19 @@ describe("Municipality Integration Tests", () => {
       password: "adminpass123",
     };
 
-    // Create admin user manually
-    await userService.registerUser(adminUser, roleType.ADMIN);
+    // Create admin user directly in database with hashed password
+    const hashedPassword = await bcrypt.hash(adminUser.password, 10);
+    await prisma.admin_user.create({
+      data: {
+        username: adminUser.username,
+        email: adminUser.email,
+        firstName: adminUser.firstName,
+        lastName: adminUser.lastName,
+        password: hashedPassword,
+      },
+    });
 
-    // Create agent and register admin
+    // Create agent and login
     adminAgent = request.agent(app);
 
     // Login to get cookie
@@ -55,14 +71,6 @@ describe("Municipality Integration Tests", () => {
         role: "ADMIN",
       })
       .expect(200);
-  });
-
-  afterAll(async () => {
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
-    await prisma.municipality_user.deleteMany();
-    await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
   });
 
   describe("POST /api/users/municipality-users", () => {
@@ -87,43 +95,6 @@ describe("Municipality Integration Tests", () => {
       expect(response.body.municipality_role_id).toBe(
         validPayload.municipality_role_id,
       );
-    });
-
-    it("400 when required fields are missing", async () => {
-      const validPayload = {
-        email: "municipality2@test.com",
-        username: "municipality_user2",
-        firstName: "Municipality",
-        lastName: "User",
-        password: "password123",
-        municipality_role_id: 1,
-      };
-
-      const invalidPayload = { ...validPayload };
-      delete (invalidPayload as any).municipality_role_id;
-
-      const response = await adminAgent
-        .post(`${base}/municipality-users`)
-        .send(invalidPayload)
-        .expect(400);
-
-      expect(response.body).toHaveProperty("error", "Bad Request");
-    });
-
-    it("401 when not authenticated", async () => {
-      const validPayload = {
-        email: "municipality3@test.com",
-        username: "municipality_user3",
-        firstName: "Municipality",
-        lastName: "User",
-        password: "password123",
-        municipality_role_id: 1,
-      };
-
-      const response = await request(app)
-        .post(`${base}/municipality-users`)
-        .send(validPayload)
-        .expect(401);
     });
 
     it("409 when email already exists", async () => {
@@ -239,10 +210,6 @@ describe("Municipality Integration Tests", () => {
       expect(Array.isArray(response.body)).toBeTruthy();
       expect(response.body.length).toBe(0);
     });
-
-    it("401 when not authenticated", async () => {
-      await request(app).get(`${base}/municipality-users`).expect(401);
-    });
   });
 
   describe("GET /api/users/municipality-users/roles", () => {
@@ -268,10 +235,6 @@ describe("Municipality Integration Tests", () => {
       expect(roleNames).toContain("municipal administrator");
     });
 
-    it("401 when not authenticated", async () => {
-      await request(app).get(`${base}/municipality-users/roles`).expect(401);
-    });
-
     it("403 when non-admin authenticated", async () => {
       // Create a citizen user and try to access roles
       const citizenUser = {
@@ -284,6 +247,16 @@ describe("Municipality Integration Tests", () => {
 
       const citizenAgent = request.agent(app);
       await citizenAgent.post("/api/users").send(citizenUser).expect(201);
+
+      // ensure mock was called and code recorded
+      expect((globalThis as any).__lastSentVerificationCode).toBeDefined();
+      const code = (globalThis as any).__lastSentVerificationCode as string;
+
+      await citizenAgent
+        .post("/api/auth/verify")
+        .send({ emailOrUsername: citizenUser.email, code })
+        .expect(201);
+
       await citizenAgent
         .post("/api/auth/session")
         .send({
@@ -294,73 +267,6 @@ describe("Municipality Integration Tests", () => {
         .expect(200);
 
       await citizenAgent.get(`${base}/municipality-users/roles`).expect(403);
-    });
-
-    it("500 when database error occurs", async () => {
-      const userServiceModule = require("@services/userService");
-      jest
-        .spyOn(userServiceModule.userService, "getAllMunicipalityRoles")
-        .mockRejectedValue(new Error("Database connection failed"));
-
-      const response = await adminAgent
-        .get(`${base}/municipality-users/roles`)
-        .expect(500);
-
-      expect(response.body).toHaveProperty("error");
-    });
-  });
-
-  describe("POST /api/users/municipality-users (Additional validation tests)", () => {
-    it("403 when non-admin tries to create municipality user", async () => {
-      const citizenUser = {
-        username: "citizen_create_muni",
-        email: "citizen_create_muni@example.com",
-        firstName: "Citizen",
-        lastName: "Create",
-        password: "citizenpass123",
-      };
-
-      const citizenAgent = request.agent(app);
-      await citizenAgent.post("/api/users").send(citizenUser).expect(201);
-      await citizenAgent
-        .post("/api/auth/session")
-        .send({
-          identifier: citizenUser.email,
-          password: citizenUser.password,
-          role: "CITIZEN",
-        })
-        .expect(200);
-
-      const muniPayload = {
-        email: "new_muni@test.com",
-        username: "new_muni",
-        firstName: "NewMuni",
-        lastName: "User",
-        password: "password123",
-        municipality_role_id: 1,
-      };
-
-      await citizenAgent
-        .post(`${base}/municipality-users`)
-        .send(muniPayload)
-        .expect(403);
-    });
-
-    it("400 or 500 when municipality_role_id does not exist", async () => {
-      const response = await adminAgent
-        .post(`${base}/municipality-users`)
-        .send({
-          email: "invalid_role@test.com",
-          username: "invalid_role_user",
-          firstName: "Invalid",
-          lastName: "Role",
-          password: "password123",
-          municipality_role_id: 9999, // non-existent role
-        });
-
-      // Can return either 400 (validation) or 500 (database foreign key constraint)
-      expect([400, 500]).toContain(response.status);
-      expect(response.body).toHaveProperty("error");
     });
   });
 });

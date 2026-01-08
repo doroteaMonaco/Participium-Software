@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { ExternalMaintainerDashboardLayout } from "src/components/dashboard/ExternalMaintainerDashboardLayout";
 import { motion } from "framer-motion";
 import { useAuth } from "src/contexts/AuthContext";
+import { useNotifications } from "src/contexts/NotificationContext";
 import {
   getReportsForExternalMaintainer,
   updateReportStatusByExternalMaintainer,
@@ -153,6 +154,7 @@ const STATS_CONFIG: StatCardConfig[] = [
 
 export const MaintainerReportsPage: React.FC = () => {
   const { user } = useAuth();
+  const { notifications, refreshNotifications, markAsRead } = useNotifications();
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -174,6 +176,10 @@ export const MaintainerReportsPage: React.FC = () => {
         const data = await getReportsForExternalMaintainer(user.id);
         const mappedReports = mapReports(data);
         setReports(mappedReports);
+        
+        // Refresh notifications for all reports
+        const reportIds = mappedReports.map((r) => r.numericId);
+        await refreshNotifications(reportIds);
       } catch (err) {
         console.error("Error fetching assigned reports:", err);
         setError("Failed to load assigned reports. Please try again later.");
@@ -183,7 +189,7 @@ export const MaintainerReportsPage: React.FC = () => {
     };
 
     fetchReports();
-  }, [user?.id]);
+  }, [user?.id, refreshNotifications]);
 
   const handleStatusChange = (report: Report) => {
     setSelectedReport(report);
@@ -194,6 +200,9 @@ export const MaintainerReportsPage: React.FC = () => {
   const handleOpenComments = (report: Report) => {
     setSelectedReport(report);
     setShowCommentsDrawer(true);
+    
+    // Mark comments as read when opening the drawer
+    markAsRead(report.numericId);
   };
 
   const closeStatusModal = () => {
@@ -542,10 +551,15 @@ export const MaintainerReportsPage: React.FC = () => {
                       <button
                         onClick={() => handleOpenComments(report)}
                         disabled={report.status === "Resolved"}
-                        className="flex-1 rounded-xl bg-slate-600 hover:bg-slate-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 rounded-xl bg-slate-600 hover:bg-slate-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed relative"
                       >
                         <MessageSquare className="h-5 w-5" />
                         Internal Comments
+                        {notifications.get(report.numericId) ? (
+                          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                            {notifications.get(report.numericId)! > 9 ? "9+" : notifications.get(report.numericId)}
+                          </span>
+                        ) : null}
                       </button>
                     </div>
                   </div>

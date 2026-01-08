@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getReportById } from "src/services/api";
+import { motion } from "framer-motion";
+import { 
+  ArrowLeft, 
+  Calendar, 
+  MapPin, 
+  User, 
+  Tag, 
+  XCircle,
+  Loader2
+} from "lucide-react";
+import { getReportById, type Report } from "src/services/api";
 
 // Reverse map backend enum -> human-friendly labels (keep in sync with form)
 const ENUM_TO_LABEL: Record<string, string> = {
@@ -16,13 +26,14 @@ const ENUM_TO_LABEL: Record<string, string> = {
 };
 
 const getStatusBadgeClass = (status: string): string => {
-  if (status === "REJECTED") return "bg-red-100 text-red-800";
+  if (status === "REJECTED") return "bg-red-100 text-red-700 border-red-200";
   if (status === "PENDING" || status === "PENDING_APPROVAL")
-    return "bg-indigo-100 text-indigo-800";
-  if (status === "ASSIGNED") return "bg-blue-100 text-blue-800";
-  if (status === "IN_PROGRESS") return "bg-amber-100 text-amber-800";
-  if (status === "RESOLVED") return "bg-green-100 text-green-800";
-  return "bg-slate-100 text-slate-800";
+    return "bg-purple-100 text-purple-700 border-purple-200";
+  if (status === "ASSIGNED") return "bg-blue-100 text-blue-700 border-blue-200";
+  if (status === "IN_PROGRESS") return "bg-amber-100 text-amber-700 border-amber-200";
+  if (status === "RESOLVED") return "bg-green-100 text-green-700 border-green-200";
+  if (status === "SUSPENDED") return "bg-gray-100 text-gray-700 border-gray-200";
+  return "bg-slate-100 text-slate-700 border-slate-200";
 };
 
 const getStatusDisplayText = (status: string): string => {
@@ -35,25 +46,49 @@ const ErrorView: React.FC<{ error: string; onGoBack: () => void }> = ({
   error,
   onGoBack,
 }) => (
-  <main className="p-6">
-    <p className="text-red-600">{error}</p>
-    <button onClick={onGoBack} className="text-indigo-600 hover:underline">
-      ← Go Back
-    </button>
+  <main className="min-h-screen bg-gradient-to-b from-red-50 to-white flex items-center justify-center p-6">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full border border-red-200"
+    >
+      <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mx-auto mb-4">
+        <XCircle className="h-8 w-8 text-red-600" />
+      </div>
+      <h2 className="text-2xl font-bold text-center text-slate-900 mb-2">Oops!</h2>
+      <p className="text-center text-red-600 mb-6">{error}</p>
+      <button
+        onClick={onGoBack}
+        className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
+      >
+        <ArrowLeft className="h-5 w-5" />
+        Go Back
+      </button>
+    </motion.div>
   </main>
 );
 
 const LoadingView: React.FC = () => (
-  <main className="p-6">
-    <p>Loading...</p>
+  <main className="min-h-screen bg-gradient-to-b from-indigo-50 to-white flex items-center justify-center p-6">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="text-center"
+    >
+      <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
+        <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+      </div>
+      <p className="text-lg text-slate-600 font-medium">Loading report details...</p>
+    </motion.div>
   </main>
 );
 
 const ReportDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [report, setReport] = useState<any | null>(null);
+  const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [address, setAddress] = useState<string>("");
 
   useEffect(() => {
     if (!id) return;
@@ -61,6 +96,29 @@ const ReportDetailsPage: React.FC = () => {
       try {
         const data = await getReportById(id);
         setReport(data);
+        
+        // Fetch address if coordinates are available
+        if (data.latitude && data.longitude) {
+          try {
+            const response = await window.fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${data.latitude}&lon=${data.longitude}&zoom=18&addressdetails=1`,
+              {
+                headers: {
+                  "User-Agent": "Participium (participatory budgeting app)",
+                },
+              },
+            );
+            const addressData = await response.json();
+            if (addressData.display_name) {
+              setAddress(addressData.display_name);
+            } else {
+              setAddress(`${data.latitude.toFixed(4)}°, ${data.longitude.toFixed(4)}°`);
+            }
+          } catch (addrErr) {
+            console.error("Error fetching address:", addrErr);
+            setAddress(`${data.latitude.toFixed(4)}°, ${data.longitude.toFixed(4)}°`);
+          }
+        }
       } catch (err) {
         console.error(err);
         setError("Could not load report details");
@@ -73,72 +131,190 @@ const ReportDetailsPage: React.FC = () => {
   if (!report) return <LoadingView />;
 
   return (
-    <main className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-2">{report.title}</h1>
-      <p className="text-sm text-slate-500 mb-4">
-        Created: {new Date(report.createdAt).toLocaleString()}
-      </p>
-
-      {/* Status Badge */}
-      <div className="mb-4">
-        <strong>Status:</strong>{" "}
-        <span
-          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(report.status)}`}
-        >
-          {getStatusDisplayText(report.status)}
-        </span>
-      </div>
-
-      {/* Rejection Reason - Only show if rejected */}
-      {report.status === "REJECTED" && report.rejectionReason && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <strong className="text-red-800">Rejection Reason:</strong>
-          <p className="mt-2 text-red-700">{report.rejectionReason}</p>
-        </div>
-      )}
-
-      {/* User Information */}
-      <div className="mb-4">
-        <strong>Submitted by:</strong>{" "}
-        <span>
-          {report.anonymous || !report.user
-            ? "Anonymous"
-            : `${report.user.firstName} ${report.user.lastName}`}
-        </span>
-      </div>
-
-      <div className="mb-4">
-        <strong>Category:</strong>{" "}
-        <span>{ENUM_TO_LABEL[report.category] ?? report.category}</span>
-      </div>
-      <div className="mb-4">
-        <strong>Description</strong>
-        <p className="mt-1 text-slate-700">{report.description}</p>
-      </div>
-
-      {report.photos && report.photos.length > 0 && (
-        <div className="mb-4">
-          <strong>Photos</strong>
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            {report.photos.map((p: string) => (
-              <img
-                key={p}
-                src={`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`}
-                alt={`Report photo`}
-                className="w-full h-40 object-cover rounded"
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="mt-6">
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-8">
+      <div className="max-w-7xl mx-auto px-6">
+        {/* Back button - left aligned */}
         <button
           onClick={() => navigate(-1)}
-          className="text-indigo-600 hover:underline"
+          className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-colors group mb-6"
         >
-          ← Go Back
+          <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
+          Back
         </button>
+
+        {/* Single White Box Container */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden"
+        >
+          {/* Header Section - Title and Status */}
+          <div className="p-8 border-b border-slate-200">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <h1 className="text-3xl font-bold text-slate-900 leading-tight flex-1">
+                {report.title}
+              </h1>
+              <span
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border flex-shrink-0 ${getStatusBadgeClass(report.status!)}`}
+              >
+                {getStatusDisplayText(report.status!)}
+              </span>
+            </div>
+
+            {/* Rejection Reason - Only show if rejected */}
+            {report.status === "REJECTED" && report.rejectionReason && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg"
+              >
+                <div className="flex items-start gap-3">
+                  <XCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-bold text-red-900 text-sm mb-1">Rejection Reason</h3>
+                    <p className="text-red-700 text-sm">{report.rejectionReason}</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Content Section */}
+          <div className="p-8">
+            {/* First Row - Report Details and Description */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              {/* Report Details */}
+              <div className="border border-slate-200 rounded-xl p-6">
+                <h2 className="text-lg font-bold text-slate-900 mb-4 text-left">Report Details</h2>
+                
+                <div className="space-y-5">
+                  {/* Date */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <Calendar className="h-5 w-5 text-indigo-600" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Submitted</p>
+                      <p className="text-slate-900 font-semibold">
+                        {new Date(report.createdAt!).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </p>
+                      <p className="text-sm text-slate-500">
+                        {new Date(report.createdAt!).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Category */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                      <Tag className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Category</p>
+                      <p className="text-slate-900 font-semibold">
+                        {ENUM_TO_LABEL[report.category!] ?? report.category}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Submitted By */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <User className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Submitted by</p>
+                      <p className="text-slate-900 font-semibold">
+                        {report.anonymous || !report.user
+                          ? "Anonymous User"
+                          : `${report.user.firstName} ${report.user.lastName}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Location */}
+                  {(report.latitude && report.longitude) && (
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                        <MapPin className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Location</p>
+                        <p className="text-slate-900 font-semibold text-sm">
+                          {address || "Loading address..."}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Assigned Office */}
+                  {report.assignedOffice && (
+                    <div className="pt-4 border-t border-slate-200">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Assigned To</p>
+                      <p className="text-blue-700 font-semibold capitalize">
+                        {report.assignedOffice}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* External Maintainer */}
+                  {report.externalMaintainer && (
+                    <div className="pt-4 border-t border-slate-200">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Handled By</p>
+                      <p className="text-purple-700 font-semibold">
+                        {report.externalMaintainer.companyName}
+                      </p>
+                      <p className="text-sm text-slate-600 mt-1">
+                        {report.externalMaintainer.firstName} {report.externalMaintainer.lastName}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="border border-slate-200 rounded-xl p-6">
+                <h2 className="text-lg font-bold text-slate-900 mb-4 text-left">Description</h2>
+                <p className="text-slate-700 leading-relaxed whitespace-pre-wrap text-left">
+                  {report.description}
+                </p>
+              </div>
+            </div>
+
+            {/* Second Row - Photos */}
+            {report.photos && report.photos.length > 0 && (
+              <div className="border-t border-slate-200 pt-8">
+                <h2 className="text-lg font-bold text-slate-900 mb-4 text-left">Photos</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {report.photos.map((p: string, index: number) => (
+                    <motion.div
+                      key={p}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="relative group overflow-hidden rounded-xl border border-slate-200"
+                    >
+                      <img
+                        src={`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${p}`}
+                        alt={`Report photo ${index + 1}`}
+                        className="w-full h-56 object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </motion.div>
       </div>
     </main>
   );

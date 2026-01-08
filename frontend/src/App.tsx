@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import { Login } from "src/pages/LoginPage";
 import { Register } from "src/pages/RegisterPage";
+import { ConfirmRegistration } from "src/pages/ConfirmRegistrationPage";
+import MapPage from "./pages/MapPage";
 import UserDashboardPage from "./pages/UserDashboard/UserDashboardPage";
 import NewReportPage from "./pages/UserDashboard/NewReportPage";
 import UserSettingsPage from "./pages/UserDashboard/UserSettingsPage";
@@ -15,6 +17,7 @@ import MaintainerReportsPage from "./pages/MaintainerDashboard/MaintainerReports
 import { NavBar } from "src/components/Navbar";
 import { Footer } from "src/components/Footer";
 import { AuthProvider } from "src/contexts/AuthContext";
+import { NotificationProvider } from "src/contexts/NotificationContext";
 import { ProtectedRoute } from "src/components/ProtectedRoute";
 
 import LandingPage from "src/pages/LandingPage";
@@ -31,9 +34,10 @@ import { ExternalMaintainerDashboardLayout } from "./components/dashboard/Extern
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="min-h-screen bg-white">
-          <Routes>
+      <NotificationProvider>
+        <Router>
+          <div className="min-h-screen bg-white">
+            <Routes>
             {/* User Dashboard routes - protected, CITIZEN role */}
             <Route
               path="/dashboard"
@@ -177,7 +181,8 @@ function App() {
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
-                    {/* <Route path="/map" element={<MapPage />} /> */}
+                    <Route path="/confirm-registration" element={<ConfirmRegistration />} />
+                    <Route path="/map" element={<MapPage />} />
                     <Route path="/report/:id" element={<ReportDetailsPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
@@ -188,6 +193,7 @@ function App() {
           </Routes>
         </div>
       </Router>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

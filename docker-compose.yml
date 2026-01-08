@@ -43,6 +43,7 @@ services:
     ports:
       - "${BACKEND_PORT}:4000"
       - "${PRISMA_PORT}:5555"
+      - "8080:8080"
     networks:
       - participium-net
     volumes:
@@ -59,6 +60,8 @@ services:
       REDIS_HOST: *redis_host
       REDIS_PORT: *redis_port
       FRONTEND_URL: http://localhost:${FRONTEND_PORT}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
     depends_on:
       - db
       - redis

@@ -1,8 +1,13 @@
 import { prisma } from "@database";
 import { Report } from "@models/entities/report";
-import { ReportStatus } from "@models/enums";
-import { createCommentDto } from "@models/dto/commentDto";
-import { add } from "winston";
+import { ReportStatus} from "@models/enums";
+
+type BoundingBox = {
+  minLng: number;
+  minLat: number;
+  maxLng: number;
+  maxLat: number;
+};
 
 type ReportStatusFilter = "ASSIGNED";
 
@@ -58,6 +63,40 @@ const findAll = async (statusFilter?: ReportStatusFilter, userId?: number) => {
   // Default behavior: filter by status (for admin/municipality)
   return prisma.report.findMany({
     where: statusFilter ? { status: statusFilter } : undefined,
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+      externalMaintainer: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          companyName: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
+
+const findAllForMapView = async () => {
+  return prisma.report.findMany({
+    where: {
+      OR: [
+        { status: ReportStatus.ASSIGNED },
+        { status: ReportStatus.IN_PROGRESS },
+        { status: ReportStatus.SUSPENDED },
+        { status: ReportStatus.RESOLVED },
+      ],
+    },
     include: {
       user: {
         select: {
@@ -227,7 +266,7 @@ const findByExternalMaintainerId = async (externalMaintainerId: number) => {
   return prisma.report.findMany({
     where: { externalMaintainerId },
   });
-}
+};
 
 const addCommentToReport = async (data: AddCommentPersistenceData) => {
   return prisma.comment.create({
@@ -238,17 +277,89 @@ const addCommentToReport = async (data: AddCommentPersistenceData) => {
       external_maintainer_id: data.external_maintainer_id,
     },
   });
-}
+};
 
 const getCommentsByReportId = async (reportId: number) => {
   return prisma.comment.findMany({
     where: { reportId },
     orderBy: { createdAt: "asc" },
   });
+};
+
+const getMunicipalityUserUnreadCommentsByReportId = async (
+  reportId: number,
+) => {
+  return prisma.comment.findMany({
+    where: {
+      reportId,
+      read: false,
+      municipality_user_id: null,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+};
+
+const getExternalMaintainerUnreadCommentsByReportId = async (
+  reportId: number,
+) => {
+  return prisma.comment.findMany({
+    where: {
+      reportId,
+      read: false,
+      external_maintainer_id: null,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+};
+
+const markExternalMaintainerCommentsAsRead = async (reportId: number) => {
+  return prisma.comment.updateMany({
+    where: {
+      reportId,
+      read: false,
+      municipality_user_id: null,
+    },
+    data: {
+      read: true,
+    },
+  });
+};
+
+const markMunicipalityCommentsAsRead = async (reportId: number) => {
+  return prisma.comment.updateMany({
+    where: {
+      reportId,
+      read: false,
+      external_maintainer_id: null,
+    },
+    data: {
+      read: true,
+    },
+  });
+};
+
+const findByBoundingBox = async (bbox: BoundingBox, options: { statuses: ReportStatus[]}) => {
+  return prisma.report.findMany({
+    where: {
+      longitude: {
+        gte: bbox.minLng,
+        lte: bbox.maxLng,
+      }, 
+      latitude: {
+        gte: bbox.minLat,
+        lte: bbox.maxLat,
+      },
+      status: {
+        in: options.statuses as any,
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  })
 }
 
 export default {
   findAll,
+  findAllForMapView,
   findById,
   findByStatus,
   create,
@@ -258,5 +369,10 @@ export default {
   findByStatusesAndCategories,
   findByExternalMaintainerId,
   addCommentToReport,
-  getCommentsByReportId
+  getCommentsByReportId,
+  getMunicipalityUserUnreadCommentsByReportId,
+  getExternalMaintainerUnreadCommentsByReportId,
+  markExternalMaintainerCommentsAsRead,
+  markMunicipalityCommentsAsRead,
+  findByBoundingBox,
 };

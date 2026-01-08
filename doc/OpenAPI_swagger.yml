@@ -95,6 +95,143 @@ paths:
               example:
                 error: "Authentication Error"
                 message: "You must be logged in to logout"
+
+  /auth/verify:
+    post:
+      tags: [Authentication]
+      summary: Verify registration with code
+      description: Confirm user registration using the verification code sent to their email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyRegistrationRequest'
+      responses:
+        '200':
+          description: OK - Account verified successfully
+          headers:
+            Set-Cookie:
+              description: Authentication cookie
+              schema:
+                type: string
+                example: "authToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoibXJvc3NpIiwiaWF0IjoxNjk5MDAwMDAwLCJleHAiOjE2OTkwODY0MDB9"
+            Location:
+                description: URL of the reserved area for submitting reports
+                schema:
+                  type: string
+                  example: /reports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad Request - Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Bad Request"
+                message: "Verification code is invalid or expired"
+        '404':
+          description: Not Found - No pending registration found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Not Found"
+                message: "No pending registration found for this email"
+        '429':
+          description: Too Many Requests - Too many verification attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Too Many Requests"
+                message: "Too many failed attempts. Please request a new code."
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/resend-code:
+    post:
+      tags: [Authentication]
+      summary: Resend verification code
+      description: Generate and resend a new verification code. Rate limited to 3 resends per hour.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendCodeRequest'
+      responses:
+        '200':
+          description: OK - New verification code sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Verification code sent to your email"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found - No pending registration found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too Many Requests - Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Too Many Requests"
+                message: "Rate limit exceeded. Please wait before requesting a new code."
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /email/send-verification:
+    post:
+      tags: [Authentication]
+      summary: Send verification email
+      description: Send a verification email containing a code used to complete registration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendVerificationRequest'
+      responses:
+        '200':
+          description: OK - Verification email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendVerificationResponse'
+        '400':
+          description: Bad Request - Missing or invalid fields
+        '500':
+          description: Internal Server Error - Email service error
+
   /reports:
     # create report endpoint
     post:
@@ -476,13 +613,141 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+            
+  /reports/{id}/comments/unread:
+    get:
+      tags: [Reports]
+      summary: Get internal comments for a report unread by the user
+      description: >
+        Get internal comments for a report unread by the user by report ID
+        **Requires role: MUNICIPALITY_USER or EXTERNAL_MAINTAINER**.
+        Comments are not visible to citizens.
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: Report ID
+      responses:
+        '200':
+          description: OK - Comments successfully retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+        '400':
+          description: Bad Request - Invalid report ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Bad Request"
+                message: "Invalid report ID"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - You don't have municipality or external maintainer permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found - Report not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Not Found"
+                message: "Report not found"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
+  /reports/reports-map: 
+    get:
+      tags: [Reports]
+      summary: Get reports for map view
+      description: >
+        Get reports with location data for map view. Reports on the map 
+        can be visualized by all users, including unauthenticated visitors.
+      responses:
+        '200':
+          description: OK - Reports successfully retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Report'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reports/search:
+    get: 
+      tags: [Reports]
+      summary: Search reports in a specific area
+      description: >
+        Return reports inside a geographica area
+      parameters:
+        - name: bbox
+          in: query
+          required: true
+          description: >
+            Bounding box in the format `minLng,minLat,maxLng,maxLat` (W,S,E,N)
+          schema: 
+            type: string
+            pattern: '^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$'
+          example: "7.6600,45.0600,7.6750,45.0700"
+      responses: 
+        '200': 
+          description: OK - Reports successfully retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Report'
+        '400': 
+          description: Bad Request - Invalid bounding box format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Bad Request"
+                message: "Invalid bounding box format"
+        '500': 
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /users:
     # registration endpoint
     post:
-      tags: [Users]
-      summary: Registration
+      tags: [Authentication]
+      summary: Register a new user
+      description: Create a new pending verification user account. A verification code will be sent via email.
       requestBody:
         required: true
         content:
@@ -491,22 +756,18 @@ paths:
               $ref: '#/components/schemas/UserRegistration'
       responses:
         '201':
-          description: Created
-          headers:
-            Set-Cookie:
-              description: Authentication cookie
-              schema:
-                type: string
-                example: "authToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoibXJvc3NpIiwiaWF0IjoxNjk5MDAwMDAwLCJleHAiOjE2OTkwODY0MDB9"
-            Location:
-                description: URL of the reserved area for submitting reports
-                schema:
-                  type: string
-                  example: /reports
+          description: Created - Registration successful, verification code sent
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Verification code sent to your email"
+                  email:
+                    type: string
+                    format: email
         '400':
           description: Bad Request
           content:
@@ -514,7 +775,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: Conflict
+          description: Conflict - Username or email already exists
           content:
             application/json:
               schema:
@@ -1330,6 +1591,67 @@ components:
           type: string
           example: "VALIDATOR"
 
+    VerifyRegistrationRequest:
+      type: object
+      required:
+        - emailOrUsername
+        - code
+      properties:
+        emailOrUsername:
+          type: string
+          example: "mrossi@example.com"
+          description: Email or username of the pending user
+        code:
+          type: string
+          example: "123456"
+          description: 6-digit verification code sent to email
+
+    ResendCodeRequest:
+      type: object
+      required:
+        - emailOrUsername
+      properties:
+        emailOrUsername:
+          type: string
+          example: "mrossi@example.com"
+          description: Email or username of the pending user
+
+    SendVerificationRequest:
+      type: object
+      required:
+        - email
+        - firstName
+        - code
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        firstName:
+          type: string
+          example: "Mario"
+        code:
+          type: string
+          example: "123456"
+        resendUrl:
+          type: string
+          format: uri
+          description: Optional URL used to allow the user to request a new code
+          example: "https://example.com/verify"
+
+    SendVerificationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Verification email sent successfully"
+        data:
+          type: object
+          description: Service-specific response payload (if any)
+
     AdminUser:
       type: object
       description: Admin view of a user
@@ -1449,6 +1771,9 @@ components:
           type: string
           format: date-time
           example: "2025-11-05T10:15:00Z"
+        read:
+          type: boolean
+          example: false
       description: >
         Internal comment on a report. Exactly one between municipalityUserId and
         externalMaintainerId is non-null (the author of the comment).

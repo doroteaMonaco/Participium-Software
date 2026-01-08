@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response } from "express";
 import request from "supertest";
 import multer from "multer";
 
@@ -13,6 +13,9 @@ jest.mock("@controllers/reportController", () => ({
   ),
   getReports: jest.fn((req: Request, res: Response) =>
     res.json({ route: "getReports", query: (req as any).query ?? null }),
+  ),
+  getReportsMap: jest.fn((req: Request, res: Response) =>
+    res.json({ route: "getReportsMap" }),
   ),
   getReportById: jest.fn((req: Request, res: Response) =>
     res.json({ route: "getReportById", id: Number(req.params.id) }),
@@ -50,6 +53,21 @@ jest.mock("@controllers/reportController", () => ({
     res.json({
       route: "getCommentOfAReportById",
       reportId: req.params.report_id,
+    }),
+  ),
+  getUnreadCommentOfAReportById: jest.fn((req: Request, res: Response) =>
+    res.json({
+      route: "getUnreadCommentOfAReportById",
+      reportId: req.params.report_id,
+    }),
+  ),
+  deleteReport: jest.fn((req: Request, res: Response) =>
+    res.status(204).send(),
+  ),
+  reportSearchHandler: jest.fn((req: Request, res: Response) =>
+    res.json({
+      route: "reportSearchHandler",
+      bbox: (req as any).query?.bbox,
     }),
   ),
 }));
@@ -91,6 +109,7 @@ import reportRouter from "@routes/reportRouter";
 import {
   submitReport,
   getReports,
+  getReportsMap,
   getReportById,
   approveOrRejectReport,
   getReportsForMunicipalityUser,
@@ -121,7 +140,7 @@ const upload = multer({
     files: 3,
   },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype && file.mimetype.startsWith("image/")) cb(null, true);
+    if (file.mimetype?.startsWith("image/")) cb(null, true);
     else cb(new Error("Only image files are allowed"));
   },
 });
@@ -530,6 +549,23 @@ describe("reportRouter", () => {
       expect(res.status).toBe(401);
       const ctrl = require("@controllers/reportController");
       expect(ctrl.getCommentOfAReportById).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("GET /api/reports/reports-map", () => {
+    it("routes to getReportsMap and returns 200", async () => {
+      const app = makeApp();
+
+      const res = await request(app).get("/api/reports/reports-map");
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ route: "getReportsMap" });
+
+      // Se la route è davvero senza middleware, NON aspettarti isAuthenticated chiamato.
+      // Se invece nel router hai messo auth, allora aggiungi:
+      // expect(isAuthenticatedMock).toHaveBeenCalled();
+
+      expect(getReportsMap).toHaveBeenCalledTimes(1);
     });
   });
 });

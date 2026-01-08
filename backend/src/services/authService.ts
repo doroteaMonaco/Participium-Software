@@ -15,11 +15,7 @@ const allRoles = [
 ];
 
 export const authService = {
-  async login(
-    identifier: string,
-    password: string,
-    role?: roleType,
-  ) {
+  async login(identifier: string, password: string, role?: roleType) {
     let user = null;
     let foundRole: roleType | null = null;
 
@@ -42,7 +38,7 @@ export const authService = {
       }
     }
 
-    if (!user || !user.id || !user.password || !foundRole) {
+    if (!user?.id || !user.password || !foundRole) {
       throw new AuthenticationError("Invalid username or password");
     }
 
@@ -64,7 +60,7 @@ export const authService = {
       SECRET_KEY,
       { expiresIn: "1h" },
     );
-    
+
     // Add role to user object for frontend routing
     return { user: { ...fullUser, role: foundRole }, token };
   },
@@ -81,6 +77,7 @@ export const authService = {
       // Add role to user object for frontend routing
       return user ? { ...user, role: decoded.role } : null;
     } catch (error) {
+      console.error("Token verification error:", error);
       throw new AuthenticationError("Invalid or expired token");
     }
   },

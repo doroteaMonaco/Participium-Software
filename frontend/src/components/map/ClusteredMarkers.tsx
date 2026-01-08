@@ -28,30 +28,35 @@ function getColorForStatus(status?: ReportStatus): string {
 
 function parseReportDate(rawCreated: any): string {
   if (!rawCreated) return "";
-  let d: Date | null = null;
+
+  const numericToDate = (n: number): Date | null => {
+    if (!Number.isFinite(n) || Number.isNaN(n)) return null;
+    return n > 1e12 ? new Date(n) : new Date(n * 1000);
+  };
 
   if (rawCreated instanceof Date) {
-    d = rawCreated;
-  } else if (
-    typeof rawCreated === "number" ||
-    /^\d+$/.test(String(rawCreated))
-  ) {
-    const n = Number(rawCreated);
-    d = n > 1e12 ? new Date(n) : new Date(n * 1000);
-  } else if (typeof rawCreated === "string") {
-    d = new Date(rawCreated);
-    if (Number.isNaN(d.getTime())) {
-      const num = Number(rawCreated);
-      if (!Number.isNaN(num)) {
-        d = num > 1e12 ? new Date(num) : new Date(num * 1000);
-      }
-    }
-  } else if (typeof rawCreated.toString === "function") {
-    d = new Date(rawCreated.toString());
+    return rawCreated.toLocaleString();
   }
 
-  return d && !Number.isNaN(d.getTime())
-    ? d.toLocaleString()
+  if (typeof rawCreated === "number") {
+    const d = numericToDate(rawCreated);
+    return d && !Number.isNaN(d.getTime())
+      ? d.toLocaleString()
+      : String(rawCreated);
+  }
+
+  const str = String(rawCreated).trim();
+  if (!str) return "";
+
+  if (/^\d+$/.test(str)) {
+    const d = numericToDate(Number(str));
+    if (d && !Number.isNaN(d.getTime())) return d.toLocaleString();
+    return String(rawCreated);
+  }
+
+  const parsed = new Date(str);
+  return !Number.isNaN(parsed.getTime())
+    ? parsed.toLocaleString()
     : String(rawCreated);
 }
 
@@ -120,8 +125,7 @@ const ClusteredMarkers: React.FC<Props> = ({ reports }) => {
       });
 
       const title = r.title ?? `Report #${r.id}`;
-      const rawCreated: any =
-        (r as any).createdAt ?? (r as any).created_at ?? "";
+      const rawCreated = r.createdAt ?? "";
 
       const created = parseReportDate(rawCreated);
 

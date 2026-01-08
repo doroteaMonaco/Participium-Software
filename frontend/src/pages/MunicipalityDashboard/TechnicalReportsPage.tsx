@@ -5,9 +5,14 @@ import { CommentModal } from "src/components/dashboard/CommentModal";
 import { AssignMaintainerModal } from "src/components/dashboard/AssignMaintainerModal";
 import { Drawer } from "src/components/shared/Drawer";
 import CommentsSection from "src/components/report/CommentsSection";
+import { useNotifications } from "src/contexts/NotificationContext";
 import { motion } from "framer-motion";
 import { useAuth } from "src/contexts/AuthContext";
-import { getAssignedReports } from "src/services/api";
+import {
+  getAssignedReports,
+  approveOrRejectReport,
+  updateReportStatusByExternalMaintainer,
+} from "src/services/api";
 import {
   FileText,
   Search,
@@ -208,6 +213,7 @@ const METADATA_CONFIG: MetadataCardConfig[] = [
 
 export const TechnicalReportsPage: React.FC = () => {
   const { user } = useAuth();
+  const { notifications, refreshNotifications, markAsRead } = useNotifications();
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -220,6 +226,7 @@ export const TechnicalReportsPage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusUpdateError, setStatusUpdateError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -232,6 +239,10 @@ export const TechnicalReportsPage: React.FC = () => {
         const reports = data.map((data) => new ReportModel(data));
         const mappedReports = mapReports(reports);
         setReports(mappedReports);
+        
+        // Refresh notifications for all reports
+        const reportIds = mappedReports.map((r) => r.numericId);
+        await refreshNotifications(reportIds);
       } catch (err) {
         console.error("Error fetching assigned reports:", err);
         setError("Failed to load assigned reports. Please try again later.");
@@ -241,7 +252,7 @@ export const TechnicalReportsPage: React.FC = () => {
     };
 
     fetchReports();
-  }, [user?.id]);
+  }, [user?.id, refreshNotifications]);
 
   const handleStatusChange = (report: Report) => {
     setSelectedReport(report);
@@ -251,9 +262,10 @@ export const TechnicalReportsPage: React.FC = () => {
 
   const handleAddComment = (report: Report) => {
     setSelectedReport(report);
-    // setNewComment("");
-    // setShowCommentModal(true);
     setShowCommentsDrawer(true);
+    
+    // Mark comments as read when opening the drawer
+    markAsRead(report.numericId);
   };
 
   const handleAssignToMaintainer = (report: Report) => {
@@ -299,16 +311,55 @@ export const TechnicalReportsPage: React.FC = () => {
 
   const handleSubmitStatus = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedReport && newStatus) {
-      setReports(
-        reports.map((r) =>
-          r.id === selectedReport.id
-            ? { ...r, status: newStatus as Report["status"] }
-            : r,
-        ),
-      );
-      closeStatusModal();
-    }
+    setStatusUpdateError(null);
+
+    const mapFrontendToBackend = (s: Report["status"]): string => {
+      switch (s) {
+        case "Assigned":
+          return "ASSIGNED";
+        case "In Progress":
+          return "IN_PROGRESS";
+        case "Suspended":
+          return "SUSPENDED";
+        case "Resolved":
+          return "RESOLVED";
+        default:
+          return "ASSIGNED";
+      }
+    };
+
+    const submit = async () => {
+      if (!selectedReport || !newStatus) return;
+      try {
+        const backendStatus = mapFrontendToBackend(newStatus as Report["status"]);
+        const numericId = selectedReport.numericId;
+
+        if (backendStatus === "ASSIGNED") {
+          await approveOrRejectReport(numericId, { status: "ASSIGNED" });
+        } else {
+          // External maintainer-only statuses on backend; will error if not permitted
+          await updateReportStatusByExternalMaintainer(numericId, {
+            status: backendStatus as any,
+          });
+        }
+
+        // Reload assigned reports from backend to reflect current state
+        if (user?.id) {
+          const data = await getAssignedReports(user.id);
+          const reports = data.map((data) => new ReportModel(data));
+          const mappedReports = mapReports(reports);
+          setReports(mappedReports);
+        }
+
+        closeStatusModal();
+      } catch (err: any) {
+        console.error("Failed to update status:", err);
+        const msg = err?.response?.data?.error || err?.message || "Failed to update status";
+        setStatusUpdateError(msg);
+      }
+    };
+
+    void submit();
   };
 
   const handleSubmitComment = (e: React.FormEvent) => {
@@ -425,6 +476,11 @@ export const TechnicalReportsPage: React.FC = () => {
         {error && !loading && (
           <div className="rounded-xl border-2 border-red-200 bg-red-50 p-6">
             <p className="text-red-700 font-medium">{error}</p>
+          </div>
+        )}
+        {statusUpdateError && (
+          <div className="rounded-xl border-2 border-red-200 bg-red-50 p-6">
+            <p className="text-red-700 font-medium">{statusUpdateError}</p>
           </div>
         )}
 
@@ -649,10 +705,15 @@ export const TechnicalReportsPage: React.FC = () => {
                         <button
                           onClick={() => handleAddComment(report)}
                           disabled={report.status === "Resolved"}
-                          className="flex-1 rounded-xl bg-slate-600 hover:bg-slate-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-1 rounded-xl bg-slate-600 hover:bg-slate-700 px-6 py-3 text-base font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed relative"
                         >
                           <MessageSquare className="h-5 w-5" />
                           Internal Comments
+                          {notifications.get(report.numericId) ? (
+                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                              {notifications.get(report.numericId)! > 9 ? "9+" : notifications.get(report.numericId)}
+                            </span>
+                          ) : null}
                         </button>
                       </div>
 
@@ -711,7 +772,10 @@ export const TechnicalReportsPage: React.FC = () => {
       >
         {selectedReport && (
           <CommentsSection
-            reportId={parseInt(selectedReport.id.replace("RPT-", ""), 10)}
+            reportId={Number.parseInt(
+              selectedReport.id.replace("RPT-", ""),
+              10,
+            )}
           />
         )}
       </Drawer>

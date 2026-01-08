@@ -12,4 +12,10 @@ router.get("/session", authController.verifyAuth);
 // DELETE /api/auth/session - Logout
 router.delete("/session", authController.logout);
 
+// POST /api/auth/verify - Verify email and complete registration
+router.post("/verify", authController.verifyEmailAndRegister);
+
+// POST /api/auth/resend-code - Resend verification code
+router.post("/resend-code", authController.resendVerificationCode);
+
 export default router;

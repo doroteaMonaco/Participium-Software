@@ -1,7 +1,7 @@
 import { pathsToModuleNameMapper, createDefaultPreset } from "ts-jest";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -48,10 +48,23 @@ const integration = {
   ...base_config,
   displayName: "integration",
   testMatch: ["**/integration/**/*.integration.test.ts"],
+  globalSetup: "<rootDir>/test/setup/globalSetup.ts",
+  globalTeardown: "<rootDir>/test/setup/globalTeardown.ts",
+  setupFiles: ["<rootDir>/test/setup/mockEmailService.ts"],
+};
+
+const e2e = {
+  ...base_config,
+  displayName: "e2e",
+  testMatch: ["**/e2e/**/*.e2e.test.ts"],
+  globalSetup: "<rootDir>/test/setup/globalSetup.ts",
+  globalTeardown: "<rootDir>/test/setup/globalTeardown.ts",
+  setupFiles: ["<rootDir>/test/setup/mockEmailService.ts"],
 };
 
 const config = {
-  projects: [unit, integration],
+  projects: [unit, integration, e2e],
+  maxWorkers: 1,
 };
 
 export default config;

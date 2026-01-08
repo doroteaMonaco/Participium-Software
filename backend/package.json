@@ -16,6 +16,7 @@
     "init-db_demo": "npm run prisma && ts-node-dev -r tsconfig-paths/register scripts/demo/init-db_demo.ts",
     "test-unit": "jest --runInBand --selectProjects unit",
     "test-integration": "dotenv -e .env.test -- jest --runInBand --selectProjects integration",
+    "test-e2e": "dotenv -e .env.test -- jest --runInBand --selectProjects e2e",
     "test": "dotenv -e .env.test -- jest --runInBand",
     "test-coverage": "npm run test -- --coverage"
   },
@@ -33,9 +34,11 @@
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
+    "resend": "^6.6.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.11.0",
+    "ws": "^8.18.3",
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
@@ -49,6 +52,7 @@
     "@types/supertest": "^6.0.3",
     "@types/swagger-ui-express": "^4.1.8",
     "@types/winston": "^2.4.4",
+    "@types/ws": "^8.18.1",
     "@types/yamljs": "^0.2.34",
     "dotenv-cli": "^11.0.0",
     "jest": "^30.2.0",

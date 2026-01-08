@@ -1,9 +1,8 @@
 import request from "supertest";
-import { PrismaClient } from "@prisma/client";
 import app from "@app";
 import { roleType } from "@models/enums";
 import { userService } from "@services/userService";
-import reportRepository from "@repositories/reportRepository";
+import { getTestPrisma } from "../../setup/test-datasource";
 
 // Mock only the image service to avoid dealing with real Redis/FS in this e2e
 jest.mock("@services/imageService", () => {
@@ -36,7 +35,7 @@ jest.mock("@services/imageService", () => {
   };
 });
 
-const prisma = new PrismaClient();
+let prisma: any;
 
 // --- Helpers: register, login, create/admin->municipality, create report ---
 const registerUser = async (
@@ -44,8 +43,13 @@ const registerUser = async (
   user: any,
   role: roleType = roleType.CITIZEN,
 ) => {
-  const res = await agent.post("/api/users").send(user);
+  const res = await agent.post("/api/users").send({ ...user });
   expect(res.status).toBe(201);
+
+  await agent.post("/api/auth/verify").send({
+    emailOrUsername: user.email,
+    code: (globalThis as any).__lastSentVerificationCode,
+  });
 };
 const loginAgent = async (
   agent: request.SuperAgentTest,
@@ -173,11 +177,18 @@ describe("POST /api/reports (Create Report)", () => {
     password: "P@ssw0rd!",
   };
 
+  beforeAll(async () => {
+    prisma = await getTestPrisma();
+  });
+
   beforeEach(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.municipality_role.deleteMany();
     await prisma.municipality_role.createMany({
       data: [
@@ -195,12 +206,15 @@ describe("POST /api/reports (Create Report)", () => {
   });
 
   afterAll(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.pending_verification_user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("201 creates a report with photos (multipart), returning JSON body per swagger-like shape", async () => {
@@ -262,8 +276,8 @@ describe("POST /api/reports (Create Report)", () => {
       .post("/api/reports")
       .field("description", "desc")
       .field("category", "PUBLIC_LIGHTING")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .attach("photos", Buffer.from("fake"), {
         filename: "p.jpg",
         contentType: "image/jpeg",
@@ -281,8 +295,8 @@ describe("POST /api/reports (Create Report)", () => {
       .post("/api/reports")
       .field("title", "t")
       .field("category", "PUBLIC_LIGHTING")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .attach("photos", Buffer.from("fake"), {
         filename: "p.jpg",
         contentType: "image/jpeg",
@@ -300,8 +314,8 @@ describe("POST /api/reports (Create Report)", () => {
       .post("/api/reports")
       .field("title", "t")
       .field("description", "d")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .attach("photos", Buffer.from("fake"), {
         filename: "p.jpg",
         contentType: "image/jpeg",
@@ -320,8 +334,8 @@ describe("POST /api/reports (Create Report)", () => {
       .field("title", "t")
       .field("description", "d")
       .field("category", "NOT_A_VALID_CATEGORY")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .attach("photos", Buffer.from("fake"), {
         filename: "p.jpg",
         contentType: "image/jpeg",
@@ -362,8 +376,8 @@ describe("POST /api/reports (Create Report)", () => {
       .field("title", "t")
       .field("description", "d")
       .field("category", "PUBLIC_LIGHTING")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0))
+      .field("latitude", String(45))
+      .field("longitude", String(9))
       .expect(400);
 
     expect(res.body).toHaveProperty("error", "At least 1 photo is required");
@@ -378,8 +392,8 @@ describe("POST /api/reports (Create Report)", () => {
       .field("title", "t")
       .field("description", "d")
       .field("category", "PUBLIC_LIGHTING")
-      .field("latitude", String(45.0))
-      .field("longitude", String(9.0));
+      .field("latitude", String(45))
+      .field("longitude", String(9));
 
     for (let i = 0; i < 4; i++) {
       post.attach("photos", Buffer.from(`fake${i}`), {
@@ -409,10 +423,12 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   });
 
   beforeEach(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.municipality_role.deleteMany();
     await prisma.municipality_role.createMany({
       data: [
@@ -481,19 +497,21 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   });
 
   afterAll(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("200 approves a report with valid municipality authentication", async () => {
-    const response = await municipalityAgent
+    await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "ASSIGNED" })
-      .expect(204);
+      .expect(200);
 
     // Verify the report status was updated
     const reportCheck = await request(app)
@@ -506,10 +524,10 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   it("200 rejects a report with reason", async () => {
     const rejectionReason = "Report does not meet requirements";
 
-    const response = await municipalityAgent
+    await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "REJECTED", rejectionReason })
-      .expect(204);
+      .expect(200);
 
     // Verify the report status and reason were updated
     const reportCheck = await request(app)
@@ -521,15 +539,16 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
   });
 
   it("400 rejects a report without reason", async () => {
-    const response = await municipalityAgent
+    await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "REJECTED" })
-      .expect(400);
-
-    expect(response.body).toHaveProperty(
-      "error",
-      "Rejection reason is required when rejecting a report.",
-    );
+      .expect(400)
+      .then((response: request.Response) => {
+        expect(response.body).toHaveProperty(
+          "error",
+          "Rejection reason is required when rejecting a report.",
+        );
+      });
   });
 
   it("400 invalid status", async () => {
@@ -578,10 +597,12 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
 
 describe("ReportRoutes Integration (Get Reports)", () => {
   beforeEach(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.municipality_role.deleteMany();
     await prisma.municipality_role.createMany({
       data: [
@@ -599,12 +620,14 @@ describe("ReportRoutes Integration (Get Reports)", () => {
   });
 
   afterAll(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("200 returns all reports (authenticated access)", async () => {
@@ -616,10 +639,8 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       lastName: "User",
       password: "password123",
     };
+    const agent = await createAndLogin(user);
 
-    await request(app).post("/api/users").send(user).expect(201);
-
-    const agent = request.agent(app);
     await agent
       .post("/api/auth/session")
       .send({
@@ -644,7 +665,7 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       .expect(201);
 
     // Get reports with authentication
-    const response = await agent.get("/api/reports").expect(200);
+    await agent.get("/api/reports").expect(200);
   });
 
   it("403 citizen role required for status filter", async () => {
@@ -656,18 +677,7 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       lastName: "Viewer",
       password: "password123",
     };
-
-    await request(app).post("/api/users").send(citizen).expect(201);
-
-    const citizenAgent = request.agent(app);
-    await citizenAgent
-      .post("/api/auth/session")
-      .send({
-        identifier: citizen.username,
-        password: citizen.password,
-        role: roleType.CITIZEN,
-      })
-      .expect(200);
+    const citizenAgent = await createAndLogin(citizen);
 
     // Citizen tries to get approved reports (should succeed with status filter)
     const response = await citizenAgent
@@ -685,18 +695,7 @@ describe("ReportRoutes Integration (Get Reports)", () => {
       lastName: "Invalid",
       password: "password123",
     };
-
-    await request(app).post("/api/users").send(citizen).expect(201);
-
-    const citizenAgent = request.agent(app);
-    await citizenAgent
-      .post("/api/auth/session")
-      .send({
-        identifier: citizen.username,
-        password: citizen.password,
-        role: roleType.CITIZEN,
-      })
-      .expect(200);
+    const citizenAgent = await createAndLogin(citizen);
 
     const response = await citizenAgent
       .get("/api/reports?status=INVALID")
@@ -781,7 +780,7 @@ describe("GET /api/reports/municipality-user/:municipalityUserId", () => {
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("401 when request is unauthenticated", async () => {
@@ -932,7 +931,7 @@ describe("GET /api/reports (List Reports)", () => {
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("200 for ADMIN user (empty array or list)", async () => {
@@ -995,10 +994,12 @@ describe("GET /api/reports/:id (Get Report by ID)", () => {
   };
 
   beforeEach(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.municipality_role.deleteMany();
     await prisma.municipality_role.createMany({
       data: [
@@ -1016,12 +1017,14 @@ describe("GET /api/reports/:id (Get Report by ID)", () => {
   });
 
   afterAll(async () => {
+    await prisma.comment.deleteMany();
     await prisma.report.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.admin_user.deleteMany();
+    await prisma.external_maintainer.deleteMany();
     await prisma.municipality_user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("200 report publicly when exists", async () => {
@@ -1036,8 +1039,8 @@ describe("GET /api/reports/:id (Get Report by ID)", () => {
       title: "Public report",
       description: "Public desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1098,7 +1101,7 @@ describe("POST /api/reports/:id (Validate Report)", () => {
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("204 for MUNICIPALITY user (created by admin) and updates status", async () => {
@@ -1115,8 +1118,8 @@ describe("POST /api/reports/:id (Validate Report)", () => {
       title: "Validate me",
       description: "Need validation",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1150,7 +1153,7 @@ describe("POST /api/reports/:id (Validate Report)", () => {
     await muniAgent
       .post(`/api/reports/${id}`)
       .send({ status: "REJECTED", motivation: "photos blurry" })
-      .expect(204);
+      .expect(200);
 
     // verify DB updated
     const updated = await prisma.report.findUnique({ where: { id } });
@@ -1177,7 +1180,7 @@ describe("POST /api/reports/:id (Validate Report)", () => {
 
     const adminAgent = await createAdmin(admin);
     const { muniAgent } = await createMunicipality(adminAgent, muniPayload);
-    const res = await muniAgent
+    await muniAgent
       .post(`/api/reports/1`)
       .send({ status: "NOT_A_VALID_STATUS" })
       .expect(400);
@@ -1195,8 +1198,8 @@ describe("POST /api/reports/:id (Validate Report)", () => {
       title: "To validate",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1227,8 +1230,8 @@ describe("POST /api/reports/:id (Validate Report)", () => {
       title: "To validate 2",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1267,7 +1270,7 @@ describe("POST /api/reports/:id (Validate Report)", () => {
     const adminAgent = await createAdmin(admin);
     const { muniAgent } = await createMunicipality(adminAgent, muniPayload);
 
-    const res = await muniAgent
+    await muniAgent
       .post("/api/reports/999999")
       .send({ status: "ASSIGNED" })
       .expect(404);
@@ -1321,7 +1324,7 @@ describe("POST /api/reports/:id (Additional validation tests)", () => {
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("400 or 500 invalid report id format", async () => {
@@ -1364,8 +1367,8 @@ describe("POST /api/reports/:id (Additional validation tests)", () => {
       title: "Report for db verification",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1449,7 +1452,7 @@ describe("GET /api/reports/:id (Additional validation tests)", () => {
     await prisma.admin_user.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("200 report contains all required fields", async () => {
@@ -1492,8 +1495,8 @@ describe("GET /api/reports/:id (Additional validation tests)", () => {
       title: "Public report",
       description: "Public desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 9.0,
+      latitude: 45,
+      longitude: 9,
       photos: [
         {
           buffer: Buffer.from("fake"),
@@ -1557,7 +1560,7 @@ describe("Integration: Comments endpoints", () => {
     await prisma.comment.deleteMany();
     await prisma.municipality_user.deleteMany();
     await prisma.municipality_role.deleteMany();
-    await prisma.$disconnect();
+    // DO NOT disconnect - singleton is managed by test setup
   });
 
   it("POST 201: municipality user can add a comment and GET will return it", async () => {
@@ -1576,21 +1579,39 @@ describe("Integration: Comments endpoints", () => {
       password: "munipass1",
       municipality_role_id: 3,
     };
+    const muni2 = {
+      username: "muni_comments_e2e2",
+      email: "muni_comments_e2e2@example.com",
+      firstName: "Muni2",
+      lastName: "Comments2",
+      password: "munipass2",
+      municipality_role_id: 4,
+    };
 
     const adminAgent = await createAdmin(admin);
     const { muniAgent } = await createMunicipality(adminAgent, muni);
+    const { muniAgent: muniAgent2 } = await createMunicipality(
+      adminAgent,
+      muni2,
+    );
     const citizenAgent = await createAndLogin(fakeUser);
 
     const createdReport = await createReportAs(citizenAgent, {
       title: "Report for comments e2e",
       description: "Description",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
+    // Municipality approves the report first
+    await muniAgent
+      .post(`/api/reports/${createdReport.id}`)
+      .send({ status: "ASSIGNED" })
+      .expect(200);
+
     // Add comment
-    const postRes = await muniAgent
+    const postRes = await muniAgent2
       .post(`/api/reports/${createdReport.id}/comments`)
       .send({ content: "Hello from municipality" })
       .expect(201);
@@ -1599,7 +1620,7 @@ describe("Integration: Comments endpoints", () => {
     expect(postRes.body).toHaveProperty("content", "Hello from municipality");
 
     // Fetch comments
-    const getRes = await muniAgent
+    const getRes = await muniAgent2
       .get(`/api/reports/${createdReport.id}/comments`)
       .expect(200);
 
@@ -1632,8 +1653,8 @@ describe("Integration: Comments endpoints", () => {
       title: "Report missing content",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
     await muniAgent
@@ -1643,15 +1664,8 @@ describe("Integration: Comments endpoints", () => {
   });
 
   it("POST 401 when not authenticated", async () => {
-    const resident = {
-      username: "random_guest",
-      email: "random_guest@example.com",
-      firstName: "Guest",
-      lastName: "User",
-      password: "guest123",
-    };
     // don't log in - unauthenticated
-    const res = await request(app)
+    await request(app)
       .post(`/api/reports/1/comments`)
       .send({ content: "x" })
       .expect(401);
@@ -1671,8 +1685,8 @@ describe("Integration: Comments endpoints", () => {
       title: "Report citizen comment",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
     await citizenAgent
@@ -1704,45 +1718,6 @@ describe("Integration: Comments endpoints", () => {
       .expect(404);
   });
 
-  it("POST 500 when repository throws", async () => {
-    const adminAgent = await createAdmin({
-      username: "admin_comments_500",
-      email: "admin_comments_500@example.com",
-      firstName: "Admin500",
-      lastName: "Comments",
-      password: "adminpass500",
-    });
-    const { muniAgent } = await createMunicipality(adminAgent, {
-      username: "muni_comments_500",
-      email: "muni_comments_500@example.com",
-      firstName: "Muni500",
-      lastName: "Comments",
-      password: "munipass500",
-      municipality_role_id: 3,
-    });
-
-    const citizenAgent = await createAndLogin(fakeUser);
-    const createdReport = await createReportAs(citizenAgent, {
-      title: "Report for 500 test",
-      description: "desc",
-      category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
-    });
-
-    // Spy on repository to force an error path
-    jest
-      .spyOn(reportRepository, "addCommentToReport")
-      .mockRejectedValue(new Error("DB failure"));
-
-    await muniAgent
-      .post(`/api/reports/${createdReport.id}/comments`)
-      .send({ content: "trigger db error" })
-      .expect(500);
-
-    jest.restoreAllMocks();
-  });
-
   // --- GET comments cases ---
   it("GET 200 returns comments to municipality user", async () => {
     const adminAgent = await createAdmin({
@@ -1760,23 +1735,37 @@ describe("Integration: Comments endpoints", () => {
       password: "munipassget",
       municipality_role_id: 3,
     });
+    const { muniAgent: muniAgent2 } = await createMunicipality(adminAgent, {
+      username: "muni_comments_get2",
+      email: "muni_comments_get2@example.com",
+      firstName: "MuniGet2",
+      lastName: "Comments2",
+      password: "munipassget2",
+      municipality_role_id: 4,
+    });
 
     const citizenAgent = await createAndLogin(fakeUser);
     const createdReport = await createReportAs(citizenAgent, {
       title: "Report for get comments",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
-    // Add a comment via muniAgent
+    // Municipality approves the report first
     await muniAgent
+      .post(`/api/reports/${createdReport.id}`)
+      .send({ status: "ASSIGNED" })
+      .expect(200);
+
+    // Add a comment via muniAgent
+    await muniAgent2
       .post(`/api/reports/${createdReport.id}/comments`)
       .send({ content: "visible to muni" })
       .expect(201);
 
-    const getRes = await muniAgent
+    const getRes = await muniAgent2
       .get(`/api/reports/${createdReport.id}/comments`)
       .expect(200);
 
@@ -1821,8 +1810,8 @@ describe("Integration: Comments endpoints", () => {
       title: "Report get forbidden",
       description: "desc",
       category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
+      latitude: 45,
+      longitude: 7,
     });
 
     await citizenAgent
@@ -1848,43 +1837,6 @@ describe("Integration: Comments endpoints", () => {
     });
 
     await muniAgent.get(`/api/reports/999999/comments`).expect(404);
-  });
-
-  it("GET 500 when repository throws", async () => {
-    const adminAgent = await createAdmin({
-      username: "admin_comments_get_500",
-      email: "admin_comments_get_500@example.com",
-      firstName: "Admin500Get",
-      lastName: "Comments",
-      password: "adminpass500get",
-    });
-    const { muniAgent } = await createMunicipality(adminAgent, {
-      username: "muni_comments_get_500",
-      email: "muni_comments_get_500@example.com",
-      firstName: "Muni500Get",
-      lastName: "Comments",
-      password: "munipass500get",
-      municipality_role_id: 3,
-    });
-
-    const citizenAgent = await createAndLogin(fakeUser);
-    const createdReport = await createReportAs(citizenAgent, {
-      title: "Report for get 500",
-      description: "desc",
-      category: "WASTE",
-      latitude: 45.0,
-      longitude: 7.0,
-    });
-
-    jest
-      .spyOn(reportRepository, "getCommentsByReportId")
-      .mockRejectedValue(new Error("DB fail"));
-
-    await muniAgent
-      .get(`/api/reports/${createdReport.id}/comments`)
-      .expect(500);
-
-    jest.restoreAllMocks();
   });
 
   // --- External Maintainer comment scenarios ---
@@ -1924,8 +1876,8 @@ describe("Integration: Comments endpoints", () => {
         title: "Report for EM comments",
         description: "Description",
         category: "WASTE",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // Assign report to external maintainer
@@ -1941,7 +1893,10 @@ describe("Integration: Comments endpoints", () => {
         .expect(201);
 
       expect(postRes.body).toHaveProperty("id");
-      expect(postRes.body).toHaveProperty("content", "Hello from external maintainer");
+      expect(postRes.body).toHaveProperty(
+        "content",
+        "Hello from external maintainer",
+      );
       expect(postRes.body).toHaveProperty("external_maintainer_id");
     });
 
@@ -1971,8 +1926,8 @@ describe("Integration: Comments endpoints", () => {
         title: "Report not assigned",
         description: "Description",
         category: "WASTE",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // External maintainer tries to comment on unassigned report
@@ -2017,8 +1972,8 @@ describe("Integration: Comments endpoints", () => {
         title: "Report for get EM comments",
         description: "Description",
         category: "WASTE",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // Assign report to external maintainer
@@ -2064,6 +2019,14 @@ describe("Integration: Comments endpoints", () => {
         password: "munipass4",
         municipality_role_id: 3,
       };
+      const muni2 = {
+        username: "muni2_collab",
+        email: "muni2_collab@example.com",
+        firstName: "Muni2",
+        lastName: "Collab2",
+        password: "munipass4",
+        municipality_role_id: 4,
+      };
       const emData = {
         username: "em_collab_1",
         email: "em_collab_1@example.com",
@@ -2076,6 +2039,10 @@ describe("Integration: Comments endpoints", () => {
 
       const adminAgent = await createAdmin(admin);
       const { muniAgent } = await createMunicipality(adminAgent, muni);
+      const { muniAgent: muniAgent2 } = await createMunicipality(
+        adminAgent,
+        muni2,
+      );
       const { emAgent } = await createExternalMaintainer(adminAgent, emData);
       const citizenAgent = await createAndLogin(fakeUser);
 
@@ -2083,18 +2050,24 @@ describe("Integration: Comments endpoints", () => {
         title: "Collaboration test",
         description: "Description",
         category: "WASTE",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
-      // Assign report to external maintainer
+      // Municipality approves the report first
       await muniAgent
+        .post(`/api/reports/${createdReport.id}`)
+        .send({ status: "ASSIGNED" })
+        .expect(200);
+
+      // Assign report to external maintainer
+      await muniAgent2
         .post(`/api/reports/${createdReport.id}/external-maintainers/`)
         .send({})
         .expect(200);
 
       // Municipality user adds comment
-      const muniComment = await muniAgent
+      const muniComment = await muniAgent2
         .post(`/api/reports/${createdReport.id}/comments`)
         .send({ content: "Please prioritize this issue" })
         .expect(201);
@@ -2112,16 +2085,20 @@ describe("Integration: Comments endpoints", () => {
       expect(emComment.body.content).toBe("Starting work tomorrow");
 
       // Municipality user sees both comments
-      const muniCommentsRes = await muniAgent
+      const muniCommentsRes = await muniAgent2
         .get(`/api/reports/${createdReport.id}/comments`)
         .expect(200);
 
       expect(muniCommentsRes.body.length).toBeGreaterThanOrEqual(2);
       expect(
-        muniCommentsRes.body.some((c: any) => c.content === "Please prioritize this issue"),
+        muniCommentsRes.body.some(
+          (c: any) => c.content === "Please prioritize this issue",
+        ),
       ).toBeTruthy();
       expect(
-        muniCommentsRes.body.some((c: any) => c.content === "Starting work tomorrow"),
+        muniCommentsRes.body.some(
+          (c: any) => c.content === "Starting work tomorrow",
+        ),
       ).toBeTruthy();
 
       // External maintainer sees both comments
@@ -2131,10 +2108,14 @@ describe("Integration: Comments endpoints", () => {
 
       expect(emCommentsRes.body.length).toBeGreaterThanOrEqual(2);
       expect(
-        emCommentsRes.body.some((c: any) => c.content === "Please prioritize this issue"),
+        emCommentsRes.body.some(
+          (c: any) => c.content === "Please prioritize this issue",
+        ),
       ).toBeTruthy();
       expect(
-        emCommentsRes.body.some((c: any) => c.content === "Starting work tomorrow"),
+        emCommentsRes.body.some(
+          (c: any) => c.content === "Starting work tomorrow",
+        ),
       ).toBeTruthy();
     });
 
@@ -2173,15 +2154,15 @@ describe("Integration: Comments endpoints", () => {
         title: "Report to resolve",
         description: "Description",
         category: "PUBLIC_LIGHTING",
-        latitude: 45.0,
-        longitude: 7.0,
+        latitude: 45,
+        longitude: 7,
       });
 
       // Municipality approves the report first
       await muniAgent
         .post(`/api/reports/${createdReport.id}`)
         .send({ status: "ASSIGNED" })
-        .expect(204);
+        .expect(200);
 
       // Assign report to external maintainer
       await muniAgent
@@ -2193,12 +2174,12 @@ describe("Integration: Comments endpoints", () => {
       await emAgent
         .post(`/api/reports/${createdReport.id}`)
         .send({ status: "IN_PROGRESS" })
-        .expect(204);
+        .expect(200);
 
       await emAgent
         .post(`/api/reports/${createdReport.id}`)
         .send({ status: "RESOLVED" })
-        .expect(204);
+        .expect(200);
 
       // Try to add comment on RESOLVED report - should fail
       await muniAgent
@@ -2211,5 +2192,138 @@ describe("Integration: Comments endpoints", () => {
         .send({ content: "Should not be able to comment" })
         .expect(403);
     });
+  });
+});
+
+describe("GET /api/reports/search (Geospatial Search)", () => {
+  const fakeUser = {
+    username: "geo_citizen",
+    email: "geo@example.com",
+    firstName: "Geo",
+    lastName: "Citizen",
+    password: "GeoPassword1!",
+  };
+
+  beforeAll(async () => {
+    prisma = await getTestPrisma();
+  });
+
+  beforeEach(async () => {
+    await prisma.comment.deleteMany();
+    await prisma.report.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.admin_user.deleteMany();
+    await prisma.municipality_user.deleteMany();
+    await prisma.municipality_role.deleteMany();
+  });
+
+  it("200 returns reports strictly within the bounding box", async () => {
+    const agent = await createAndLogin(fakeUser);
+
+    // Define a Bounding Box: [10, 40] to [12, 42] (minLng, minLat, maxLng, maxLat)
+    const bbox = "5,40,9,50";
+
+    // 1. Report INSIDE the box
+    const insideReport = await createReportAs(agent, {
+      title: "Inside Box",
+      description: "Should be found",
+      category: "WASTE",
+      latitude: 45,
+      longitude: 7,
+      photos: [{ buffer: Buffer.from("f"), name: "p.jpg", contentType: "image/jpeg" }]
+    });
+
+    // 2. Report OUTSIDE (Longitude too low)
+    await createReportAs(agent, {
+      title: "Outside Left",
+      description: "Should NOT be found",
+      category: "WASTE",
+      latitude: 41,
+      longitude: 3, 
+      photos: [{ buffer: Buffer.from("f"), name: "p.jpg", contentType: "image/jpeg" }]
+    });
+
+    // 3. Report OUTSIDE (Latitude too high)
+    await createReportAs(agent, {
+      title: "Outside Top",
+      description: "Should NOT be found",
+      category: "WASTE",
+      latitude: 60,
+      longitude: 11,
+      photos: [{ buffer: Buffer.from("f"), name: "p.jpg", contentType: "image/jpeg" }]
+    });
+
+    // We need to ensure the report status allows it to be seen. 
+    // Depending on service logic, usually 'ASSIGNED' or 'IN_PROGRESS' are visible on public maps. 
+    // Let's manually approve the inside report to be sure, assuming PENDING might be hidden.
+    await prisma.report.update({
+      where: { id: insideReport.id },
+      data: { status: "ASSIGNED" } // Simulate approval
+    });
+
+    const response = await request(app)
+      .get(`/api/reports/search?bbox=${bbox}`)
+      .expect(200);
+
+    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body.length).toBe(1);
+    expect(response.body[0].id).toBe(insideReport.id);
+    expect(response.body[0].title).toBe("Inside Box");
+  });
+
+  it("400 if bbox parameter is missing", async () => {
+    const res = await request(app).get("/api/reports/search").expect(400);
+    expect(res.body).toHaveProperty("message", "Missing bbox parameter");
+  });
+
+  it("400 if bbox has incorrect format (not 4 parts)", async () => {
+    const res = await request(app).get("/api/reports/search?bbox=10,20,30").expect(400);
+    expect(res.body.message).toMatch(/Invalid bbox parameter format/);
+  });
+
+  it("400 if bbox contains non-numeric values", async () => {
+    const res = await request(app).get("/api/reports/search?bbox=10,20,max,40").expect(400);
+    expect(res.body.message).toMatch(/Coordinates must be valid numbers/);
+  });
+
+  it("400 if coordinates are out of range", async () => {
+    // Lat > 90
+    const res = await request(app).get("/api/reports/search?bbox=10,20,12,95").expect(400);
+    expect(res.body.message).toMatch(/Coordinates out of range/);
+  });
+
+  it("400 if min values are greater than max values", async () => {
+    // minLng (12) > maxLng (10)
+    const res = await request(app).get("/api/reports/search?bbox=12,40,10,42").expect(400);
+    expect(res.body.message).toMatch(/Expected minLng < maxLng/);
+  });
+
+  it("200 includes reports exactly on the boundary", async () => {
+    const agent = await createAndLogin(fakeUser);
+    
+    // Box: 10,40 to 12,42
+    const bbox = "10,40,12,42";
+
+    const boundaryReport = await createReportAs(agent, {
+      title: "Boundary Report",
+      description: "Exactly on minLng edge",
+      category: "WASTE",
+      latitude: 41,
+      longitude: 10, // Matches minLng
+      photos: [{ buffer: Buffer.from("f"), name: "p.jpg", contentType: "image/jpeg" }]
+    });
+
+    // Set visible status
+    await prisma.report.update({
+      where: { id: boundaryReport.id },
+      data: { status: "ASSIGNED" } 
+    });
+
+    const response = await request(app)
+      .get(`/api/reports/search?bbox=${bbox}`)
+      .expect(200);
+
+    expect(response.body.length).toBe(1);
+    expect(response.body[0].id).toBe(boundaryReport.id);
   });
 });

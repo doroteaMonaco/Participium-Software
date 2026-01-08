@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 // Cluster group for grouping nearby markers
 import ClusteredMarkers from "./ClusteredMarkers";
+import { AddressSearch } from "./AddressSearch";
 
 import type { LatLngExpression } from "leaflet";
 import type { ReportModel } from "src/services/models";
@@ -56,6 +57,11 @@ type Props = {
   reports: ReportModel[];
   markerDraggable?: boolean;
   markerLocation?: boolean;
+  showLegend?: boolean;
+  showSearch?: boolean;
+  showMarker?: boolean;
+  selectedReportId?: number | null;
+  onAddressSearch?: (lat: number, lon: number) => void;
 };
 
 const MapView: React.FC<React.PropsWithChildren<Props>> = ({
@@ -63,6 +69,11 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
   reports,
   markerDraggable = false,
   markerLocation = false,
+  showLegend = true,
+  showSearch = true,
+  showMarker = true,
+  selectedReportId = null,
+  onAddressSearch,
 }) => {
   const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJsonObject | null>(
     null,
@@ -72,11 +83,37 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
   const [isLoading, setIsLoading] = useState(true);
   const mapInstanceRef = useRef<any>(null);
 
+  // Center map on selected report
+  useEffect(() => {
+    if (selectedReportId && mapInstanceRef.current) {
+      const selectedReport = reports.find((r) => r.id === selectedReportId);
+      if (selectedReport) {
+        mapInstanceRef.current.flyTo(
+          [selectedReport.lat, selectedReport.lng],
+          16,
+          { duration: 1.5 }
+        );
+      }
+    }
+  }, [selectedReportId, reports]);
+
   const handleRecenter = () => {
     if (mapInstanceRef.current) {
       mapInstanceRef.current.flyTo(MAP_OPTIONS.center, MAP_OPTIONS.zoom, {
         duration: 1.5,
       });
+    }
+  };
+
+  const handleLocationSelect = (lat: number, lon: number, zoom: number) => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo([lat, lon], zoom, {
+        duration: 2,
+      });
+    }
+    // Call the search handler if provided
+    if (onAddressSearch) {
+      onAddressSearch(lat, lon);
     }
   };
 
@@ -105,8 +142,10 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
 
   return (
     <div className="h-full w-full relative">
+      {/* Address Search */}
+      {showSearch && <AddressSearch onLocationSelect={handleLocationSelect} />}
+
       {showOutOfBoundsAlert && (
-        // TODO: Replace with a better alert component
         <div
           className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded shadow-md flex items-center gap-4"
           role="alert"
@@ -128,68 +167,70 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
       )}
 
       {/* Legend */}
-      <div className="absolute bottom-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-3 border border-slate-200">
-        <div className="text-xs font-bold text-slate-700 mb-2">
-          Report Status
+      {showLegend && (
+        <div className="absolute bottom-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-3 border border-slate-200">
+          <div className="text-xs font-bold text-slate-700 mb-2">
+            Report Status
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{
+                  backgroundColor: "#a855f7",
+                  borderColor: "#9333ea",
+                  borderWidth: "1px",
+                }}
+              ></div>
+              <span className="text-xs text-slate-600">Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{
+                  backgroundColor: "#3b82f6",
+                  borderColor: "#2563eb",
+                  borderWidth: "1px",
+                }}
+              ></div>
+              <span className="text-xs text-slate-600">Assigned</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{
+                  backgroundColor: "#f59e0b",
+                  borderColor: "#d97706",
+                  borderWidth: "1px",
+                }}
+              ></div>
+              <span className="text-xs text-slate-600">In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{
+                  backgroundColor: "#22c55e",
+                  borderColor: "#16a34a",
+                  borderWidth: "1px",
+                }}
+              ></div>
+              <span className="text-xs text-slate-600">Resolved</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{
+                  backgroundColor: "#64748b",
+                  borderColor: "#475569",
+                  borderWidth: "1px",
+                }}
+              ></div>
+              <span className="text-xs text-slate-600">Suspended</span>
+            </div>
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{
-                backgroundColor: "#a855f7",
-                borderColor: "#9333ea",
-                borderWidth: "1px",
-              }}
-            ></div>
-            <span className="text-xs text-slate-600">Pending</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{
-                backgroundColor: "#3b82f6",
-                borderColor: "#2563eb",
-                borderWidth: "1px",
-              }}
-            ></div>
-            <span className="text-xs text-slate-600">Assigned</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{
-                backgroundColor: "#f59e0b",
-                borderColor: "#d97706",
-                borderWidth: "1px",
-              }}
-            ></div>
-            <span className="text-xs text-slate-600">In Progress</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{
-                backgroundColor: "#22c55e",
-                borderColor: "#16a34a",
-                borderWidth: "1px",
-              }}
-            ></div>
-            <span className="text-xs text-slate-600">Resolved</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{
-                backgroundColor: "#64748b",
-                borderColor: "#475569",
-                borderWidth: "1px",
-              }}
-            ></div>
-            <span className="text-xs text-slate-600">Suspended</span>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Recenter Button */}
       <button
@@ -241,14 +282,16 @@ const MapView: React.FC<React.PropsWithChildren<Props>> = ({
         {geoJsonData && (
           <>
             <GeoJSON data={geoJsonData} />
-            <CustomMarker
-              draggable={markerDraggable}
-              location={markerLocation}
-              geoJsonData={geoJsonData}
-              onOutOfBounds={() => {
-                setShowOutOfBoundsAlert(true);
-              }}
-            />
+            {showMarker && (
+              <CustomMarker
+                draggable={markerDraggable}
+                location={markerLocation}
+                geoJsonData={geoJsonData}
+                onOutOfBounds={() => {
+                  setShowOutOfBoundsAlert(true);
+                }}
+              />
+            )}
           </>
         )}
 

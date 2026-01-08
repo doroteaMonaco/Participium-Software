@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 jest.mock("@services/reportService", () => {
   const m = {
     findAll: jest.fn(),
+    findAllForMapView: jest.fn(),
     findById: jest.fn(),
     findByStatus: jest.fn(),
     submitReport: jest.fn(),
@@ -13,6 +14,8 @@ jest.mock("@services/reportService", () => {
     findReportsForExternalMaintainer: jest.fn(),
     addCommentToReport: jest.fn(),
     getCommentsOfAReportById: jest.fn(),
+    getUnreadCommentsOfAReportById: jest.fn(),
+    searchReportsByBoundingBox: jest.fn(),
   };
   return { __esModule: true, default: m };
 });
@@ -28,6 +31,7 @@ import reportService from "@services/reportService";
 import imageService from "@services/imageService";
 import {
   getReports,
+  getReportsMap,
   getReportById,
   getReportByStatus,
   submitReport,
@@ -38,22 +42,27 @@ import {
   getReportsForExternalMaintainer,
   addCommentToReport,
   getCommentOfAReportById,
+  getUnreadCommentOfAReportById,
+  reportSearchHandler,
 } from "@controllers/reportController";
-import { query } from "winston";
 import { roleType } from "@models/enums";
 
 type ServiceMock = {
   findAll: jest.Mock;
+  findAllForMapView: jest.Mock;
   findById: jest.Mock;
   findByStatus: jest.Mock;
   submitReport: jest.Mock;
   updateReportStatus: jest.Mock;
+  updateReportStatusByExternalMaintainer: jest.Mock;
   deleteReport: jest.Mock;
   findAssignedReportsForOfficer: jest.Mock;
   assignToExternalMaintainer: jest.Mock;
   findReportsForExternalMaintainer: jest.Mock;
   addCommentToReport: jest.Mock;
   getCommentsOfAReportById: jest.Mock;
+  getUnreadCommentsOfAReportById: jest.Mock;
+  searchReportsByBoundingBox: jest.Mock;
 };
 type ImageMock = {
   storeTemporaryImages: jest.Mock;
@@ -96,6 +105,24 @@ describe("reportController", () => {
 
   // -------- getReports --------
   describe("getReports", () => {
+    it("returns 401 when user is not authenticated", async () => {
+      const req = {
+        query: {},
+        user: null,
+        role: "CITIZEN",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getReports(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Authentication Error",
+        message: "User not authenticated",
+      });
+      expect(svc.findAll).not.toHaveBeenCalled();
+    });
+
     it("returns all reports (200 by default) via res.json", async () => {
       const reports = [makeReport({ id: 2 }), makeReport({ id: 1 })];
       svc.findAll.mockResolvedValue(reports);
@@ -131,39 +158,6 @@ describe("reportController", () => {
       });
     });
 
-    // it("allows citizen to filter reports by ASSIGNED status", async () => {
-    //   const approvedReports = [makeReport({ id: 1, status: "ASSIGNED" })];
-    //   svc.findAll.mockResolvedValue(approvedReports);
-
-    //   const req = {
-    //     query: { status: "ASSIGNED" },
-    //     user: { role: "CITIZEN" }
-    //   } as unknown as Request;
-    //   const res = makeRes();
-
-    //   await getReports(req, res as unknown as Response);
-
-    //   expect(svc.findAll).toHaveBeenCalledWith("ASSIGNED");
-    //   expect(res.json).toHaveBeenCalledWith(approvedReports);
-    // });
-
-    // it("denies non-citizen access to status filter", async () => {
-    //   const req = {
-    //     query: { status: "ASSIGNED" },
-    //     user: { role: "ADMIN" }
-    //   } as unknown as Request;
-    //   const res = makeRes();
-
-    //   await getReports(req, res as unknown as Response);
-
-    //   expect(res.status).toHaveBeenCalledWith(403);
-    //   expect(res.json).toHaveBeenCalledWith({
-    //     error: "Authorization Error",
-    //     message: "Access denied. Citizen role required to filter by status.",
-    //   });
-    //   expect(svc.findAll).not.toHaveBeenCalled();
-    // });
-
     it("returns 401 for invalid status filter", async () => {
       const req = {
         query: { status: "INVALID" },
@@ -180,6 +174,42 @@ describe("reportController", () => {
         message:
           "request/query/status must be equal to one of the allowed values: ASSIGNED",
       });
+      expect(svc.findAll).not.toHaveBeenCalled();
+    });
+
+    it("allows citizen to filter reports by ASSIGNED status", async () => {
+      const assignedReports = [makeReport({ id: 1, status: "ASSIGNED" })];
+      svc.findAll.mockResolvedValue(assignedReports);
+
+      const req = {
+        query: { status: "ASSIGNED" },
+        user: { id: 1 },
+        role: "CITIZEN",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getReports(req, res as unknown as Response);
+
+      expect(svc.findAll).toHaveBeenCalledWith("ASSIGNED", 1);
+      expect(res.json).toHaveBeenCalledWith(assignedReports);
+    });
+
+    it("denies non-citizen/admin/municipality access", async () => {
+      const req = {
+        query: {},
+        user: { id: 1 },
+        role: "INVALID_ROLE",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getReports(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Authorization Error",
+        }),
+      );
       expect(svc.findAll).not.toHaveBeenCalled();
     });
 
@@ -204,26 +234,54 @@ describe("reportController", () => {
       expect(res.json).toHaveBeenCalledWith(allReports);
     });
 
-    // it("returns 403 for citizen without status filter", async () => {
-    //   const req = {
-    //     query: {},
-    //     user: { role: "CITIZEN" }
-    //   } as unknown as Request;
-    //   const res = makeRes();
+    it("allows admin to filter reports by ASSIGNED status", async () => {
+      const assignedReports = [makeReport({ id: 1, status: "ASSIGNED" })];
+      svc.findAll.mockResolvedValue(assignedReports);
 
-    //   await getReports(req, res as unknown as Response);
+      const req = {
+        query: { status: "ASSIGNED" },
+        user: { id: 1 },
+        role: "ADMIN",
+      } as unknown as Request;
+      const res = makeRes();
 
-    //   expect(res.status).toHaveBeenCalledWith(403);
-    //   expect(res.json).toHaveBeenCalledWith({
-    //     error: "Authorization Error",
-    //     message: "Access denied. Required roles: ADMIN, MUNICIPALITY",
-    //   });
-    //   expect(svc.findAll).not.toHaveBeenCalled();
-    // });
+      await getReports(req, res as unknown as Response);
+
+      expect(svc.findAll).toHaveBeenCalledWith("ASSIGNED", undefined);
+      expect(res.json).toHaveBeenCalledWith(assignedReports);
+    });
+
+    it("allows municipality to filter reports by ASSIGNED status", async () => {
+      const assignedReports = [makeReport({ id: 1, status: "ASSIGNED" })];
+      svc.findAll.mockResolvedValue(assignedReports);
+
+      const req = {
+        query: { status: "ASSIGNED" },
+        user: { id: 1 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getReports(req, res as unknown as Response);
+
+      expect(svc.findAll).toHaveBeenCalledWith("ASSIGNED", undefined);
+      expect(res.json).toHaveBeenCalledWith(assignedReports);
+    });
   });
 
   // -------- getReportById --------
   describe("getReportById", () => {
+    it("returns 400 when report ID is invalid", async () => {
+      const req = { params: { id: "invalid" } } as unknown as Request;
+      const res = makeRes();
+
+      await getReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: "Invalid report ID" });
+      expect(svc.findById).not.toHaveBeenCalled();
+    });
+
     it("returns the report when found", async () => {
       const report = makeReport({ id: 42 });
       svc.findById.mockResolvedValue(report);
@@ -260,7 +318,7 @@ describe("reportController", () => {
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
-        error: "Failed to fetch report",
+        error: "db fail",
       });
     });
   });
@@ -290,7 +348,7 @@ describe("reportController", () => {
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
-        error: "Failed to fetch report",
+        error: "boom",
       });
     });
   });
@@ -344,6 +402,45 @@ describe("reportController", () => {
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({ error: "fail" });
+    });
+
+    it("allows external maintainer to update status", async () => {
+      svc.updateReportStatusByExternalMaintainer = jest
+        .fn()
+        .mockResolvedValue("IN_PROGRESS");
+
+      const req = {
+        params: { id: "5" },
+        body: { status: "IN_PROGRESS" },
+        user: { id: 10 },
+        role: "EXTERNAL_MAINTAINER",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await approveOrRejectReport(req, res as unknown as Response);
+
+      expect(
+        svc.updateReportStatusByExternalMaintainer,
+      ).toHaveBeenCalledWith(5, 10, "IN_PROGRESS");
+      expect(res.json).toHaveBeenCalledWith("IN_PROGRESS");
+    });
+
+    it("denies external maintainer invalid status", async () => {
+      const req = {
+        params: { id: "5" },
+        body: { status: "ASSIGNED" },
+        user: { id: 10 },
+        role: "EXTERNAL_MAINTAINER",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await approveOrRejectReport(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error:
+          "Invalid status. External maintainers can only set IN_PROGRESS, SUSPENDED or RESOLVED.",
+      });
     });
   });
 
@@ -591,7 +688,7 @@ describe("reportController", () => {
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
-        error: "Failed to delete report",
+        error: "delete fail",
       });
     });
   });
@@ -623,7 +720,7 @@ describe("reportController", () => {
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
-        error: "Failed to fetch report",
+        error: "find status fail",
       });
     });
   });
@@ -818,8 +915,7 @@ describe("reportController", () => {
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
-        error: "Internal Server Error",
-        message: "Unable to fetch assigned reports for municipality user",
+        error: "fail",
       });
     });
   });
@@ -1120,6 +1216,149 @@ describe("reportController", () => {
       );
     });
 
+    it("addCommentToReport -> 401 when unauthenticated", async () => {
+      const req = {
+        params: { report_id: "5" },
+        user: null,
+        role: "MUNICIPALITY",
+        body: { content: "test" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await addCommentToReport(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: "Authentication Error" }),
+      );
+    });
+
+    it("addCommentToReport -> 403 when role is missing", async () => {
+      const created = {
+        id: 11,
+        reportId: 5,
+        content: "ok",
+        external_maintainer_id: 3,
+      };
+      svc.addCommentToReport.mockResolvedValue(created);
+
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 3 },
+        role: null,
+        body: { content: "test" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await addCommentToReport(req, res as unknown as Response);
+
+      // When role is null, it defaults to EXTERNAL_MAINTAINER in the controller
+      expect(svc.addCommentToReport).toHaveBeenCalledWith({
+        reportId: 5,
+        authorId: 3,
+        authorType: "EXTERNAL_MAINTAINER",
+        content: "test",
+      });
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith(created);
+    });
+
+    it("addCommentToReport -> 400 when content is missing", async () => {
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 3 },
+        role: "MUNICIPALITY",
+        body: {},
+      } as unknown as Request;
+      const res = makeRes();
+
+      await addCommentToReport(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: "Bad Request" }),
+      );
+    });
+
+    it("addCommentToReport -> 403 on resolved report error", async () => {
+      svc.addCommentToReport.mockRejectedValue(new Error("Report is resolved"));
+
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 3 },
+        role: "MUNICIPALITY",
+        body: { content: "test" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await addCommentToReport(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: "Forbidden" }),
+      );
+    });
+
+    it("addCommentToReport -> 403 on assignment error", async () => {
+      svc.addCommentToReport.mockRejectedValue(
+        new Error("You can only comment on reports assigned to you"),
+      );
+
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 3 },
+        role: "MUNICIPALITY",
+        body: { content: "test" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await addCommentToReport(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: "Forbidden" }),
+      );
+    });
+
+    it("addCommentToReport -> 500 on generic service error", async () => {
+      svc.addCommentToReport.mockRejectedValue(new Error("Server error"));
+
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 3 },
+        role: "MUNICIPALITY",
+        body: { content: "test" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await addCommentToReport(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Server error",
+      });
+    });
+
+    it("addCommentToReport -> 404 when response is null", async () => {
+      svc.addCommentToReport.mockResolvedValue(null);
+
+      const req = {
+        params: { report_id: "999" },
+        user: { id: 3 },
+        role: "MUNICIPALITY",
+        body: { content: "test" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await addCommentToReport(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Not Found",
+        message: "Report not found",
+      });
+    });
+
     it("getCommentOfAReportById -> 200 on success", async () => {
       const comments = [{ id: 1, content: "c" }];
       svc.getCommentsOfAReportById.mockResolvedValue(comments);
@@ -1133,7 +1372,7 @@ describe("reportController", () => {
 
       await getCommentOfAReportById(req, res as unknown as Response);
 
-      expect(svc.getCommentsOfAReportById).toHaveBeenCalledWith(7);
+      expect(svc.getCommentsOfAReportById).toHaveBeenCalledWith(7, 7, "MUNICIPALITY");
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(comments);
     });
@@ -1148,6 +1387,103 @@ describe("reportController", () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({ error: "Authentication Error" }),
       );
+    });
+
+    it("getCommentOfAReportById -> 403 when role is missing", async () => {
+      const req = {
+        params: { report_id: "7" },
+        user: { id: 7 },
+        role: null,
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Authorization Error",
+          message: "User role not found",
+        }),
+      );
+    });
+
+    it("getCommentOfAReportById -> 400 when report_id is invalid", async () => {
+      const req = {
+        params: { report_id: "invalid" },
+        user: { id: 7 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Bad Request",
+          message: "Invalid report id",
+        }),
+      );
+    });
+
+    it("getCommentOfAReportById -> 404 when report not found", async () => {
+      svc.getCommentsOfAReportById.mockResolvedValue(null);
+
+      const req = {
+        params: { report_id: "999" },
+        user: { id: 7 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Not Found",
+        message: "Report not found",
+      });
+    });
+
+    it("getCommentOfAReportById -> 404 on not found error", async () => {
+      svc.getCommentsOfAReportById.mockRejectedValue(
+        new Error("Report not found"),
+      );
+
+      const req = {
+        params: { report_id: "7" },
+        user: { id: 7 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Report not found",
+      });
+    });
+
+    it("getCommentOfAReportById -> 500 on service error", async () => {
+      svc.getCommentsOfAReportById.mockRejectedValue(
+        new Error("Database error"),
+      );
+
+      const req = {
+        params: { report_id: "7" },
+        user: { id: 7 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Database error",
+      });
     });
 
     it("addCommentToReport -> 404 when service throws Report not found", async () => {
@@ -1167,6 +1503,628 @@ describe("reportController", () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({ error: "Report not found" }),
       );
+    });
+  });
+
+  // -------- getUnreadCommentOfAReportById --------
+  describe("getUnreadCommentOfAReportById", () => {
+    it("returns 200 with unread comments on success", async () => {
+      const comments = [{ id: 1, content: "Unread comment" }];
+      svc.getUnreadCommentsOfAReportById = jest.fn().mockResolvedValue(comments);
+
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 7 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getUnreadCommentOfAReportById(req, res as unknown as Response);
+
+      expect(svc.getUnreadCommentsOfAReportById).toHaveBeenCalledWith(5, 7, "MUNICIPALITY");
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(comments);
+    });
+
+    it("returns 401 when unauthenticated", async () => {
+      const req = { params: { report_id: "5" }, user: null } as any;
+      const res = makeRes();
+
+      await getUnreadCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Authentication Error",
+          message: "User not authenticated",
+        }),
+      );
+    });
+
+    it("returns 403 when role is missing", async () => {
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 7 },
+        role: null,
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getUnreadCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Authorization Error",
+          message: "User role not found",
+        }),
+      );
+    });
+
+    it("returns 400 when report_id is invalid", async () => {
+      const req = {
+        params: { report_id: "invalid" },
+        user: { id: 7 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getUnreadCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Bad Request",
+          message: "Invalid report id",
+        }),
+      );
+    });
+
+    it("returns 404 when report not found", async () => {
+      svc.getUnreadCommentsOfAReportById = jest.fn().mockResolvedValue(null);
+
+      const req = {
+        params: { report_id: "999" },
+        user: { id: 7 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getUnreadCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Not Found",
+        message: "Report not found",
+      });
+    });
+
+    it("returns 404 on not found error", async () => {
+      svc.getUnreadCommentsOfAReportById = jest
+        .fn()
+        .mockRejectedValue(new Error("Report not found"));
+
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 7 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getUnreadCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Report not found",
+      });
+    });
+
+    it("returns 500 on service error", async () => {
+      svc.getUnreadCommentsOfAReportById = jest
+        .fn()
+        .mockRejectedValue(new Error("Database error"));
+
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 7 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getUnreadCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Database error",
+      });
+    });
+  });
+
+  // -------- reportSearchHandler --------
+  describe("reportSearchHandler", () => {
+    it("returns 400 when bbox parameter is missing", async () => {
+      const req = { query: {} } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Missing bbox parameter",
+      });
+    });
+
+    it("returns 400 when bbox is not a string", async () => {
+      const req = { query: { bbox: ["7.6600", "45.0600", "7.6750", "45.0700"] } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Missing bbox parameter",
+      });
+    });
+
+    it("returns 400 when bbox has incorrect number of parts", async () => {
+      const req = { query: { bbox: "7.6600,45.0600,7.6750" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Expected format: minLng,minLat,maxLng,maxLat",
+      });
+    });
+
+    it("returns 400 when bbox contains non-numeric values", async () => {
+      const req = { query: { bbox: "invalid,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Coordinates must be valid numbers.",
+      });
+    });
+
+    it("returns 400 when latitude is out of range", async () => {
+      const req = { query: { bbox: "7.6600,95.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Coordinates out of range.",
+      });
+    });
+
+    it("returns 400 when longitude is out of range", async () => {
+      const req = { query: { bbox: "200.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox parameter format. Coordinates out of range.",
+      });
+    });
+
+    it("returns 400 when minLng >= maxLng", async () => {
+      const req = { query: { bbox: "7.6750,45.0600,7.6600,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox values. Expected minLng < maxLng and minLat < maxLat.",
+      });
+    });
+
+    it("returns 400 when minLat >= maxLat", async () => {
+      const req = { query: { bbox: "7.6600,45.0700,7.6750,45.0600" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Validation Error",
+        message: "Invalid bbox values. Expected minLng < maxLng and minLat < maxLat.",
+      });
+    });
+
+    it("returns 200 with reports when bbox is valid", async () => {
+      const mockReports = [
+        { id: 1, title: "Report 1", latitude: 45.065, longitude: 7.67 },
+        { id: 2, title: "Report 2", latitude: 45.068, longitude: 7.672 },
+      ];
+      svc.searchReportsByBoundingBox.mockResolvedValue(mockReports);
+
+      const req = { query: { bbox: "7.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(svc.searchReportsByBoundingBox).toHaveBeenCalledWith({
+        minLng: 7.66,
+        minLat: 45.06,
+        maxLng: 7.675,
+        maxLat: 45.07,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockReports);
+    });
+
+    it("returns 200 with empty array when no reports found", async () => {
+      svc.searchReportsByBoundingBox.mockResolvedValue([]);
+
+      const req = { query: { bbox: "7.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith([]);
+    });
+
+    it("returns 404 when service throws 'not found' error", async () => {
+      svc.searchReportsByBoundingBox.mockRejectedValue(new Error("Reports not found"));
+
+      const req = { query: { bbox: "7.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Reports not found",
+      });
+    });
+
+    it("returns 500 on generic service error", async () => {
+      svc.searchReportsByBoundingBox.mockRejectedValue(new Error("Database connection failed"));
+
+      const req = { query: { bbox: "7.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Database connection failed",
+      });
+    });
+
+    it("handles bbox with spaces correctly", async () => {
+      const mockReports = [{ id: 1, title: "Report 1", latitude: 45.065, longitude: 7.67 }];
+      svc.searchReportsByBoundingBox.mockResolvedValue(mockReports);
+
+      const req = { query: { bbox: " 7.6600 , 45.0600 , 7.6750 , 45.0700 " } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(svc.searchReportsByBoundingBox).toHaveBeenCalledWith({
+        minLng: 7.66,
+        minLat: 45.06,
+        maxLng: 7.675,
+        maxLat: 45.07,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it("handles negative coordinates correctly", async () => {
+      const mockReports = [{ id: 1, title: "Report 1", latitude: -23.5, longitude: -46.5 }];
+      svc.searchReportsByBoundingBox.mockResolvedValue(mockReports);
+
+      const req = { query: { bbox: "-47,-24,-46,-23" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(svc.searchReportsByBoundingBox).toHaveBeenCalledWith({
+        minLng: -47,
+        minLat: -24,
+        maxLng: -46,
+        maxLat: -23,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+  });
+
+  // -------- getReportsMap (Story 28) --------
+  describe("getReportsMap", () => {
+    it("returns reports via res.json", async () => {
+      const reports = [makeReport({ id: 1 }), makeReport({ id: 2 })];
+      svc.findAllForMapView.mockResolvedValue(reports);
+
+      const req = {} as unknown as Request;
+      const res = makeRes();
+
+      await getReportsMap(req, res as unknown as Response);
+
+      expect(svc.findAllForMapView).toHaveBeenCalledTimes(1);
+      expect(res.json).toHaveBeenCalledWith(reports);
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it("returns 500 when service throws", async () => {
+      svc.findAllForMapView.mockRejectedValue(new Error("boom"));
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+      const req = {} as unknown as Request;
+      const res = makeRes();
+
+      await getReportsMap(req, res as unknown as Response);
+
+      expect(svc.findAllForMapView).toHaveBeenCalledTimes(1);
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Failed to fetch reports for map view",
+      });
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  // -------- Additional coverage tests for error branches --------
+  describe("error handling branches", () => {
+    it("getReportsForExternalMaintainer -> 404 when not found error with 404 branch", async () => {
+      svc.findReportsForExternalMaintainer.mockRejectedValue(
+        new Error("Not found"),
+      );
+
+      const req = {
+        user: { id: 1 },
+        params: { externalMaintainersId: "1" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getReportsForExternalMaintainer(
+        req as unknown as Request,
+        res as unknown as Response,
+      );
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    it("getReportsForExternalMaintainer -> 500 for generic error", async () => {
+      svc.findReportsForExternalMaintainer.mockRejectedValue(
+        new Error("Database error"),
+      );
+
+      const req = {
+        user: { id: 1 },
+        params: { externalMaintainersId: "1" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getReportsForExternalMaintainer(
+        req as unknown as Request,
+        res as unknown as Response,
+      );
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+
+    it("addCommentToReport -> 404 when not found error", async () => {
+      svc.addCommentToReport.mockRejectedValue(new Error("Not found"));
+
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 3 },
+        role: "MUNICIPALITY",
+        body: { content: "test" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await addCommentToReport(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    it("addCommentToReport -> 500 for generic errors", async () => {
+      svc.addCommentToReport.mockRejectedValue(new Error("boom"));
+
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 3 },
+        role: "MUNICIPALITY",
+        body: { content: "test" },
+      } as unknown as Request;
+      const res = makeRes();
+
+      await addCommentToReport(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+
+    it("getCommentOfAReportById -> returns 404 when response is null", async () => {
+      svc.getCommentsOfAReportById.mockResolvedValue(null);
+
+      const req = {
+        params: { report_id: "999" },
+        user: { id: 1 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: "Not Found" }),
+      );
+    });
+
+    it("getCommentOfAReportById -> 403 when role is missing", async () => {
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 1 },
+        role: null,
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: "Authorization Error" }),
+      );
+    });
+
+    it("getCommentOfAReportById -> 404 on not found error", async () => {
+      svc.getCommentsOfAReportById.mockRejectedValue(
+        new Error("Report not found"),
+      );
+
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 1 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    it("getCommentOfAReportById -> 500 on generic error", async () => {
+      svc.getCommentsOfAReportById.mockRejectedValue(new Error("boom"));
+
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 1 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+
+    it("getUnreadCommentOfAReportById -> returns 404 when response is null", async () => {
+      svc.getUnreadCommentsOfAReportById.mockResolvedValue(null);
+
+      const req = {
+        params: { report_id: "999" },
+        user: { id: 1 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getUnreadCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: "Not Found" }),
+      );
+    });
+
+    it("getUnreadCommentOfAReportById -> 403 when role is missing", async () => {
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 1 },
+        role: null,
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getUnreadCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: "Authorization Error" }),
+      );
+    });
+
+    it("getUnreadCommentOfAReportById -> 404 on not found error", async () => {
+      svc.getUnreadCommentsOfAReportById.mockRejectedValue(
+        new Error("Report not found"),
+      );
+
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 1 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getUnreadCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    it("getUnreadCommentOfAReportById -> 500 on generic error", async () => {
+      svc.getUnreadCommentsOfAReportById.mockRejectedValue(new Error("boom"));
+
+      const req = {
+        params: { report_id: "5" },
+        user: { id: 1 },
+        role: "MUNICIPALITY",
+      } as unknown as Request;
+      const res = makeRes();
+
+      await getUnreadCommentOfAReportById(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+
+    it("reportSearchHandler -> 500 on service error", async () => {
+      svc.searchReportsByBoundingBox.mockRejectedValue(new Error("boom"));
+
+      const req = { query: { bbox: "7.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "boom" });
+    });
+
+    it("reportSearchHandler -> 404 on not found error from service", async () => {
+      svc.searchReportsByBoundingBox.mockRejectedValue(
+        new Error("Not found"),
+      );
+
+      const req = { query: { bbox: "7.6600,45.0600,7.6750,45.0700" } } as unknown as Request;
+      const res = makeRes();
+
+      await reportSearchHandler(req, res as unknown as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    it("assignToExternalMaintainer -> successfully assigns with reportId param variant", async () => {
+      const updatedReport = makeReport({ id: 10, externalMaintainerId: 5 });
+      svc.assignToExternalMaintainer.mockResolvedValue(updatedReport);
+
+      const req = {
+        params: { reportId: "10" }, // Using reportId instead of report_id
+      } as unknown as Request;
+      const res = makeRes();
+
+      await assignToExternalMaintainer(
+        req as unknown as Request,
+        res as unknown as Response,
+      );
+
+      expect(svc.assignToExternalMaintainer).toHaveBeenCalledWith(10);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(updatedReport);
     });
   });
 });

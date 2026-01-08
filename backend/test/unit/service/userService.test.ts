@@ -33,6 +33,18 @@ jest.mock("@services/imageService", () => ({
   },
 }));
 
+jest.mock("@services/emailVerificationService", () => ({
+  emailVerificationService: {
+    getPendingVerification: jest.fn(),
+    createPendingVerification: jest.fn(),
+  },
+}));
+
+jest.mock("@services/emailService", () => ({
+  __esModule: true,
+  sendVerificationEmail: jest.fn(),
+}));
+
 import { userService } from "@services/userService";
 import { userRepository } from "@repositories/userRepository";
 import { roleRepository } from "@repositories/roleRepository";
@@ -40,6 +52,8 @@ import { roleType } from "@models/enums";
 import bcrypt from "bcrypt";
 import imageService from "@services/imageService";
 import { CreateBaseUserDto } from "@dto/userDto";
+import { emailVerificationService } from "@services/emailVerificationService";
+import { sendVerificationEmail } from "@services/emailService";
 
 type RepoMock = {
   findUserByEmail: jest.Mock;
@@ -80,9 +94,7 @@ describe("userService", () => {
     };
 
     it("throws if email is already in use", async () => {
-      repo.findUserByEmail.mockRejectedValue(
-        new Error("Email is already in use"),
-      );
+      repo.findUserByEmail.mockResolvedValue(makeUser());
 
       await expect(userService.registerUser(mockUserData)).rejects.toThrow(
         "Email is already in use",
@@ -150,6 +162,165 @@ describe("userService", () => {
         },
       );
       expect(res).toBe(created);
+    });
+
+    it("creates user without firstName and lastName", async () => {
+      const userDataNoNames: CreateBaseUserDto = {
+        email: "nonames@example.com",
+        username: "nonames",
+        password: "p",
+      };
+      repo.findUserByEmail.mockResolvedValue(null);
+      repo.findUserByUsername.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue("h-pass");
+
+      const created = makeUser({
+        email: "nonames@example.com",
+        username: "nonames",
+        password: "h-pass",
+        id: 10,
+      });
+      repo.createUser.mockResolvedValue(created);
+
+      const res = await userService.registerUser(userDataNoNames);
+
+      expect(repo.createUser).toHaveBeenCalledWith(
+        userDataNoNames.email,
+        userDataNoNames.username,
+        "h-pass",
+        roleType.CITIZEN,
+        {},
+      );
+      expect(res).toBe(created);
+    });
+
+    it("creates user with all optional fields including companyName and category", async () => {
+      const userDataFull: CreateBaseUserDto = {
+        email: "full@example.com",
+        username: "fulluser",
+        firstName: "Full",
+        lastName: "User",
+        password: "p",
+        companyName: "Tech Corp",
+        category: "SOFTWARE_DEVELOPMENT",
+      };
+      repo.findUserByEmail.mockResolvedValue(null);
+      repo.findUserByUsername.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue("h-pass");
+
+      const created = makeUser({
+        email: "full@example.com",
+        username: "fulluser",
+        password: "h-pass",
+        id: 11,
+      });
+      repo.createUser.mockResolvedValue(created);
+
+      const res = await userService.registerUser(userDataFull);
+
+      expect(repo.createUser).toHaveBeenCalledWith(
+        userDataFull.email,
+        userDataFull.username,
+        "h-pass",
+        roleType.CITIZEN,
+        {
+          firstName: userDataFull.firstName,
+          lastName: userDataFull.lastName,
+          companyName: userDataFull.companyName,
+          category: userDataFull.category,
+        },
+      );
+      expect(res).toBe(created);
+    });
+  });
+
+  describe("registerUserWithVerification", () => {
+    const payload = {
+      email: "v@example.com",
+      username: "verify_user",
+      password: "plain",
+    };
+
+    const evs = emailVerificationService as any;
+    const sendEmail = sendVerificationEmail as any;
+
+    beforeEach(() => {
+      evs.getPendingVerification.mockReset();
+      evs.createPendingVerification.mockReset();
+      sendEmail.mockReset();
+    });
+
+    it("throws if email already in use", async () => {
+      repo.findUserByEmail.mockResolvedValue(makeUser());
+
+      await expect(
+        userService.registerUserWithVerification(payload as any),
+      ).rejects.toThrow("Email is already in use");
+
+      expect(repo.findUserByEmail).toHaveBeenCalledWith(
+        payload.email,
+        roleType.CITIZEN,
+      );
+      expect(repo.findUserByUsername).not.toHaveBeenCalled();
+    });
+
+    it("throws if username already in use", async () => {
+      repo.findUserByEmail.mockResolvedValue(null);
+      repo.findUserByUsername.mockResolvedValue(makeUser());
+
+      await expect(
+        userService.registerUserWithVerification(payload as any),
+      ).rejects.toThrow("Username is already in use");
+
+      expect(repo.findUserByEmail).toHaveBeenCalledWith(
+        payload.email,
+        roleType.CITIZEN,
+      );
+      expect(repo.findUserByUsername).toHaveBeenCalledWith(
+        payload.username,
+        roleType.CITIZEN,
+      );
+    });
+
+    it("throws if registration already pending", async () => {
+      repo.findUserByEmail.mockResolvedValue(null);
+      repo.findUserByUsername.mockResolvedValue(null);
+      evs.getPendingVerification.mockResolvedValue({ id: 1 });
+
+      await expect(
+        userService.registerUserWithVerification(payload as any),
+      ).rejects.toThrow("Registration already pending verification");
+
+      expect(evs.getPendingVerification).toHaveBeenCalledWith(payload.email);
+    });
+
+    it("creates pending verification, sends email and returns email", async () => {
+      repo.findUserByEmail.mockResolvedValue(null);
+      repo.findUserByUsername.mockResolvedValue(null);
+      evs.getPendingVerification.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue("h-pass");
+      evs.createPendingVerification.mockResolvedValue({ code: "123456" });
+      sendEmail.mockResolvedValue(undefined);
+
+      const res = await userService.registerUserWithVerification(
+        payload as any,
+      );
+
+      expect(bcrypt.hash).toHaveBeenCalledWith(payload.password, 10);
+      expect(evs.createPendingVerification).toHaveBeenCalledWith(
+        payload.email,
+        payload.username,
+        "",
+        "",
+        "h-pass",
+      );
+      expect(sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: payload.email,
+          code: "123456",
+        }),
+      );
+      expect(res).toBe(payload.email);
     });
   });
 
@@ -518,7 +689,7 @@ describe("userService", () => {
         profilePhoto: "user_5.jpg",
       });
 
-      const res = await userService.updateCitizenProfile(
+      await userService.updateCitizenProfile(
         5,
         "photo_key",
         "telegram_user",

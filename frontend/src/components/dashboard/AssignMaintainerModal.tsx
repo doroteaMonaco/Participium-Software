@@ -34,8 +34,8 @@ export const AssignMaintainerModal: React.FC<AssignMaintainerModalProps> = ({
 
   // Extract numeric ID from reportId (e.g., "RPT-123" -> 123)
   const getNumericReportId = (id: string): number => {
-    const match = id.match(/\d+/);
-    return match ? parseInt(match[0], 10) : 0;
+    const match = /\d+/.exec(id);
+    return match ? Number.parseInt(match[0], 10) : 0;
   };
 
   const handleAssign = async () => {
@@ -45,7 +45,7 @@ export const AssignMaintainerModal: React.FC<AssignMaintainerModalProps> = ({
     try {
       const numericId = getNumericReportId(reportId);
       await assignReportToExternalMaintainer(numericId);
-      
+
       setSuccessMessage(
         `Report successfully assigned to an external maintainer for ${reportCategory}!`,
       );
@@ -57,7 +57,10 @@ export const AssignMaintainerModal: React.FC<AssignMaintainerModalProps> = ({
         onClose();
       }, 1500);
     } catch (error: any) {
-      const message = error.response?.data?.error || error.message || "Failed to assign external maintainer";
+      const message =
+        error.response?.data?.error ||
+        error.message ||
+        "Failed to assign external maintainer";
       setErrorMessage(message);
     } finally {
       setAssigning(false);
@@ -149,10 +152,10 @@ export const AssignMaintainerModal: React.FC<AssignMaintainerModalProps> = ({
                     Automatic Assignment
                   </p>
                   <p className="text-xs text-orange-700">
-                    The system will automatically assign this report to the 
+                    The system will automatically assign this report to the
                     external maintainer specializing in{" "}
-                    <strong>{reportCategory}</strong> with the fewest active reports,
-                    ensuring optimal workload distribution.
+                    <strong>{reportCategory}</strong> with the fewest active
+                    reports, ensuring optimal workload distribution.
                   </p>
                 </div>
               </div>
@@ -167,7 +170,9 @@ export const AssignMaintainerModal: React.FC<AssignMaintainerModalProps> = ({
                 <li>An external maintainer will be automatically selected</li>
                 <li>They will be able to view and update the report status</li>
                 <li>They can add progress comments</li>
-                <li>They will mark the intervention as resolved when complete</li>
+                <li>
+                  They will mark the intervention as resolved when complete
+                </li>
               </ul>
             </div>
           </div>
