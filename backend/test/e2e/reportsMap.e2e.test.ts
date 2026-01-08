@@ -249,7 +249,7 @@ describe("Reports Map E2E (public)", () => {
     await muniAgent
       .post(`/api/reports/${created.id}`)
       .send({ status: "ASSIGNED" })
-      .expect(204);
+      .expect(200);
 
     // Public map endpoint WITHOUT auth
     const mapRes = await request(app).get("/api/reports/reports-map").expect(200);

@@ -444,7 +444,7 @@ describe("Municipality E2E", () => {
       await muniAgent
         .post(`/api/reports/${reportId}`)
         .send({ status: "ASSIGNED" })
-        .expect(204);
+        .expect(200);
 
       // Verify status changed
       const approvedRes = await muniAgent
@@ -566,7 +566,7 @@ describe("Municipality E2E", () => {
       await validatorAgent
         .post(`/api/reports/${reportId}`)
         .send({ status: "ASSIGNED" })
-        .expect(204);
+        .expect(200);
 
       // Both can add comments
       await validatorAgent
@@ -700,7 +700,7 @@ describe("Municipality E2E", () => {
       await muniAgent
         .post(`/api/reports/${report3Res.body.id}`)
         .send({ status: "REJECTED", rejectionReason: "Invalid location" })
-        .expect(204);
+        .expect(200);
 
       // Municipality can view all reports
       const allReportsRes = await muniAgent.get("/api/reports").expect(200);

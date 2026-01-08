@@ -422,7 +422,7 @@ describe("reportController", () => {
       expect(
         svc.updateReportStatusByExternalMaintainer,
       ).toHaveBeenCalledWith(5, 10, "IN_PROGRESS");
-      expect(res.json).toHaveBeenCalledWith({ status: "IN_PROGRESS" });
+      expect(res.json).toHaveBeenCalledWith("IN_PROGRESS");
     });
 
     it("denies external maintainer invalid status", async () => {

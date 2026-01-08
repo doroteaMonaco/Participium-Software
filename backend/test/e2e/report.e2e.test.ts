@@ -299,7 +299,7 @@ describe("Report E2E", () => {
       await muniAgent
         .post(`/api/reports/${created.id}`)
         .send({ status: "ASSIGNED" })
-        .expect(204);
+        .expect(200);
 
       // Verify status changed
       const updatedRes = await request(app)
@@ -356,7 +356,7 @@ describe("Report E2E", () => {
       await muniAgent
         .post(`/api/reports/${created.id}`)
         .send({ status: "ASSIGNED" })
-        .expect(204);
+        .expect(200);
 
       // Municipality assigns to external maintainer
       await muniAgent
@@ -368,12 +368,12 @@ describe("Report E2E", () => {
       await emAgent
         .post(`/api/reports/${created.id}`)
         .send({ status: "IN_PROGRESS" })
-        .expect(204);
+        .expect(200);
 
       await emAgent
         .post(`/api/reports/${created.id}`)
         .send({ status: "RESOLVED" })
-        .expect(204);
+        .expect(200);
 
       // Verify final state
       const finalRes = await request(app)
@@ -427,7 +427,7 @@ describe("Report E2E", () => {
       await muniAgent
         .post(`/api/reports/${created.id}`)
         .send({ status: "REJECTED", rejectionReason })
-        .expect(204);
+        .expect(200);
 
       // Verify rejection
       const finalRes = await request(app)
@@ -491,7 +491,7 @@ describe("Report E2E", () => {
       await muniAgent
         .post(`/api/reports/${created.id}`)
         .send({ status: "ASSIGNED" })
-        .expect(204);
+        .expect(200);
 
       await muniAgent
         .post(`/api/reports/${created.id}/external-maintainers/`)
@@ -676,7 +676,7 @@ describe("Report E2E", () => {
       await muniAgent
         .post(`/api/reports/${reportId}`)
         .send({ status: "ASSIGNED" })
-        .expect(204);
+        .expect(200);
 
       const approvedReport = await muniAgent
         .get(`/api/reports/${reportId}`)
@@ -844,7 +844,7 @@ describe("Report E2E", () => {
           status: "REJECTED",
           rejectionReason,
         })
-        .expect(204);
+        .expect(200);
 
       // Citizen views rejection reason
       const rejectedRes = await citizenAgent
@@ -949,7 +949,7 @@ describe("Report E2E", () => {
         await muniAgent
           .post(`/api/reports/${report.id}`)
           .send({ status: "ASSIGNED" })
-          .expect(204);
+          .expect(200);
 
         // Add comment
         await muniAgent
@@ -1043,22 +1043,22 @@ describe("Report E2E", () => {
       await muniAgent
         .post(`/api/reports/${report1.id}`)
         .send({ status: "ASSIGNED" })
-        .expect(204);
+        .expect(200);
 
       await muniAgent
         .post(`/api/reports/${report2.id}`)
         .send({ status: "ASSIGNED" })
-        .expect(204);
+        .expect(200);
 
       await muniAgent
         .post(`/api/reports/${report3.id}`)
         .send({ status: "ASSIGNED" })
-        .expect(204);
+        .expect(200);
 
       await muniAgent
         .post(`/api/reports/${report4.id}`)
         .send({ status: "ASSIGNED" })
-        .expect(204);
+        .expect(200);
 
       const searchRes1 = await request(app)
         .get("/api/reports/search")
@@ -1119,7 +1119,7 @@ describe("Report E2E", () => {
         await muniAgent
           .post(`/api/reports/${report.id}`)
           .send({ status: "ASSIGNED" })
-          .expect(204);
+          .expect(200);
       }
 
       // Search with a bounding box that includes only the first two reports
@@ -1171,7 +1171,7 @@ describe("Report E2E", () => {
       await muniAgent
         .post(`/api/reports/${report.id}`)
         .send({ status: "ASSIGNED" })
-        .expect(204);
+        .expect(200);
 
       // Search in a completely different area
       const searchRes = await request(app)

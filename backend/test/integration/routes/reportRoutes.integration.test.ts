@@ -511,7 +511,7 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
     await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "ASSIGNED" })
-      .expect(204);
+      .expect(200);
 
     // Verify the report status was updated
     const reportCheck = await request(app)
@@ -527,7 +527,7 @@ describe("ReportRoutes Integration (Approve/Reject Report)", () => {
     await municipalityAgent
       .post(`/api/reports/${reportId}`)
       .send({ status: "REJECTED", rejectionReason })
-      .expect(204);
+      .expect(200);
 
     // Verify the report status and reason were updated
     const reportCheck = await request(app)
@@ -1153,7 +1153,7 @@ describe("POST /api/reports/:id (Validate Report)", () => {
     await muniAgent
       .post(`/api/reports/${id}`)
       .send({ status: "REJECTED", motivation: "photos blurry" })
-      .expect(204);
+      .expect(200);
 
     // verify DB updated
     const updated = await prisma.report.findUnique({ where: { id } });
@@ -1608,7 +1608,7 @@ describe("Integration: Comments endpoints", () => {
     await muniAgent
       .post(`/api/reports/${createdReport.id}`)
       .send({ status: "ASSIGNED" })
-      .expect(204);
+      .expect(200);
 
     // Add comment
     const postRes = await muniAgent2
@@ -1757,7 +1757,7 @@ describe("Integration: Comments endpoints", () => {
     await muniAgent
       .post(`/api/reports/${createdReport.id}`)
       .send({ status: "ASSIGNED" })
-      .expect(204);
+      .expect(200);
 
     // Add a comment via muniAgent
     await muniAgent2
@@ -2058,7 +2058,7 @@ describe("Integration: Comments endpoints", () => {
       await muniAgent
         .post(`/api/reports/${createdReport.id}`)
         .send({ status: "ASSIGNED" })
-        .expect(204);
+        .expect(200);
 
       // Assign report to external maintainer
       await muniAgent2
@@ -2162,7 +2162,7 @@ describe("Integration: Comments endpoints", () => {
       await muniAgent
         .post(`/api/reports/${createdReport.id}`)
         .send({ status: "ASSIGNED" })
-        .expect(204);
+        .expect(200);
 
       // Assign report to external maintainer
       await muniAgent
@@ -2174,12 +2174,12 @@ describe("Integration: Comments endpoints", () => {
       await emAgent
         .post(`/api/reports/${createdReport.id}`)
         .send({ status: "IN_PROGRESS" })
-        .expect(204);
+        .expect(200);
 
       await emAgent
         .post(`/api/reports/${createdReport.id}`)
         .send({ status: "RESOLVED" })
-        .expect(204);
+        .expect(200);
 
       // Try to add comment on RESOLVED report - should fail
       await muniAgent
