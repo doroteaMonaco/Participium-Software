@@ -582,7 +582,7 @@ export const searchReports = async (
 ): Promise<Report[]> => {
   // Approximate 1 degree of latitude/longitude as 111km
   // radius [km] / 111 [km/degree] = delta [degrees]
-  const delta = 0.05;
+  const delta = 0.0018; // ~200m
   const minLon = longitude - delta;
   const minLat = latitude - delta;
   const maxLon = longitude + delta;
