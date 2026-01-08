@@ -34,9 +34,6 @@ sections:
 | PT28  |   7     |   3    |     9h    |      9h 30m     |
 | PT30  |   9     |   8    |     17h    |     17h 30m      |
 
-
-> place technical tasks corresponding to story `#0` and leave out story points (not applicable in this case)
-
 - Hours per task average, standard deviation (estimate and actual)
 
 |            | Mean   | StDev  |
