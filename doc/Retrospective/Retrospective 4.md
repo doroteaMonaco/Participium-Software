@@ -34,7 +34,6 @@ sections:
 | PT28  | 8       | 8      | 14h        | 14h          |
 | PT30  | 8       | 8      | 14h        | 14h          |
 
-
 > place technical tasks corresponding to story `#0` and leave out story points (not applicable in this case)
 
 - Hours per task average, standard deviation (estimate and actual)
@@ -77,28 +76,26 @@ sections:
 
 - What caused your errors in estimation (if any)?
 
-  - We made a mistake while planning the stories: initially, we assumed we would complete story 11 and planned it together with two other stories. Later, we realized we had to respect the priorities among the stories, so we removed story 11 from the plan. As a result, we had many extra hours for two stories but too few hours compared to the story points of the third story we needed to add. This led to a third story with too few hours compared to its story points, thus compromising its quality.
+  - We did not have too much errors regarding estimation other than fix bugs that was overestimated, because we based on the estimation of the previous sprint
 
 - What lessons did you learn (both positive and negative) in this sprint?
 
-  - We learned to give absolute importance to the business value of the stories, even if it meant deprioritizing stories that were already in progress.
-  - We learned to allocate a consistent amount of time to the tasks.
+  - We learned how to better manage time and collaboration during holiday periods, when team availability is reduced. We improved our use of asynchronous communication to keep work moving forward without requiring everyone to be online at the same time.
+    However, we also identified that insufficient planning for vacations can slow down decisions and feedback.
+    Overall, the sprint highlighted the importance of clear planning, documentation, and task ownership to make asynchronous teamwork effective.
 
 - Which improvement goals set in the previous retrospective were you able to achieve?
 
-  - We achieved all the goals we had previously set.
-    - In particular, thanks to the workflow document, we were able to break tasks down more effectively and work in parallel, because we had a clearer understanding of how the earlier part would be developed—so we could already work on the next part.
-    - This improved the consistency of our work and helped us avoid bottlenecks.
+  - We were able to achieve the improvement goals set in the previous retrospective. In particular, we created a more detailed and structured workflow document, which helped clarify processes, responsibilities, and transitions between stages of work. Additionally, we improved our planning by better estimating hours per story point, leading to more realistic sprint commitments and improved alignment between planned and actual effort.
 
 - Which ones you were not able to achieve? Why?
 
-  - we achieved all goals set, but we always have margin to improve,
-    for example being more specific on the workflow document
+  - None
 
 - Improvement goals for the next sprint and how to achieve them (technical tasks, team coordination, etc.)
 
-  - Doing a better workflow document (more detailed)
-  - Improve planning related to hours per story points
+  - improve team efficiency and deliver more user stories. We aim to achieve this by improving task prioritization, reducing blockers, and strengthening team coordination
 
 - One thing you are proud of as a Team!!
-  - We finished all the stories, without rushing the last day.
+
+  - We finished all the stories for this sprint, without any arguing. We communicate efficiently.
