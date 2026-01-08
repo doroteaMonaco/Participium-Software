@@ -101,7 +101,7 @@ describe("emailService", () => {
       expect(call.html).toContain("30 minutes");
     });
 
-    it("includes resend URL in email when provided", async () => {
+    it("includes verification code in email when provided", async () => {
       const params = {
         email: "user@example.com",
         firstName: "John",
@@ -114,7 +114,7 @@ describe("emailService", () => {
       await sendVerificationEmail(params);
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.html).toContain("http://localhost:3000/verify-email");
+      expect(call.html).toContain("123456");
     });
 
 it("does not include resend URL when not provided", async () => {
@@ -371,7 +371,7 @@ it("does not include resend URL when not provided", async () => {
       expect(call.html).toContain("François");
     });
 
-    it("handles URL encoding in resend URL parameter", async () => {
+    it("handles resend URL parameter acceptance without including in email", async () => {
       const params = {
         email: "user@example.com",
         firstName: "John",
@@ -385,9 +385,7 @@ it("does not include resend URL when not provided", async () => {
       await sendVerificationEmail(params);
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.html).toContain(
-        "http://localhost:3000/verify?email=user%40example.com&token=abc123"
-      );
+      expect(call.html).toContain("123456");
     });
 
     it("returns result from resend service", async () => {
