@@ -22,32 +22,30 @@ sections:
 - Code present on VCS
 - End-to-End tests performed
 
-> Please refine your DoD
-
 ### Detailed statistics
 
 | Story | # Tasks | Points | Hours est. | Hours actual |
 | ----- | ------- | ------ | ---------- | ------------ |
-| _#0_  | 12      | -      |   47h  |   45h 50m    |
-| PT15  |  8      |   3    |   9h 10m      |    9h 10m       |
-| PT27  |  10      |   5    |   13h 30m   |   13h 30m     |
-| PT28  |   7     |   3    |     9h    |      9h 30m     |
-| PT30  |   9     |   8    |     17h    |     17h 30m      |
+| _#0_  | 12      | -      | 47h        | 45h 50m      |
+| PT15  | 8       | 3      | 9h 10m     | 9h 10m       |
+| PT27  | 10      | 5      | 13h 30m    | 13h 30m      |
+| PT28  | 7       | 3      | 9h         | 9h 30m       |
+| PT30  | 9       | 8      | 17h        | 17h 30m      |
 
 - Hours per task average, standard deviation (estimate and actual)
 
-|            | Mean   | StDev  |
-| ---------- | ------ | ------ |
+|            | Mean    | StDev   |
+| ---------- | ------- | ------- |
 | Estimation | 124.78m | 146.66m |
 | Actual     | 124.57m | 140.08m |
 
 - Total estimation error ratio: sum of total hours spent / sum of total hours effort - 1
 
-  $$\frac{\sum_i spent_{task_i}}{\sum_i estimation_{task_i}} - 1 = -0.17\% $$
+  $$\frac{\sum_i spent_{task_i}}{\sum_i estimation_{task_i}} - 1 = -0.17 \ \% $$
 
 - Absolute relative task estimation error: sum( abs( spent-task-i / estimation-task-i - 1))/n
 
-  $$\frac{1}{n}\sum_i^n \left| \frac{spent_{task_i}}{estimation_task_i}-1 \right| = 2.7\%$$
+  $$\frac{1}{n}\sum_i^n \left| \frac{spent_{task_i}}{estimation_task_i}-1 \right| = 2.7 \ \%$$
 
 ## QUALITY MEASURES
 
@@ -78,9 +76,9 @@ sections:
 
 - What lessons did you learn (both positive and negative) in this sprint?
 
-- We learned how to better manage time and collaboration during holiday periods, when team availability is reduced. We improved our use of    asynchronous communication to keep work moving forward without requiring everyone to be online at the same time.
-However, we also identified that insufficient planning for vacations can slow down decisions and feedback.
-Overall, the sprint highlighted the importance of clear planning, documentation, and task ownership to make asynchronous teamwork effective.
+- We learned how to better manage time and collaboration during holiday periods, when team availability is reduced. We improved our use of asynchronous communication to keep work moving forward without requiring everyone to be online at the same time.
+  However, we also identified that insufficient planning for vacations can slow down decisions and feedback.
+  Overall, the sprint highlighted the importance of clear planning, documentation, and task ownership to make asynchronous teamwork effective.
 
 - Which improvement goals set in the previous retrospective were you able to achieve?
 
@@ -96,4 +94,4 @@ Overall, the sprint highlighted the importance of clear planning, documentation,
 
 - One thing you are proud of as a Team!!
 
- - We finished all the stories for this sprint, without any arguing. We communicate efficiently.
+- We finished all the stories for this sprint, without any arguing. We communicate efficiently.
