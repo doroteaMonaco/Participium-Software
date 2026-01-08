@@ -26,6 +26,30 @@ function getColorForStatus(status?: ReportStatus): string {
   }
 }
 
+function createMarkerIcon(color: string) {
+  return L.divIcon({
+    html: `<div style="
+      position: relative;
+      width: 32px;
+      height: 40px;
+    ">
+      <svg viewBox="0 0 32 40" style="width: 100%; height: 100%;">
+        <path 
+          d="M16 0C7.16344 0 0 7.16344 0 16C0 28 16 40 16 40C16 40 32 28 32 16C32 7.16344 24.8366 0 16 0Z" 
+          fill="${color}" 
+          stroke="white" 
+          stroke-width="1.5"
+        />
+        <circle cx="16" cy="15" r="4" fill="white" />
+      </svg>
+    </div>`,
+    className: "custom-report-marker",
+    iconSize: [32, 40],
+    iconAnchor: [16, 40],
+    popupAnchor: [0, -40],
+  });
+}
+
 function parseReportDate(rawCreated: any): string {
   if (!rawCreated) return "";
 
@@ -115,13 +139,9 @@ const ClusteredMarkers: React.FC<Props> = ({ reports }) => {
     // Add markers from reports
     reports.forEach((r) => {
       const color = getColorForStatus(r.status);
-      // create a circle marker similar to ReportMarker
-      const marker = L.circleMarker([r.lat, r.lng], {
-        radius: 10,
-        color,
-        fillColor: color,
-        fillOpacity: 0.6,
-        weight: 1.5,
+      // create a marker with a pin icon
+      const marker = L.marker([r.lat, r.lng], {
+        icon: createMarkerIcon(color),
       });
 
       const title = r.title ?? `Report #${r.id}`;
