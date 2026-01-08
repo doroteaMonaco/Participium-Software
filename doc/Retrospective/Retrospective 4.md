@@ -77,17 +77,26 @@ sections:
 
 - What caused your errors in estimation (if any)?
 
+- We did not have too much errors regarding estimation other than fix bugs that was overestimated, because we based on the estimation of the previous sprint
 
 - What lessons did you learn (both positive and negative) in this sprint?
 
+- We learned how to better manage time and collaboration during holiday periods, when team availability is reduced. We improved our use of    asynchronous communication to keep work moving forward without requiring everyone to be online at the same time.
+However, we also identified that insufficient planning for vacations can slow down decisions and feedback.
+Overall, the sprint highlighted the importance of clear planning, documentation, and task ownership to make asynchronous teamwork effective.
 
 - Which improvement goals set in the previous retrospective were you able to achieve?
 
+- We were able to achieve the improvement goals set in the previous retrospective. In particular, we created a more detailed and structured workflow document, which helped clarify processes, responsibilities, and transitions between stages of work. Additionally, we improved our planning by better estimating hours per story point, leading to more realistic sprint commitments and improved alignment between planned and actual effort.
 
 - Which ones you were not able to achieve? Why?
 
+- None
 
 - Improvement goals for the next sprint and how to achieve them (technical tasks, team coordination, etc.)
 
+- improve team efficiency and deliver more user stories. We aim to achieve this by improving task prioritization, reducing blockers, and strengthening team coordination
 
 - One thing you are proud of as a Team!!
+
+ - We finished all the stories for this sprint, without any arguing. We communicate efficiently.
