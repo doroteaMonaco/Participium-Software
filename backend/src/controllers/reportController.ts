@@ -96,7 +96,7 @@ export const getReportsMap = async (_req: Request, res: Response) => {
 export const getReportById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const parsedId = Number.parseInt(id);
+    const parsedId = Number.parseInt(id as string);
 
     if (Number.isNaN(parsedId)) {
       return res.status(400).json({ error: "Invalid report ID" });
@@ -182,7 +182,7 @@ export const approveOrRejectReport = async (req: Request, res: Response) => {
     if (isExternalMaintainerRole) {
       // External maintainer updating status (progress statuses)
       const updated = await reportService.updateReportStatusByExternalMaintainer(
-        Number.parseInt(id),
+        Number.parseInt(id as string),
         req.user!.id,
         status,
       );
@@ -190,7 +190,7 @@ export const approveOrRejectReport = async (req: Request, res: Response) => {
     } else if (isMunicipalityRole && progressStatuses.includes(status)) {
       // Municipality officer updating progress statuses on their assigned report
       const updated = await reportService.updateReportStatusByMunicipalityOfficer(
-        Number.parseInt(id),
+        Number.parseInt(id as string),
         req.user!.id,
         status,
       );
@@ -198,7 +198,7 @@ export const approveOrRejectReport = async (req: Request, res: Response) => {
     } else {
       // Municipality user approving/rejecting
       const result = await reportService.updateReportStatus(
-        Number.parseInt(id),
+        Number.parseInt(id as string),
         status,
         rejectionReason,
       );
@@ -338,7 +338,7 @@ export const getReportsForMunicipalityUser = async (
 export const deleteReport = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const deletedReport = await reportService.deleteReport(Number.parseInt(id));
+    const deletedReport = await reportService.deleteReport(Number.parseInt(id as string));
     res.json(deletedReport);
   } catch (error) {
     const errorMessage =
@@ -436,7 +436,7 @@ export const addCommentToReport = async (req: Request, res: Response) => {
       });
     }
 
-    const reportId = Number.parseInt(req.params.report_id);
+    const reportId = Number.parseInt(req.params.report_id as string);
     if (Number.isNaN(reportId)) {
       return res.status(400).json({
         error: "Bad Request",
@@ -517,7 +517,7 @@ export const getCommentOfAReportById = async (req: Request, res: Response) => {
       });
     }
 
-    const reportId = Number.parseInt(req.params.report_id);
+    const reportId = Number.parseInt(req.params.report_id as string);
     if (Number.isNaN(reportId)) {
       return res.status(400).json({
         error: "Bad Request",
@@ -567,7 +567,7 @@ export const getUnreadCommentOfAReportById = async (
       });
     }
 
-    const reportId = Number.parseInt(req.params.report_id);
+    const reportId = Number.parseInt(req.params.report_id as string);
     if (Number.isNaN(reportId)) {
       return res.status(400).json({
         error: "Bad Request",

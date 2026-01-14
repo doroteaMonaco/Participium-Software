@@ -227,7 +227,7 @@ export const userController = {
 
   async getUserById(req: Request, res: Response) {
     try {
-      const userId = Number.parseInt(req.params.id);
+      const userId = Number.parseInt(req.params.id as string);
       const { role } = req.body;
 
       throwBadRequestIfMissingObject({ userId, role });
@@ -268,7 +268,7 @@ export const userController = {
 
   async deleteUser(req: Request, res: Response) {
     try {
-      const userId = Number.parseInt(req.params.id);
+      const userId = Number.parseInt(req.params.id as string);
       const { role } = req.body;
 
       throwBadRequestIfMissingObject({ userId, role });
